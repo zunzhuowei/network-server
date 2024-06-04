@@ -1,0 +1,38 @@
+hbsoo:
+  server:
+    enable:
+      outer: true
+      inner: true
+    port:
+      outer: 5556
+      inner: 6001
+    innerClients:
+      - host: 192.168.1.104
+        port: 6000
+        type: gateway
+#      - host: 192.168.1.104
+#        port: 6001
+#        type: gateway
+#      - host: 192.168.1.104
+#        port: 6002
+#        type: gateway
+#
+#      - host: 192.168.1.104
+#        port: 6003
+#        type: hall
+#      - host: 192.168.1.104
+#        port: 6004
+#        type: hall
+#      - host: 192.168.1.104
+#        port: 6005
+#        type: hall
+#
+#      - host: 192.168.1.104
+#        port: 6006
+#        type: room
+#      - host: 192.168.1.104
+#        port: 6007
+#        type: room
+#      - host: 192.168.1.104
+#        port: 6008
+#        type: room
