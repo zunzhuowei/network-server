@@ -7,7 +7,7 @@ import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 /**
  * Created by zun.wei on 2024/5/31.
  */
-public class UnknownProtocolHandler extends SimpleChannelInboundHandler<Object> {
+public final class UnknownProtocolHandler extends SimpleChannelInboundHandler<Object> {
 
 
     @Override

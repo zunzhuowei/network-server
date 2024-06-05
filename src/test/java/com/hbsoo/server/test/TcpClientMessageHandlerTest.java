@@ -14,7 +14,15 @@ public class TcpClientMessageHandlerTest extends TcpClientMessageHandler {
 
     @Override
     public void onMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
-
+        final int msgType = decoder.readInt();
+        switch (msgType) {
+            case 1:
+                System.out.println("TcpClientMessageHandlerTest onMessage 1");
+                break;
+            case 2:
+                System.out.println("TcpClientMessageHandlerTest onMessage 2");
+            }
+        System.out.println("TcpClientMessageHandlerTest onMessage");
     }
 
 }
