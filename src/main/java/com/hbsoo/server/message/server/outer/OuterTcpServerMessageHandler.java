@@ -1,5 +1,6 @@
 package com.hbsoo.server.message.server.outer;
 
+import com.hbsoo.server.message.HBSPackage;
 import com.hbsoo.server.message.server.inner.InnerServerMessageHandler;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -11,8 +12,12 @@ public abstract class OuterTcpServerMessageHandler implements OuterServerMessage
 
     @Override
     public void onMessage(ChannelHandlerContext ctx, ByteBuf msg) {
-        final String s = msg.toString();
-        System.out.println("TcpMessageHandler = " + s);
-        ctx.close();
+        byte[] received = new byte[msg.readableBytes()];
+        msg.readBytes(received);
+        final HBSPackage.Decoder decoder = HBSPackage.Decoder.withDefaultHeader().readPackageBody(received);
+        onMessage(ctx, decoder);
     }
+
+    public abstract void onMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder);
+
 }

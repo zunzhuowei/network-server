@@ -11,6 +11,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 
 /**
+ * 网络服务器，可用于内部服务也可以用于外部服务
  * Created by zun.wei on 2024/5/31.
  */
 public final class NetworkServer {

@@ -1,5 +1,7 @@
 package com.hbsoo.server.message.client;
 
+import com.hbsoo.server.message.HBSPackage;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 
@@ -9,10 +11,14 @@ import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 public abstract class WebsocketClientMessageHandler implements ClientMessageHandler<WebSocketFrame> {
 
     @Override
-    public void onMessage(ChannelHandlerContext ctx, WebSocketFrame msg) {
-        final String s = msg.toString();
-        System.out.println("WebsocketClientMessageHandler = " + s);
-        ctx.close();
+    public void onMessage(ChannelHandlerContext ctx, WebSocketFrame webSocketFrame) {
+        final ByteBuf msg = webSocketFrame.content();
+        byte[] received = new byte[msg.readableBytes()];
+        msg.readBytes(received);
+        final HBSPackage.Decoder decoder = HBSPackage.Decoder.withDefaultHeader().readPackageBody(received);
+        onMessage(ctx, decoder);
     }
+
+    public abstract void onMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder);
 
 }

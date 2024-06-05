@@ -1,5 +1,6 @@
 package com.hbsoo.server.test;
 
+import com.hbsoo.server.message.HBSPackage;
 import com.hbsoo.server.message.client.TcpClientMessageHandler;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -12,8 +13,8 @@ import org.springframework.stereotype.Component;
 public class TcpClientMessageHandlerTest extends TcpClientMessageHandler {
 
     @Override
-    public void onMessage(ChannelHandlerContext ctx, ByteBuf msg) {
-        super.onMessage(ctx, msg);
+    public void onMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
+
     }
 
 }

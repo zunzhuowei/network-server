@@ -1,38 +1,49 @@
 hbsoo:
   server:
+    id: 1000
+    type: gateway
     enable:
       outer: true
       inner: true
     port:
-      outer: 5555
-      inner: 6000
-    innerClients:
+      outer: 5556
+      inner: 6001
+    innerServers:
       - host: 192.168.1.104
         port: 6000
         type: gateway
+        id: 1000
       - host: 192.168.1.104
         port: 6001
         type: gateway
-#      - host: 192.168.1.104
-#        port: 6002
-#        type: gateway
-#
-#      - host: 192.168.1.104
-#        port: 6003
-#        type: hall
-#      - host: 192.168.1.104
-#        port: 6004
-#        type: hall
-#      - host: 192.168.1.104
-#        port: 6005
-#        type: hall
-#
-#      - host: 192.168.1.104
-#        port: 6006
-#        type: room
-#      - host: 192.168.1.104
-#        port: 6007
-#        type: room
-#      - host: 192.168.1.104
-#        port: 6008
-#        type: room
+        id: 1001
+      - host: 192.168.1.104
+        port: 6002
+        type: gateway
+        id: 1002
+
+      - host: 192.168.1.104
+        port: 6003
+        type: hall
+        id: 2000
+      - host: 192.168.1.104
+        port: 6004
+        type: hall
+          id: 2001
+      - host: 192.168.1.104
+        port: 6005
+        type: hall
+          id: 2002
+
+      - host: 192.168.1.104
+        port: 6006
+        type: room
+          id: 3000
+      - host: 192.168.1.104
+        port: 6007
+        type: room
+          id: 3001
+      - host: 192.168.1.104
+        port: 6008
+        type: room
+          id: 3002

@@ -1,6 +1,8 @@
 package com.hbsoo.server.message.server.outer;
 
+import com.hbsoo.server.message.HBSPackage;
 import com.hbsoo.server.message.server.inner.InnerServerMessageHandler;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 
@@ -9,11 +11,22 @@ import io.netty.handler.codec.http.websocketx.WebSocketFrame;
  */
 public abstract class OuterWebsocketServerMessageHandler implements OuterServerMessageHandler<WebSocketFrame> {
 
+//    @Override
+//    public void onMessage(ChannelHandlerContext ctx, WebSocketFrame msg) {
+//        final String s = msg.toString();
+//        System.out.println("WebsocketMessageHandler = " + s);
+//        ctx.close();
+//    }
+
     @Override
-    public void onMessage(ChannelHandlerContext ctx, WebSocketFrame msg) {
-        final String s = msg.toString();
-        System.out.println("WebsocketMessageHandler = " + s);
-        ctx.close();
+    public void onMessage(ChannelHandlerContext ctx, WebSocketFrame webSocketFrame) {
+        final ByteBuf msg = webSocketFrame.content();
+        byte[] received = new byte[msg.readableBytes()];
+        msg.readBytes(received);
+        final HBSPackage.Decoder decoder = HBSPackage.Decoder.withDefaultHeader().readPackageBody(received);
+        onMessage(ctx, decoder);
     }
+
+    public abstract void onMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder);
 
 }

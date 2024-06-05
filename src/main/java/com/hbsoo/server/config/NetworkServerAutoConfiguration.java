@@ -7,6 +7,7 @@ import com.hbsoo.server.message.client.TcpClientMessageHandler;
 import com.hbsoo.server.message.server.ServerMessageHandler;
 import com.hbsoo.server.message.server.inner.InnerServerMessageHandler;
 import com.hbsoo.server.message.server.outer.OuterServerMessageHandler;
+import com.hbsoo.server.session.ServerType;
 import com.hbsoo.server.utils.SpringBeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -64,9 +65,11 @@ public class NetworkServerAutoConfiguration {
      */
     @Bean(initMethod = "connect", destroyMethod = "stop")
     public NetworkClient networkClient() {
-        final List<ServerInfo> innerClients = serverInfoProperties.getInnerClients();
+        final List<ServerInfo> innerServers = serverInfoProperties.getInnerServers();
+        final Integer id = serverInfoProperties.getId();
+        final ServerType type = serverInfoProperties.getType();
         TcpClientMessageHandler clientMessageHandler = springBeanFactory().getBean(TcpClientMessageHandler.class);
-        return new NetworkClient(innerClients, clientMessageHandler);
+        return new NetworkClient(innerServers, clientMessageHandler, id, type);
     }
 
 

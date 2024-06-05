@@ -1,5 +1,6 @@
 package com.hbsoo.server.message.client;
 
+import com.hbsoo.server.message.HBSPackage;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 
@@ -10,8 +11,13 @@ public abstract class TcpClientMessageHandler implements ClientMessageHandler<By
 
     @Override
     public void onMessage(ChannelHandlerContext ctx, ByteBuf msg) {
-        final String s = msg.toString();
-        System.out.println("TcpClientMessageHandler = " + s);
-        ctx.close();
+        byte[] received = new byte[msg.readableBytes()];
+        msg.readBytes(received);
+        final HBSPackage.Decoder decoder = HBSPackage.Decoder.withDefaultHeader().readPackageBody(received);
+        onMessage(ctx, decoder);
     }
+
+    public abstract void onMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder);
+
+
 }
