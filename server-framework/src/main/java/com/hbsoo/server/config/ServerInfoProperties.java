@@ -13,18 +13,8 @@ import java.util.Map;
 public class ServerInfoProperties {
 
     private List<ServerInfo> innerServers;
-    private Map<String, Object> port;
+    private Map<String, Object> outerServer;
     private Integer id;
-    private ServerType type;
-
-
-    public ServerType getType() {
-        return type;
-    }
-
-    public void setType(ServerType type) {
-        this.type = type;
-    }
 
     public Integer getId() {
         return id;
@@ -42,11 +32,11 @@ public class ServerInfoProperties {
         this.innerServers = innerServers;
     }
 
-    public Map<String, Object> getPort() {
-        return port;
+    public Map<String, Object> getOuterServer() {
+        return outerServer;
     }
 
-    public void setPort(Map<String, Object> port) {
-        this.port = port;
+    public void setOuterServer(Map<String, Object> outerServer) {
+        this.outerServer = outerServer;
     }
 }

@@ -1,13 +1,9 @@
 hbsoo:
   server:
     id: 1000
-    type: gateway
-    enable:
-      outer: true
-      inner: true
-    port:
-      outer: 5556
-      inner: 6001
+    outerServer:
+      enable: true
+      port: 5555
     innerServers:
       - host: 192.168.1.104
         port: 6000

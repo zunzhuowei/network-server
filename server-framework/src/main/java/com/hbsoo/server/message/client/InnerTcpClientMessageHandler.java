@@ -3,16 +3,14 @@ package com.hbsoo.server.message.client;
 import com.hbsoo.server.message.HBSPackage;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 
 /**
  * Created by zun.wei on 2024/5/31.
  */
-public abstract class WebsocketClientMessageHandler implements ClientMessageHandler<WebSocketFrame> {
+public abstract class InnerTcpClientMessageHandler implements InnerClientMessageHandler<ByteBuf> {
 
     @Override
-    public void onMessage(ChannelHandlerContext ctx, WebSocketFrame webSocketFrame) {
-        final ByteBuf msg = webSocketFrame.content();
+    public void onMessage(ChannelHandlerContext ctx, ByteBuf msg) {
         byte[] received = new byte[msg.readableBytes()];
         msg.readBytes(received);
         final HBSPackage.Decoder decoder = HBSPackage.Decoder.withDefaultHeader().readPackageBody(received);
@@ -20,5 +18,6 @@ public abstract class WebsocketClientMessageHandler implements ClientMessageHand
     }
 
     public abstract void onMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder);
+
 
 }

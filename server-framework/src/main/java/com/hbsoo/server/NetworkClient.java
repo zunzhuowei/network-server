@@ -3,7 +3,7 @@ package com.hbsoo.server;
 import com.hbsoo.server.config.ServerInfo;
 import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.HBSPackage;
-import com.hbsoo.server.message.client.TcpClientMessageHandler;
+import com.hbsoo.server.message.client.InnerClientMessageHandler;
 import com.hbsoo.server.session.ServerType;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
@@ -24,14 +24,14 @@ import java.util.concurrent.TimeUnit;
  */
 public final class NetworkClient {
 
-    private final TcpClientMessageHandler handlers;
+    private final InnerClientMessageHandler[] handlers;
     private EventLoopGroup[] groups;
     private final List<ServerInfo> innerServers;
     private final Integer serverId;
     private final ServerType serverType;
     public static Map<ServerType, ConcurrentHashMap<Integer, Channel>> clients = new ConcurrentHashMap<>();
 
-    public NetworkClient(List<ServerInfo> innerServers, TcpClientMessageHandler tcpClientMessageHandler,
+    public NetworkClient(List<ServerInfo> innerServers, InnerClientMessageHandler[] handlers,
                          Integer serverId, ServerType serverType) {
         for (ServerInfo innerClient : innerServers) {
             ConcurrentHashMap<Integer, Channel> networkClients = clients.get(innerClient.getType());
@@ -40,7 +40,7 @@ public final class NetworkClient {
                 clients.put(innerClient.getType(), networkClients);
             }
         }
-        this.handlers = tcpClientMessageHandler;
+        this.handlers = handlers;
         this.innerServers = innerServers;
         this.serverId = serverId;
         this.serverType = serverType;
@@ -83,7 +83,9 @@ public final class NetworkClient {
                                     //byte[] received = new byte[msg.readableBytes()];
                                     //msg.readBytes(received);
                                     //System.out.println("TCP Response: " + new String(received));
-                                    handlers.onMessage(ctx, msg);
+                                    for (InnerClientMessageHandler handler : handlers) {
+                                        handler.onMessage(ctx, msg);
+                                    }
                                 }
                             });
                         }
