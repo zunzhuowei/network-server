@@ -1,15 +1,14 @@
-package com.hbsoo.server.message.server.inner;
+package com.hbsoo.server.message.server;
 
 import com.hbsoo.server.message.HBSPackage;
-import com.hbsoo.server.message.server.ServerMessageHandler;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 
 /**
- * Created by zun.wei on 2024/5/31.
+ * Created by zun.wei on 2024/6/6.
  */
-public abstract class InnerWebsocketServerMessageHandler implements InnerServerMessageHandler<WebSocketFrame> {
+abstract class WebsocketServerMessageDispatcher implements ServerMessageHandler<WebSocketFrame>{
 
     @Override
     public void onMessage(ChannelHandlerContext ctx, WebSocketFrame webSocketFrame) {
@@ -21,6 +20,4 @@ public abstract class InnerWebsocketServerMessageHandler implements InnerServerM
     }
 
     public abstract void onMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder);
-
-
 }

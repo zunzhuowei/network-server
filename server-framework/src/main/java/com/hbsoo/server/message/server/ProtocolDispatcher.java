@@ -1,10 +1,6 @@
-package com.hbsoo.server.netty;
+package com.hbsoo.server.message.server;
 
-import com.hbsoo.server.message.server.*;
-import com.hbsoo.server.message.server.inner.InnerHttpServerMessageHandler;
-import com.hbsoo.server.message.server.inner.InnerTcpServerMessageHandler;
-import com.hbsoo.server.message.server.inner.InnerUdpServerMessageHandler;
-import com.hbsoo.server.message.server.inner.InnerWebsocketServerMessageHandler;
+import com.hbsoo.server.netty.*;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -18,27 +14,27 @@ import java.util.Objects;
 //@ChannelHandler.Sharable
 public final class ProtocolDispatcher extends SimpleChannelInboundHandler<ByteBuf> {
 
-    private InnerHttpServerMessageHandler httpMessageHandler;
-    private InnerTcpServerMessageHandler tcpMessageHandler;
-    private InnerUdpServerMessageHandler udpMessageHandler;
-    private InnerWebsocketServerMessageHandler websocketMessageHandler;
+    private HttpServerMessageDispatcher httpServerMessageDispatcher;
+    private TcpServerMessageDispatcher tcpServerMessageDispatcher;
+    private UdpServerMessageDispatcher udpServerMessageDispatcher;
+    private WebsocketServerMessageDispatcher websocketServerMessageDispatcher;
 
     public ProtocolDispatcher(ServerMessageHandler[] handlers) {
         if (Objects.isNull(handlers)) {
             return;
         }
         for (ServerMessageHandler handler : handlers) {
-            if (handler instanceof InnerHttpServerMessageHandler) {
-                this.httpMessageHandler = (InnerHttpServerMessageHandler) handler;
+            if (handler instanceof HttpServerMessageDispatcher) {
+                this.httpServerMessageDispatcher = (HttpServerMessageDispatcher) handler;
             }
-            if (handler instanceof InnerTcpServerMessageHandler) {
-                this.tcpMessageHandler = (InnerTcpServerMessageHandler) handler;
+            if (handler instanceof TcpServerMessageDispatcher) {
+                this.tcpServerMessageDispatcher = (TcpServerMessageDispatcher) handler;
             }
-            if (handler instanceof InnerUdpServerMessageHandler) {
-                this.udpMessageHandler = (InnerUdpServerMessageHandler) handler;
+            if (handler instanceof UdpServerMessageDispatcher) {
+                this.udpServerMessageDispatcher = (UdpServerMessageDispatcher) handler;
             }
-            if (handler instanceof InnerWebsocketServerMessageHandler) {
-                this.websocketMessageHandler = (InnerWebsocketServerMessageHandler) handler;
+            if (handler instanceof WebsocketServerMessageDispatcher) {
+                this.websocketServerMessageDispatcher = (WebsocketServerMessageDispatcher) handler;
             }
         }
     }
@@ -49,13 +45,13 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<ByteBu
         ProtocolType protocolType = determineProtocolType(msg);
         switch (protocolType) {
             case TCP: {
-                ctx.pipeline().addLast(new TcpServerHandler(tcpMessageHandler));
+                ctx.pipeline().addLast(new TcpServerHandler(tcpServerMessageDispatcher));
                 ctx.pipeline().remove(this);
                 ctx.fireChannelRead(msg.retain());
                 break;
             }
             case UDP: {
-                ctx.pipeline().addLast(new UdpServerHandler(udpMessageHandler));
+                ctx.pipeline().addLast(new UdpServerHandler(udpServerMessageDispatcher));
                 ctx.pipeline().remove(this);
                 ctx.fireChannelRead(msg.retain());
                 break;
@@ -64,9 +60,9 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<ByteBu
             case HTTP: {
                 ctx.pipeline().addLast(new HttpServerCodec());
                 ctx.pipeline().addLast(new HttpObjectAggregator(64 * 1024));
-                ctx.pipeline().addLast(new HttpRequestHandler(httpMessageHandler));
+                ctx.pipeline().addLast(new HttpRequestHandler(httpServerMessageDispatcher));
                 ctx.pipeline().addLast(new WebSocketServerProtocolHandler("/ws"));
-                ctx.pipeline().addLast(new WebSocketFrameHandler(websocketMessageHandler));
+                ctx.pipeline().addLast(new WebSocketFrameHandler(websocketServerMessageDispatcher));
                 ctx.pipeline().remove(this);
                 ctx.fireChannelRead(msg.retain());
                 break;

@@ -1,13 +1,13 @@
-package com.hbsoo.server.message.server.outer;
+package com.hbsoo.server.message.server;
 
-import com.hbsoo.server.message.server.inner.InnerServerMessageHandler;
+import com.hbsoo.server.message.HBSPackage;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.FullHttpRequest;
 
 /**
- * Created by zun.wei on 2024/5/31.
+ * Created by zun.wei on 2024/6/6.
  */
-public abstract class OuterHttpServerMessageHandler implements OuterServerMessageHandler<FullHttpRequest> {
+abstract class HttpServerMessageDispatcher implements ServerMessageHandler<FullHttpRequest>{
 
     @Override
     public void onMessage(ChannelHandlerContext ctx, FullHttpRequest msg) {
@@ -15,5 +15,7 @@ public abstract class OuterHttpServerMessageHandler implements OuterServerMessag
         System.out.println("HttpMessageHandler = " + s);
         ctx.close();
     }
+
+    public abstract void onMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder);
 
 }

@@ -1,6 +1,6 @@
 package com.hbsoo.server.netty;
 
-import com.hbsoo.server.message.server.inner.InnerWebsocketServerMessageHandler;
+import com.hbsoo.server.message.server.ServerMessageHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
@@ -9,10 +9,10 @@ import java.util.Objects;
 
 public final class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocketFrame> {
 
-    private InnerWebsocketServerMessageHandler websocketMessageHandler;
+    private final ServerMessageHandler websocketServerMessageDispatcher;
 
-    public WebSocketFrameHandler(InnerWebsocketServerMessageHandler websocketMessageHandler) {
-        this.websocketMessageHandler = websocketMessageHandler;
+    public WebSocketFrameHandler(ServerMessageHandler websocketServerMessageDispatcher) {
+        this.websocketServerMessageDispatcher = websocketServerMessageDispatcher;
     }
 
 
@@ -24,8 +24,8 @@ public final class WebSocketFrameHandler extends SimpleChannelInboundHandler<Web
         } else {
             throw new UnsupportedOperationException("Unsupported frame type: " + frame.getClass().getName());
         }*/
-        if (Objects.nonNull(websocketMessageHandler)) {
-            websocketMessageHandler.onMessage(ctx, frame);
+        if (Objects.nonNull(websocketServerMessageDispatcher)) {
+            websocketServerMessageDispatcher.onMessage(ctx, frame);
         } else {
             final String s = frame.toString();
             System.err.println("WebSocketFrameHandler not config = " + s);

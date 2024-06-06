@@ -1,6 +1,8 @@
 package com.hbsoo.server.session;
 
 import com.hbsoo.server.message.HBSPackage;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,13 +30,25 @@ public final class InnerServerSessionManager {
             clients.get(serverType).put(serverId, channel);
         }
     }
+    public static void innerLogout(ServerType serverType, Integer serverId) {
+        final ConcurrentHashMap<Integer, Channel> servers = clients.get(serverType);
+        if (servers != null) {
+            if (servers.containsKey(serverId)) {
+                servers.get(serverId).close();
+                servers.get(serverId).eventLoop().shutdownGracefully();
+            }
+            servers.remove(serverId);
+        }
+    }
 
     public static void sendMsg2ServerByType(HBSPackage.Builder msgBuilder, ServerType serverType) {
         final ConcurrentHashMap<Integer, Channel> servers = clients.get(serverType);
         if (servers != null) {
             servers.forEach((serverId, channel) -> {
                 try {
-                    channel.writeAndFlush(msgBuilder.buildPackage());
+                    final byte[] msg = msgBuilder.buildPackage();
+                    ByteBuf buf = Unpooled.wrappedBuffer(msg);
+                    channel.writeAndFlush(buf).sync();
                 } catch (Exception e) {
                     e.printStackTrace();
                     logger.error("sendMsg2ServerByType error:{}", e.getMessage());
@@ -48,7 +62,9 @@ public final class InnerServerSessionManager {
             final Channel channel = servers.get(serverId);
             if (channel != null) {
                 try {
-                    channel.writeAndFlush(msgBuilder.buildPackage());
+                    final byte[] msg = msgBuilder.buildPackage();
+                    ByteBuf buf = Unpooled.wrappedBuffer(msg);
+                    channel.writeAndFlush(buf).sync();
                 } catch (Exception e) {
                     e.printStackTrace();
                     logger.error("sendMsg2ServerByServerId error:{}", e.getMessage());
@@ -63,7 +79,9 @@ public final class InnerServerSessionManager {
             final Channel channel = servers.get(serverId);
             if (channel != null) {
                 try {
-                    channel.writeAndFlush(msgBuilder.buildPackage());
+                    final byte[] msg = msgBuilder.buildPackage();
+                    ByteBuf buf = Unpooled.wrappedBuffer(msg);
+                    channel.writeAndFlush(buf).sync();
                 } catch (Exception e) {
                     e.printStackTrace();
                     logger.error("sendMsg2ServerByServerId error:{}", e.getMessage());
@@ -76,7 +94,9 @@ public final class InnerServerSessionManager {
        clients.forEach((serverType, servers) -> {
            servers.forEach((serverId, channel) -> {
                try {
-                   channel.writeAndFlush(msgBuilder.buildPackage());
+                   final byte[] msg = msgBuilder.buildPackage();
+                   ByteBuf buf = Unpooled.wrappedBuffer(msg);
+                   channel.writeAndFlush(buf).sync();
                } catch (Exception e) {
                    e.printStackTrace();
                    logger.error("sendMsg2AllServer error:{}", e.getMessage());
@@ -94,7 +114,9 @@ public final class InnerServerSessionManager {
             final Channel channel = servers.get(serverId);
             if (channel != null) {
                 try {
-                    channel.writeAndFlush(msgBuilder.buildPackage());
+                    final byte[] msg = msgBuilder.buildPackage();
+                    ByteBuf buf = Unpooled.wrappedBuffer(msg);
+                    channel.writeAndFlush(buf).sync();
                 } catch (Exception e) {
                     e.printStackTrace();
                     logger.error("sendMsg2ServerByTypeAndKey error:{}", e.getMessage());

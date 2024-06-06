@@ -1,6 +1,6 @@
 package com.hbsoo.server.netty;
 
-import com.hbsoo.server.message.server.inner.InnerTcpServerMessageHandler;
+import com.hbsoo.server.message.server.ServerMessageHandler;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -9,11 +9,11 @@ import java.util.Objects;
 
 public final class TcpServerHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
-    private InnerTcpServerMessageHandler tcpMessageHandler;
+    private final ServerMessageHandler tcpServerMessageDispatcher;
 
 
-    public TcpServerHandler(InnerTcpServerMessageHandler tcpMessageHandler) {
-        this.tcpMessageHandler = tcpMessageHandler;
+    public TcpServerHandler(ServerMessageHandler tcpServerMessageDispatcher) {
+        this.tcpServerMessageDispatcher = tcpServerMessageDispatcher;
     }
 
     @Override
@@ -23,8 +23,8 @@ public final class TcpServerHandler extends SimpleChannelInboundHandler<ByteBuf>
         String message = new String(received);
         System.out.println("Received TCP message: " + message);
         ctx.writeAndFlush(ctx.alloc().buffer().writeBytes(("Echo: " + message).getBytes()));*/
-        if (Objects.nonNull(tcpMessageHandler)) {
-            tcpMessageHandler.onMessage(ctx, msg);
+        if (Objects.nonNull(tcpServerMessageDispatcher)) {
+            tcpServerMessageDispatcher.onMessage(ctx, msg);
         } else {
             final String s = msg.toString();
             System.err.println("TcpServerHandler not config = " + s);

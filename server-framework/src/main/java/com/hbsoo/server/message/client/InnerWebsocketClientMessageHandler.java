@@ -8,7 +8,7 @@ import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 /**
  * Created by zun.wei on 2024/5/31.
  */
-public abstract class InnerWebsocketClientMessageHandler implements InnerClientMessageHandler<WebSocketFrame> {
+abstract class InnerWebsocketClientMessageHandler implements InnerClientMessageHandler<WebSocketFrame> {
 
     @Override
     public void onMessage(ChannelHandlerContext ctx, WebSocketFrame webSocketFrame) {

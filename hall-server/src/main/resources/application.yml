@@ -1,0 +1,21 @@
+hbsoo:
+  server:
+    id: 2000
+    outerServer:
+      enable: true
+      port: 5556
+    innerServers:
+      - host: 192.168.1.104
+        port: 6000
+        type: gateway
+        id: 1000
+
+      - host: 192.168.1.104
+        port: 6003
+        type: hall
+        id: 2000
+
+      - host: 192.168.1.104
+        port: 6006
+        type: room
+        id: 3000

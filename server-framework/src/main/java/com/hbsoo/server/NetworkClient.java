@@ -3,7 +3,8 @@ package com.hbsoo.server;
 import com.hbsoo.server.config.ServerInfo;
 import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.HBSPackage;
-import com.hbsoo.server.message.client.InnerClientMessageHandler;
+import com.hbsoo.server.message.client.InnerTcpClientMessageDispatcher;
+import com.hbsoo.server.session.InnerClientSessionManager;
 import com.hbsoo.server.session.ServerType;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
@@ -13,7 +14,6 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -24,23 +24,21 @@ import java.util.concurrent.TimeUnit;
  */
 public final class NetworkClient {
 
-    private final InnerClientMessageHandler[] handlers;
-    private EventLoopGroup[] groups;
+    private final InnerTcpClientMessageDispatcher dispatcher;
     private final List<ServerInfo> innerServers;
     private final Integer serverId;
     private final ServerType serverType;
-    public static Map<ServerType, ConcurrentHashMap<Integer, Channel>> clients = new ConcurrentHashMap<>();
 
-    public NetworkClient(List<ServerInfo> innerServers, InnerClientMessageHandler[] handlers,
+    public NetworkClient(List<ServerInfo> innerServers, InnerTcpClientMessageDispatcher dispatcher,
                          Integer serverId, ServerType serverType) {
         for (ServerInfo innerClient : innerServers) {
-            ConcurrentHashMap<Integer, Channel> networkClients = clients.get(innerClient.getType());
+            ConcurrentHashMap<Integer, Channel> networkClients = InnerClientSessionManager.clients.get(innerClient.getType());
             if (networkClients == null) {
                 networkClients = new ConcurrentHashMap<>();
-                clients.put(innerClient.getType(), networkClients);
+                InnerClientSessionManager.clients.put(innerClient.getType(), networkClients);
             }
         }
-        this.handlers = handlers;
+        this.dispatcher = dispatcher;
         this.innerServers = innerServers;
         this.serverId = serverId;
         this.serverType = serverType;
@@ -48,7 +46,6 @@ public final class NetworkClient {
 
 
     public void connect() {
-        groups = new NioEventLoopGroup[innerServers.size()];
         for (int i = 0; i < innerServers.size(); i++) {
             final Integer id = innerServers.get(i).getId();
             if (Objects.equals(id, serverId)) {
@@ -57,10 +54,13 @@ public final class NetworkClient {
             final String host = innerServers.get(i).getHost();
             final int port = innerServers.get(i).getPort();
             final ServerType type = innerServers.get(i).getType();
-            EventLoopGroup group = groups[i] = new NioEventLoopGroup();
             new Thread(() -> {
                 try {
-                    start(host, port, type, group, id);
+                    Channel channel = start(host, port, type, id);
+                    while (channel == null) {
+                        TimeUnit.SECONDS.sleep(5);
+                        channel = start(host, port, type, id);
+                    }
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -68,8 +68,32 @@ public final class NetworkClient {
         }
     }
 
-    private void start(String host, int port, ServerType serverType, EventLoopGroup group, Integer id) throws InterruptedException {
+    public void reconnect(ServerType serverType, Integer serverId) {
+        for (int i = 0; i < innerServers.size(); i++) {
+            final Integer id = innerServers.get(i).getId();
+            if (!Objects.equals(id, serverId)) {
+                continue;
+            }
+            final String host = innerServers.get(i).getHost();
+            final int port = innerServers.get(i).getPort();
+            final ServerType type = innerServers.get(i).getType();
+            new Thread(() -> {
+                try {
+                    Channel channel = start(host, port, type, id);
+                    while (channel == null) {
+                        TimeUnit.SECONDS.sleep(3);
+                        channel = start(host, port, type, id);
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        }
+    }
+
+    private Channel start(String host, int port, ServerType serverType, Integer id) throws InterruptedException {
         Channel channel = null;
+        EventLoopGroup group = new NioEventLoopGroup(1);
         try {
             Bootstrap b = new Bootstrap();
             b.group(group)
@@ -83,9 +107,12 @@ public final class NetworkClient {
                                     //byte[] received = new byte[msg.readableBytes()];
                                     //msg.readBytes(received);
                                     //System.out.println("TCP Response: " + new String(received));
-                                    for (InnerClientMessageHandler handler : handlers) {
-                                        handler.onMessage(ctx, msg);
-                                    }
+                                    dispatcher.onMessage(ctx, msg);
+                                }
+                                @Override
+                                public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+                                    cause.printStackTrace();
+                                    ctx.close();
                                 }
                             });
                         }
@@ -94,32 +121,29 @@ public final class NetworkClient {
             // 登录消息
             byte[] aPackage = HBSPackage.Builder.withDefaultHeader()
                     .writeInt(HBSMessageType.InnerMessageType.LOGIN)
-                    .writeInt(serverId)//当前服务器的ID
+                    .writeInt(this.serverId)//当前服务器的ID
                     .writeStr(this.serverType.name())//当前服务器的类型
                     .writeInt(id)//登录服务器的ID
+                    .writeStr(serverType.name())//登录服务器的类型
                     .buildPackage();
             ByteBuf buf = Unpooled.wrappedBuffer(aPackage);
             channel.writeAndFlush(buf).sync();
-            // 保存客户端管道
-            clients.get(serverType).put(id, channel);
             channel.closeFuture().sync();
+            System.out.println("client close id:"+ id);
         } catch (Exception e) {
             e.printStackTrace();
             if (Objects.nonNull(channel)) {
                 channel.close();
             }
-            clients.get(serverType).remove(id);
-            TimeUnit.SECONDS.sleep(5);
-            start(host, port, serverType, group, id);
+        } finally {
+            group.shutdownGracefully();
         }
+        return channel;
     }
 
 
     public void stop() {
-        for (int i = 0; i < groups.length; i++) {
-            groups[i].shutdownGracefully();
-        }
-        clients.forEach((k, v) -> v.forEach((k1, v1) -> v1.close()));
+        InnerClientSessionManager.innerLogoutAll();
     }
 
 

@@ -1,4 +1,4 @@
-package com.hbsoo.server.message.server.inner;
+package com.hbsoo.server.message.server;
 
 import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.HBSPackage;
@@ -8,16 +8,16 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 
 /**
- * Created by zun.wei on 2024/5/31.
+ * Created by zun.wei on 2024/6/6.
  */
-public abstract class InnerTcpServerMessageHandler implements InnerServerMessageHandler<ByteBuf> {
+abstract class TcpServerMessageDispatcher implements ServerMessageHandler<ByteBuf>{
 
     @Override
     public void onMessage(ChannelHandlerContext ctx, ByteBuf msg) {
         byte[] received = new byte[msg.readableBytes()];
         msg.readBytes(received);
         final HBSPackage.Decoder decoder = HBSPackage.Decoder.withDefaultHeader().readPackageBody(received);
-        final int msgType = decoder.readInt();
+       /* final int msgType = decoder.readInt();
         // 登录
         if (msgType == HBSMessageType.InnerMessageType.LOGIN) {
             final int serverId = decoder.readInt();
@@ -32,7 +32,7 @@ public abstract class InnerTcpServerMessageHandler implements InnerServerMessage
                             .buildPackage()
             );
             return;
-        }
+        }*/
         onMessage(ctx, decoder);
     }
 

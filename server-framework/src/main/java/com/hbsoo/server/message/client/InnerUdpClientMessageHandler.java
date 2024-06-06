@@ -6,7 +6,7 @@ import io.netty.channel.socket.DatagramPacket;
 /**
  * Created by zun.wei on 2024/5/31.
  */
-public abstract class InnerUdpClientMessageHandler implements InnerClientMessageHandler<DatagramPacket> {
+abstract class InnerUdpClientMessageHandler implements InnerClientMessageHandler<DatagramPacket> {
 
     @Override
     public void onMessage(ChannelHandlerContext ctx, DatagramPacket msg) {

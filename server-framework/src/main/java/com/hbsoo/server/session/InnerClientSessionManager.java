@@ -1,6 +1,5 @@
 package com.hbsoo.server.session;
 
-import com.hbsoo.server.NetworkClient;
 import com.hbsoo.server.message.HBSPackage;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -8,6 +7,7 @@ import io.netty.channel.Channel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -17,7 +17,30 @@ public final class InnerClientSessionManager {
 
     // 使用slf4j作为日志记录工具
     private static Logger logger = LoggerFactory.getLogger(InnerClientSessionManager.class);
+    public static Map<ServerType, ConcurrentHashMap<Integer, Channel>> clients = new ConcurrentHashMap<>();
 
+    public static void innerLogin(ServerType serverType, Integer serverId, Channel channel) {
+        clients.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>()).put(serverId, channel);
+    }
+    public static void innerLogout(ServerType serverType, Integer serverId) {
+        clients.computeIfPresent(serverType, (k, v) -> {
+            if (v.containsKey(serverId)) {
+                v.get(serverId).close();
+                v.get(serverId).eventLoop().shutdownGracefully();
+            }
+            v.remove(serverId);
+            return v;
+        });
+    }
+    public static void innerLogoutAll() {
+        clients.forEach((k, v) -> {
+            v.values().forEach(channel -> {
+                channel.close();
+                channel.eventLoop().shutdownGracefully();
+            });
+            v.clear();
+        });
+    }
 
     /**
      * 向所有服务器发送消息。
@@ -29,28 +52,22 @@ public final class InnerClientSessionManager {
     public static void sendMsg2AllServer(HBSPackage.Builder msgBuilder) {
         // 构建消息包字节数组
         final byte[] msg = msgBuilder.buildPackage();
-
-        // 使用Unpooled.wrappedBuffer减少内存复制，提高性能
-        ByteBuf buf = Unpooled.wrappedBuffer(msg);
-
         try {
             // 遍历所有客户端连接，对每个连接通道执行写入和刷新操作，确保消息被发送到所有服务器
             // 使用同步机制保证线程安全，如果clients是被多线程访问和修改的
-            //synchronized (NetworkClient.class) {
-                NetworkClient.clients.values().forEach(e -> e.values().forEach(channel -> {
-                    try {
-                        channel.writeAndFlush(buf);
-                    } catch (Exception ex) {
-                        // 对异常进行处理，如记录日志
-                        logger.error("Failed to send message to server: ", ex);
-                        // 可以根据需要决定是否需要对发送失败的服务器进行重试等操作
-                    }
-                }));
-            //}
+            clients.values().forEach(e -> e.values().forEach(channel -> {
+                try {
+                    // 使用Unpooled.wrappedBuffer减少内存复制，提高性能
+                    ByteBuf buf = Unpooled.wrappedBuffer(msg);
+                    channel.writeAndFlush(buf).sync();
+                } catch (Exception ex) {
+                    // 对异常进行处理，如记录日志
+                    logger.error("Failed to send message to server: ", ex);
+                    // 可以根据需要决定是否需要对发送失败的服务器进行重试等操作
+                }
+            }));
         } catch (Exception ex) {
             logger.error("An unexpected error occurred while sending message to servers: ", ex);
-        } finally {
-            buf.release();
         }
     }
 
@@ -65,25 +82,19 @@ public final class InnerClientSessionManager {
     public static void sendMsg2ServerByType(HBSPackage.Builder msgBuilder, ServerType serverType) {
         // 构建消息包
         final byte[] msg = msgBuilder.buildPackage();
-
-        // 将消息包复制到ByteBuf中，以便于网络传输
-        ByteBuf buf = Unpooled.wrappedBuffer(msg);
-
         // 获取与指定服务器类型对应的服务器集合
-        final ConcurrentHashMap<Integer, Channel> servers = NetworkClient.clients.get(serverType);
+        final ConcurrentHashMap<Integer, Channel> servers = clients.get(serverType);
         // 此处注释提示：接下来应有代码逻辑用于从servers中选择一个特定的Channel，并通过该Channel发送buf中的消息
-        try {
-            servers.values().forEach(channel -> {
-                try {
-                    channel.writeAndFlush(buf);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    logger.error("Failed to send message to server: ", e);
-                }
-            });
-        } finally {
-            buf.release();
-        }
+        servers.values().forEach(channel -> {
+            try {
+                // 将消息包复制到ByteBuf中，以便于网络传输
+                ByteBuf buf = Unpooled.wrappedBuffer(msg);
+                channel.writeAndFlush(buf).sync();
+            } catch (Exception e) {
+                e.printStackTrace();
+                logger.error("Failed to send message to server: ", e);
+            }
+        });
     }
 
     /**
@@ -98,22 +109,17 @@ public final class InnerClientSessionManager {
     public static void sendMsg2ServerByServerId(HBSPackage.Builder msgBuilder, int serverId) {
         // 构建消息包字节数组
         final byte[] msg = msgBuilder.buildPackage();
-        // 创建一个ByteBuf对象，并将消息包字节数组复制到其中
-        ByteBuf buf = Unpooled.wrappedBuffer(msg);
-        try {
-            // 遍历所有客户端连接，找到目标服务器ID对应的连接，然后发送消息
-            NetworkClient.clients.values().forEach(e -> {
-                try {
-                    e.get(serverId).writeAndFlush(buf);
-                } catch (Exception exception) {
-                    exception.printStackTrace();
-                    logger.error("Failed to send message to server: ", exception);
-                }
-            });
-        } finally {
-            // 无论发送操作是否成功，都释放ByteBuf资源
-            buf.release();
-        }
+        // 遍历所有客户端连接，找到目标服务器ID对应的连接，然后发送消息
+        clients.values().forEach(e -> {
+            try {
+                // 创建一个ByteBuf对象，并将消息包字节数组复制到其中
+                ByteBuf buf = Unpooled.wrappedBuffer(msg);
+                e.get(serverId).writeAndFlush(buf).sync();
+            } catch (Exception exception) {
+                exception.printStackTrace();
+                logger.error("Failed to send message to server: ", exception);
+            }
+        });
     }
 
     /**
@@ -128,50 +134,42 @@ public final class InnerClientSessionManager {
     public static void sendMsg2ServerByServerId(HBSPackage.Builder msgBuilder, int serverId, ServerType serverType) {
         // 构建消息包字节数组
         final byte[] msg = msgBuilder.buildPackage();
-        // 创建一个ByteBuf对象，并将消息包字节数组复制到其中
-        ByteBuf buf = Unpooled.wrappedBuffer(msg);
+        // 遍历所有客户端连接，找到目标服务器ID对应的连接，然后发送消息
+        final ConcurrentHashMap<Integer, Channel> servers = clients.get(serverType);
+        if (servers == null) {
+            return;
+        }
+        final Channel channel = servers.get(serverId);
+        if (channel == null) {
+            return;
+        }
         try {
-            // 遍历所有客户端连接，找到目标服务器ID对应的连接，然后发送消息
-            final ConcurrentHashMap<Integer, Channel> servers = NetworkClient.clients.get(serverType);
-            if (servers == null) {
-                return;
-            }
-            final Channel channel = servers.get(serverId);
-            if (channel == null) {
-                return;
-            }
-            try {
-                channel.writeAndFlush(buf);
-            } catch (Exception e) {
-                e.printStackTrace();
-                logger.error("Failed to send message to server: ", e);
-            }
-        }finally {
-            buf.release();
+            // 创建一个ByteBuf对象，并将消息包字节数组复制到其中
+            ByteBuf buf = Unpooled.wrappedBuffer(msg);
+            channel.writeAndFlush(buf).sync();
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Failed to send message to server: ", e);
         }
     }
 
     public static void sendMsg2ServerByTypeAndKey(HBSPackage.Builder msgBuilder, ServerType serverType, String key) {
         final byte[] msg = msgBuilder.buildPackage();
-        ByteBuf buf = Unpooled.wrappedBuffer(msg);
         //根据key的hash值判断使用哪个服务器
+        final ConcurrentHashMap<Integer, Channel> servers = clients.get(serverType);
+        if (servers == null) {
+            return;
+        }
+        final Channel channel = servers.get(key.hashCode() % servers.size());
+        if (channel == null) {
+            return;
+        }
         try {
-            final ConcurrentHashMap<Integer, Channel> servers = NetworkClient.clients.get(serverType);
-            if (servers == null) {
-                return;
-            }
-            final Channel channel = servers.get(key.hashCode() % servers.size());
-            if (channel == null) {
-                return;
-            }
-            try {
-                channel.writeAndFlush(buf);
-            } catch (Exception e) {
-                e.printStackTrace();
-                logger.error("Failed to send message to server: ", e);
-            }
-        }finally {
-            buf.release();
+            ByteBuf buf = Unpooled.wrappedBuffer(msg);
+            channel.writeAndFlush(buf).sync();
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Failed to send message to server: ", e);
         }
     }
     public static void sendMsg2ServerByTypeAndKey(HBSPackage.Builder msgBuilder, ServerType serverType, Long id) {

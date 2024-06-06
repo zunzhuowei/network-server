@@ -7,7 +7,7 @@ import io.netty.channel.ChannelHandlerContext;
 /**
  * Created by zun.wei on 2024/5/31.
  */
-public abstract class InnerTcpClientMessageHandler implements InnerClientMessageHandler<ByteBuf> {
+abstract class InnerTcpClientMessageHandler implements InnerClientMessageHandler<ByteBuf> {
 
     @Override
     public void onMessage(ChannelHandlerContext ctx, ByteBuf msg) {

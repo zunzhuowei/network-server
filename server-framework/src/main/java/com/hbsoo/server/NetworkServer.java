@@ -1,7 +1,7 @@
 package com.hbsoo.server;
 
 import com.hbsoo.server.message.server.ServerMessageHandler;
-import com.hbsoo.server.netty.ProtocolDispatcher;
+import com.hbsoo.server.message.server.ProtocolDispatcher;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;

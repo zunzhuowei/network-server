@@ -2,9 +2,19 @@ package com.hbsoo.server.config;
 
 import com.hbsoo.server.NetworkClient;
 import com.hbsoo.server.NetworkServer;
-import com.hbsoo.server.message.client.InnerClientMessageHandler;
-import com.hbsoo.server.message.server.inner.InnerServerMessageHandler;
-import com.hbsoo.server.message.server.outer.OuterServerMessageHandler;
+import com.hbsoo.server.action.InnerClientLoginAction;
+import com.hbsoo.server.action.InnerServerLoginAction;
+import com.hbsoo.server.message.client.InnerTcpClientMessageDispatcher;
+import com.hbsoo.server.message.server.ServerMessageHandler;
+import com.hbsoo.server.message.server.InnerHttpServerMessageDispatcher;
+import com.hbsoo.server.message.server.InnerTcpServerMessageDispatcher;
+import com.hbsoo.server.message.server.InnerUdpServerMessageDispatcher;
+import com.hbsoo.server.message.server.InnerWebsocketServerMessageDispatcher;
+import com.hbsoo.server.message.server.OuterHttpServerMessageDispatcher;
+import com.hbsoo.server.message.server.OuterTcpServerMessageDispatcher;
+import com.hbsoo.server.message.server.OuterUdpServerMessageDispatcher;
+import com.hbsoo.server.message.server.OuterWebsocketServerMessageDispatcher;
+import com.hbsoo.server.session.HeartbeatSender;
 import com.hbsoo.server.session.ServerType;
 import com.hbsoo.server.utils.SpringBeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +42,51 @@ public class NetworkServerAutoConfiguration {
     public SpringBeanFactory springBeanFactory() {
         return new SpringBeanFactory();
     }
+    @Bean
+    public InnerServerLoginAction innerServerLoginAction() {
+        return new InnerServerLoginAction();
+    }
+    @Bean
+    public InnerClientLoginAction innerClientLoginAction() {
+        return new InnerClientLoginAction();
+    }
+    @Bean
+    public InnerTcpClientMessageDispatcher innerTcpClientMessageDispatcher() {
+        return new InnerTcpClientMessageDispatcher();
+    }
+    @Bean
+    public InnerTcpServerMessageDispatcher innerTcpServerMessageDispatcher() {
+        return new InnerTcpServerMessageDispatcher();
+    }
+    @Bean
+    public InnerWebsocketServerMessageDispatcher innerWebsocketServerMessageDispatcher() {
+        return new InnerWebsocketServerMessageDispatcher();
+    }
+    @Bean
+    public InnerHttpServerMessageDispatcher innerHttpServerMessageDispatcher() {
+        return new InnerHttpServerMessageDispatcher();
+    }
+    @Bean
+    public InnerUdpServerMessageDispatcher innerUdpServerMessageDispatcher() {
+        return new InnerUdpServerMessageDispatcher();
+    }
+
+    @Bean
+    public OuterHttpServerMessageDispatcher outerHttpServerMessageDispatcher() {
+        return new OuterHttpServerMessageDispatcher();
+    }
+    @Bean
+    public OuterTcpServerMessageDispatcher outerTcpServerMessageDispatcher() {
+        return new OuterTcpServerMessageDispatcher();
+    }
+    @Bean
+    public OuterUdpServerMessageDispatcher outerUdpServerMessageDispatcher() {
+        return new OuterUdpServerMessageDispatcher();
+    }
+    @Bean
+    public OuterWebsocketServerMessageDispatcher outerWebsocketServerMessageDispatcher() {
+        return new OuterWebsocketServerMessageDispatcher();
+    }
 
     /**
      * 暴露给外网的端口服务器
@@ -41,13 +96,17 @@ public class NetworkServerAutoConfiguration {
     public NetworkServer outerServer() {
         final Map<String, Object> outerServer = serverInfoProperties.getOuterServer();
         final Object port = outerServer.get("port");
-        final Map<String, OuterServerMessageHandler> messageHandler = springBeanFactory().getBeansOfType(OuterServerMessageHandler.class);
-        OuterServerMessageHandler[] handlers = messageHandler.values().toArray(new OuterServerMessageHandler[0]);
+        ServerMessageHandler[] handlers = new ServerMessageHandler[]{
+                springBeanFactory().getBean("outerHttpServerMessageDispatcher", OuterHttpServerMessageDispatcher.class),
+                springBeanFactory().getBean("outerTcpServerMessageDispatcher", OuterTcpServerMessageDispatcher.class),
+                springBeanFactory().getBean("outerUdpServerMessageDispatcher", OuterUdpServerMessageDispatcher.class),
+                springBeanFactory().getBean("outerWebsocketServerMessageDispatcher", OuterWebsocketServerMessageDispatcher.class)
+        };
         return new NetworkServer(Integer.parseInt(port.toString()), handlers);
     }
 
     /**
-     * 暴漏给内网的端口服务器
+     * 暴露给内网的端口服务器
      */
     @Bean(initMethod = "start", destroyMethod = "stop")
     public NetworkServer innerServer() {
@@ -56,8 +115,12 @@ public class NetworkServerAutoConfiguration {
         final Optional<ServerInfo> optional = innerServers.stream().filter(e -> e.getId().equals(id)).findFirst();
         final ServerInfo serverInfo = optional.get();
         final int port = serverInfo.getPort();
-        final Map<String, InnerServerMessageHandler> messageHandler = springBeanFactory().getBeansOfType(InnerServerMessageHandler.class);
-        InnerServerMessageHandler[] handlers = messageHandler.values().toArray(new InnerServerMessageHandler[0]);
+        ServerMessageHandler[] handlers = new ServerMessageHandler[]{
+                springBeanFactory().getBean("innerTcpServerMessageDispatcher", InnerTcpServerMessageDispatcher.class),
+                springBeanFactory().getBean("innerWebsocketServerMessageDispatcher", InnerWebsocketServerMessageDispatcher.class),
+                springBeanFactory().getBean("innerHttpServerMessageDispatcher", InnerHttpServerMessageDispatcher.class),
+                springBeanFactory().getBean("innerUdpServerMessageDispatcher", InnerUdpServerMessageDispatcher.class)
+        };
         return new NetworkServer(port, handlers);
     }
 
@@ -65,17 +128,19 @@ public class NetworkServerAutoConfiguration {
      * 内部服务沟通客户端
      */
     @Bean(initMethod = "connect", destroyMethod = "stop")
-    public NetworkClient networkClient() {
+    public NetworkClient tcpNetworkClient() {
         final Integer id = serverInfoProperties.getId();
         final List<ServerInfo> innerServers = serverInfoProperties.getInnerServers();
         final Optional<ServerInfo> optional = innerServers.stream().filter(e -> e.getId().equals(id)).findFirst();
         final ServerInfo serverInfo = optional.get();
         final ServerType type = serverInfo.getType();
-        final Map<String, InnerClientMessageHandler> messageHandler = springBeanFactory().getBeansOfType(InnerClientMessageHandler.class);
-        InnerClientMessageHandler[] handlers = messageHandler.values().toArray(new InnerClientMessageHandler[0]);
-        //TcpClientMessageHandler clientMessageHandler = springBeanFactory().getBean(TcpClientMessageHandler.class);
-        return new NetworkClient(innerServers, handlers, id, type);
+        InnerTcpClientMessageDispatcher dispatcher = springBeanFactory().getBean("innerTcpClientMessageDispatcher", InnerTcpClientMessageDispatcher.class);
+        return new NetworkClient(innerServers, dispatcher, id, type);
     }
 
+    @Bean(initMethod = "startHeartbeatSender", destroyMethod = "stopHeartbeatSender")
+    public HeartbeatSender heartbeatSender() {
+        return new HeartbeatSender();
+    }
 
 }

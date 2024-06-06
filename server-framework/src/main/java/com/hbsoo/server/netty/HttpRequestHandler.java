@@ -1,6 +1,6 @@
 package com.hbsoo.server.netty;
 
-import com.hbsoo.server.message.server.inner.InnerHttpServerMessageHandler;
+import com.hbsoo.server.message.server.ServerMessageHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
@@ -9,10 +9,10 @@ import java.util.Objects;
 
 public final class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
-    private InnerHttpServerMessageHandler httpMessageHandler;
+    private final ServerMessageHandler httpServerMessageDispatcher;
 
-    public HttpRequestHandler(InnerHttpServerMessageHandler httpMessageHandler) {
-        this.httpMessageHandler = httpMessageHandler;
+    public HttpRequestHandler(ServerMessageHandler httpServerMessageDispatcher) {
+        this.httpServerMessageDispatcher = httpServerMessageDispatcher;
     }
 
 
@@ -27,8 +27,8 @@ public final class HttpRequestHandler extends SimpleChannelInboundHandler<FullHt
         } else {
             ctx.fireChannelRead(request.retain());
         }*/
-        if (Objects.nonNull(httpMessageHandler)) {
-            httpMessageHandler.onMessage(ctx, request);
+        if (Objects.nonNull(httpServerMessageDispatcher)) {
+            httpServerMessageDispatcher.onMessage(ctx, request);
         } else {
             final String s = request.toString();
             System.err.println("HttpMessageHandler not config = " + s);
