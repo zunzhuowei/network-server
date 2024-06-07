@@ -36,7 +36,7 @@ abstract class InnerWebsocketClientMessageHandler implements InnerClientMessageH
         byte[] received = new byte[content.readableBytes()];
         content.readBytes(received);
         final HBSPackage.Decoder decoder = HBSPackage.Decoder.withDefaultHeader().readPackageBody(received);
-        final int msgType = decoder.readInt();
+        final int msgType = decoder.readMsgType();
         final InnerWebsocketClientMessageHandler dispatcher = innerWebsocketClientDispatchers.get(msgType);
         if (Objects.nonNull(dispatcher)) {
             dispatcher.onMessage(ctx, decoder);

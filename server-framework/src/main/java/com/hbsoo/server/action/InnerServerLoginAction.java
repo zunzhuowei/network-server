@@ -30,7 +30,7 @@ public class InnerServerLoginAction extends InnerTcpServerMessageDispatcher {
         InnerServerSessionManager.innerLogin(ServerType.valueOf(serverTypeStr), serverId, ctx.channel());
         //decoder.resetBodyReadOffset();
         final byte[] aPackage = HBSPackage.Builder.withDefaultHeader()
-                .writeInt(HBSMessageType.InnerMessageType.LOGIN)
+                .msgType(HBSMessageType.InnerMessageType.LOGIN)
                 .writeInt(id)
                 .writeStr(loginServerTypeStr)
                 .buildPackage();

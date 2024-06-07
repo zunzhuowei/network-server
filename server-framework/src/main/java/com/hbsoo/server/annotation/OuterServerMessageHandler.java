@@ -13,4 +13,9 @@ import java.lang.annotation.*;
 @Component
 public @interface OuterServerMessageHandler {
     int value();
+
+    /**
+     * http协议专属 http请求
+     */
+    String uri() default "";
 }

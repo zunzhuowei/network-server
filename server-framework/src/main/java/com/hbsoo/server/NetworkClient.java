@@ -125,7 +125,7 @@ public final class NetworkClient {
             channel = b.connect(host, port).sync().channel();
             // 登录消息
             byte[] aPackage = HBSPackage.Builder.withDefaultHeader()
-                    .writeInt(HBSMessageType.InnerMessageType.LOGIN)
+                    .msgType(HBSMessageType.InnerMessageType.LOGIN)
                     .writeInt(this.serverId)//当前服务器的ID
                     .writeStr(this.serverType.name())//当前服务器的类型
                     .writeInt(id)//登录服务器的ID

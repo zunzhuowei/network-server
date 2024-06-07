@@ -13,6 +13,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * 内部服务器客户端，发送心跳给内部服务器服务端
+ */
 public final class HeartbeatSender {
     private static Logger logger = LoggerFactory.getLogger(HeartbeatSender.class);
 
@@ -39,7 +42,7 @@ public final class HeartbeatSender {
         public void run() {
             try {
                 final HBSPackage.Builder builder = HBSPackage.Builder.withDefaultHeader()
-                        .writeInt(HBSMessageType.InnerMessageType.HEARTBEAT);
+                        .msgType(HBSMessageType.InnerMessageType.HEARTBEAT);
                 sendMsg2AllServer(builder);
             } catch (Exception e) {
                 // 异常处理，例如记录日志

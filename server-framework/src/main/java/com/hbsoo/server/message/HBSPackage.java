@@ -23,6 +23,7 @@ public final class HBSPackage {
         private final AtomicInteger packageLength = new AtomicInteger(0);
         private final List<Byte> bodyByteList = new ArrayList<>();
         private final List<Byte> headerByteList = new ArrayList<>();
+        private final List<Byte> msgTypeList = new ArrayList<>();
 
         private Builder(byte[] header) {
             assert header.length % 2 == 0;
@@ -71,6 +72,17 @@ public final class HBSPackage {
                 }
                 packageLength.getAndAdd(2);
             }
+            return this;
+        }
+
+        public Builder msgType(int msgType) {
+            final ByteBuffer buffer = ByteBuffer.allocate(4);
+            buffer.putInt(msgType);
+            final byte[] array = buffer.array();
+            for (byte b : array) {
+                msgTypeList.add(b);
+            }
+            packageLength.getAndAdd(4);
             return this;
         }
 
@@ -155,12 +167,17 @@ public final class HBSPackage {
             if (headerByteList.isEmpty()) {
                 throw new RuntimeException("package header not set");
             }
+            final boolean empty = msgTypeList.isEmpty();
+            if (empty) {
+                throw new RuntimeException("msgType not set");
+            }
             int packageLen = packageLength.get();
             int packageBodyLen = packageLen - headerByteList.size();
             final ByteBuffer buffer = ByteBuffer.allocate(packageLen + 4);
             // header +(int) bodyLen + body
             headerByteList.forEach(buffer::put);
             buffer.putInt(packageBodyLen);
+            msgTypeList.forEach(buffer::put);
             bodyByteList.forEach(buffer::put);
             return buffer.array();
         }
@@ -248,6 +265,22 @@ public final class HBSPackage {
             byte[] bytes = new byte[4];
             System.arraycopy(body, readOffset.getAndAdd(4), bytes, 0, bytes.length);
             return ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN).getInt();
+        }
+
+        /**
+         * 获取消息类型,阅读偏移量不移动
+         * @return
+         */
+        public int getMsgType() {
+            return skipGetInt();
+        }
+
+        /**
+         * 获取消息类型,阅读偏移量移动4个字节
+         * @return
+         */
+        public int readMsgType() {
+            return readInt();
         }
 
         public long readLong() {

@@ -12,5 +12,11 @@ import java.lang.annotation.*;
 @Documented
 @Component
 public @interface InnerServerMessageHandler {
+
     int value();
+
+    /**
+     * http协议专属 http请求
+     */
+    String uri() default "";
 }

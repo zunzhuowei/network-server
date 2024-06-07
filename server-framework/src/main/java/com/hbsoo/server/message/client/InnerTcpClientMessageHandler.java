@@ -36,15 +36,20 @@ abstract class InnerTcpClientMessageHandler implements InnerClientMessageHandler
 
     @Override
     public void onMessage(ChannelHandlerContext ctx, ByteBuf msg) {
-        byte[] received = new byte[msg.readableBytes()];
-        msg.readBytes(received);
-        final HBSPackage.Decoder decoder = HBSPackage.Decoder.withDefaultHeader().readPackageBody(received);
-        final int msgType = decoder.readInt();
-        final InnerTcpClientMessageHandler dispatcher = innerTcpClientDispatchers.get(msgType);
-        if (Objects.nonNull(dispatcher)) {
-            innerClientThreadPoolScheduler.execute(dispatcher.threadKey(decoder), () -> {
-                dispatcher.onMessage(ctx, decoder);
-            });
+        try {
+            byte[] received = new byte[msg.readableBytes()];
+            msg.readBytes(received);
+            final HBSPackage.Decoder decoder = HBSPackage.Decoder.withDefaultHeader().readPackageBody(received);
+            final int msgType = decoder.readMsgType();
+            final InnerTcpClientMessageHandler dispatcher = innerTcpClientDispatchers.get(msgType);
+            if (Objects.nonNull(dispatcher)) {
+                innerClientThreadPoolScheduler.execute(dispatcher.threadKey(decoder), () -> {
+                    dispatcher.onMessage(ctx, decoder);
+                });
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            ctx.close();
         }
         //onMessage(ctx, decoder);
     }

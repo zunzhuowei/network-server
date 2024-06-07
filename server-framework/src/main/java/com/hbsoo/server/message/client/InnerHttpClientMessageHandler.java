@@ -36,7 +36,7 @@ abstract class InnerHttpClientMessageHandler implements InnerClientMessageHandle
         byte[] received = new byte[content.readableBytes()];
         content.readBytes(received);
         final HBSPackage.Decoder decoder = HBSPackage.Decoder.withDefaultHeader().readPackageBody(received);
-        final int msgType = decoder.readInt();
+        final int msgType = decoder.readMsgType();
         final InnerHttpClientMessageHandler dispatcher = innerHttpClientDispatchers.get(msgType);
         if (Objects.nonNull(dispatcher)) {
             dispatcher.onMessage(ctx, decoder);

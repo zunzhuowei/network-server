@@ -54,7 +54,7 @@ public final class OuterSessionManager {
     private void syncSession2OtherServerWithServerSide(ServerType serverType, Long id, int msgType) {
         final HBSPackage.Builder builder = HBSPackage.Builder.withDefaultHeader()
                 //.writeInt(HBSMessageType.OuterMessageType.LOGIN_SYNC)
-                .writeInt(msgType)
+                .msgType(msgType)
                 .writeLong(id)
                 .writeStr(this.serverType.name())
                 .writeInt(this.serverId);
@@ -64,7 +64,7 @@ public final class OuterSessionManager {
     private void syncSession2OtherServerWithClientSide(ServerType serverType, Long id, int msgType) {
         final HBSPackage.Builder builder = HBSPackage.Builder.withDefaultHeader()
                 //.writeInt(HBSMessageType.OuterMessageType.LOGIN_SYNC)
-                .writeInt(msgType)
+                .msgType(msgType)
                 .writeLong(id)
                 .writeStr(this.serverType.name())
                 .writeInt(this.serverId);

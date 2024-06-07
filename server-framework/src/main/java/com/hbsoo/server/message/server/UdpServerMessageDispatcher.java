@@ -49,24 +49,29 @@ abstract class UdpServerMessageDispatcher implements ServerMessageHandler<Datagr
 
     @Override
     public void onMessage(ChannelHandlerContext ctx, DatagramPacket msg) {
-        final ByteBuf content = msg.content();
-        byte[] received = new byte[content.readableBytes()];
-        content.readBytes(received);
-        final HBSPackage.Decoder decoder = HBSPackage.Decoder.withDefaultHeader().readPackageBody(received);
-        final int msgType = decoder.readInt();
-        final boolean innerDispatcher = isInnerDispatcher();
-        Map<Integer, UdpServerMessageDispatcher> dispatcherMap = innerDispatcher ? innerUdpServerDispatchers : outerUdpServerDispatchers;
-        final UdpServerMessageDispatcher dispatcher = dispatcherMap.get(msgType);
-        if (Objects.nonNull(dispatcher)) {
-            if (innerDispatcher) {
-                innerServerThreadPoolScheduler.execute(dispatcher.threadKey(decoder), () -> {
-                    dispatcher.onMessage(ctx, decoder);
-                });
-            } else {
-                outerServerThreadPoolScheduler.execute(dispatcher.threadKey(decoder), () -> {
-                    dispatcher.onMessage(ctx, decoder);
-                });
+        try {
+            final ByteBuf content = msg.content();
+            byte[] received = new byte[content.readableBytes()];
+            content.readBytes(received);
+            final HBSPackage.Decoder decoder = HBSPackage.Decoder.withDefaultHeader().readPackageBody(received);
+            final int msgType = decoder.readMsgType();
+            final boolean innerDispatcher = isInnerDispatcher();
+            Map<Integer, UdpServerMessageDispatcher> dispatcherMap = innerDispatcher ? innerUdpServerDispatchers : outerUdpServerDispatchers;
+            final UdpServerMessageDispatcher dispatcher = dispatcherMap.get(msgType);
+            if (Objects.nonNull(dispatcher)) {
+                if (innerDispatcher) {
+                    innerServerThreadPoolScheduler.execute(dispatcher.threadKey(decoder), () -> {
+                        dispatcher.onMessage(ctx, decoder);
+                    });
+                } else {
+                    outerServerThreadPoolScheduler.execute(dispatcher.threadKey(decoder), () -> {
+                        dispatcher.onMessage(ctx, decoder);
+                    });
+                }
             }
+        } catch (Exception e) {
+            e.printStackTrace();
+            ctx.close();
         }
         //onMessage(ctx, decoder);
     }

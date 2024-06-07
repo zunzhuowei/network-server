@@ -2,6 +2,7 @@ package com.hbsoo.server.config;
 
 import com.hbsoo.server.NetworkClient;
 import com.hbsoo.server.NetworkServer;
+import com.hbsoo.server.action.HttpIndexAction;
 import com.hbsoo.server.action.InnerClientLoginAction;
 import com.hbsoo.server.action.InnerServerLoginAction;
 import com.hbsoo.server.message.client.InnerTcpClientMessageDispatcher;
@@ -88,7 +89,10 @@ public class NetworkServerAutoConfiguration {
     public OuterWebsocketServerMessageDispatcher outerWebsocketServerMessageDispatcher() {
         return new OuterWebsocketServerMessageDispatcher();
     }
-
+//    @Bean
+//    public HttpIndexAction httpIndexAction() {
+//        return new HttpIndexAction();
+//    }
     /**
      * 暴露给外网的端口服务器
      */

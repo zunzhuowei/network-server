@@ -1,6 +1,7 @@
 package com.hbsoo.server.message.server;
 
 import com.hbsoo.server.message.HBSPackage;
+import com.hbsoo.server.message.HttpPackage;
 import io.netty.channel.ChannelHandlerContext;
 
 /**
@@ -20,7 +21,7 @@ public class InnerHttpServerMessageDispatcher extends HttpServerMessageDispatche
     }
 
     @Override
-    public void onMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
+    public void onMessage(ChannelHandlerContext ctx, HttpPackage httpPackage) {
     }
 
 }
