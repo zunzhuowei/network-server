@@ -36,7 +36,7 @@ public class InnerServerLoginAction extends InnerTcpServerMessageDispatcher {
                 .buildPackage();
         ByteBuf buf = Unpooled.wrappedBuffer(aPackage);
         ctx.channel().writeAndFlush(buf);
-        logger.info("InnerServerLoginAction login success,serverType[{}],id[{}]", serverTypeStr, serverId);
+        logger.info("接收到内部服务器登录消息：InnerServerLoginAction login success,serverType[{}],id[{}]", serverTypeStr, serverId);
     }
 
 }

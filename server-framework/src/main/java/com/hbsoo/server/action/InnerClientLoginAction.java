@@ -25,7 +25,7 @@ public class InnerClientLoginAction extends InnerTcpClientMessageDispatcher {
         final int id = decoder.readInt();
         final String loginServerTypeStr = decoder.readStr();
         InnerClientSessionManager.innerLogin(ServerType.valueOf(loginServerTypeStr), id, ctx.channel());
-        logger.info("InnerClientLoginAction login success,serverType[{}],id[{}]", loginServerTypeStr, id);
+        logger.info("服务器返回的登录消息：InnerClientLoginAction login success,serverType[{}],id[{}]", loginServerTypeStr, id);
 
     }
 

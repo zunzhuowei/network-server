@@ -14,19 +14,12 @@ public class InnerUdpServerMessageDispatcher extends UdpServerMessageDispatcher 
 
 
     @Override
+    public boolean isInnerDispatcher() {
+        return true;
+    }
+
+    @Override
     public void onMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
-        final int msgType = decoder.readInt();
-        final Map<String, Object> handlers = SpringBeanFactory.getBeansWithAnnotation(InnerServerMessageHandler.class);
-        //根据消息类型与注解的value只匹配相应的处理器
-        handlers.values().stream()
-                .filter(handler -> {
-                    if (!(handler instanceof InnerUdpServerMessageDispatcher)) {
-                        return false;
-                    }
-                    final InnerServerMessageHandler messageHandler = handler.getClass().getAnnotation(InnerServerMessageHandler.class);
-                    return messageHandler.value() == msgType;
-                })
-                .findFirst().ifPresent(handler -> ((InnerUdpServerMessageDispatcher) handler).onMessage(ctx, decoder));
     }
 
 }

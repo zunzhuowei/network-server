@@ -14,19 +14,12 @@ public class OuterUdpServerMessageDispatcher extends UdpServerMessageDispatcher 
 
 
     @Override
+    public boolean isInnerDispatcher() {
+        return false;
+    }
+
+    @Override
     public void onMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
-        final int msgType = decoder.readInt();
-        final Map<String, Object> handlers = SpringBeanFactory.getBeansWithAnnotation(OuterServerMessageHandler.class);
-        //根据消息类型与注解的value只匹配相应的处理器
-        handlers.values().stream()
-                .filter(handler -> {
-                    if (!(handler instanceof OuterUdpServerMessageDispatcher)) {
-                        return false;
-                    }
-                    final OuterServerMessageHandler messageHandler = handler.getClass().getAnnotation(OuterServerMessageHandler.class);
-                    return messageHandler.value() == msgType;
-                })
-                .findFirst().ifPresent(handler -> ((OuterUdpServerMessageDispatcher) handler).onMessage(ctx, decoder));
     }
 
 }
