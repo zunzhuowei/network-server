@@ -10,6 +10,11 @@ public class OuterHttpServerMessageDispatcher extends HttpServerMessageDispatche
 
 
     @Override
+    public Object threadKey(HBSPackage.Decoder decoder) {
+        return null;
+    }
+
+    @Override
     public boolean isInnerDispatcher() {
         return false;
     }

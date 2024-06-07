@@ -2,8 +2,10 @@ package com.hbsoo.server.message.client;
 
 import com.hbsoo.server.message.HBSPackage;
 import com.hbsoo.server.utils.SpringBeanFactory;
+import com.hbsoo.server.utils.ThreadPoolScheduler;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.annotation.PostConstruct;
 import java.util.Map;
@@ -16,6 +18,9 @@ import java.util.concurrent.ConcurrentHashMap;
 abstract class InnerTcpClientMessageHandler implements InnerClientMessageHandler<ByteBuf> {
 
     protected static final Map<Integer, InnerTcpClientMessageHandler> innerTcpClientDispatchers = new ConcurrentHashMap<>();
+    @Autowired
+    private ThreadPoolScheduler innerClientThreadPoolScheduler;
+
     @PostConstruct
     protected void init() {
         final Map<String, Object> handlers = SpringBeanFactory.getBeansWithAnnotation(com.hbsoo.server.annotation.InnerClientMessageHandler.class);
@@ -37,7 +42,9 @@ abstract class InnerTcpClientMessageHandler implements InnerClientMessageHandler
         final int msgType = decoder.readInt();
         final InnerTcpClientMessageHandler dispatcher = innerTcpClientDispatchers.get(msgType);
         if (Objects.nonNull(dispatcher)) {
-            dispatcher.onMessage(ctx, decoder);
+            innerClientThreadPoolScheduler.execute(dispatcher.threadKey(decoder), () -> {
+                dispatcher.onMessage(ctx, decoder);
+            });
         }
         //onMessage(ctx, decoder);
     }

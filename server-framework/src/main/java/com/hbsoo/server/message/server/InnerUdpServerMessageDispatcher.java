@@ -1,17 +1,18 @@
 package com.hbsoo.server.message.server;
 
-import com.hbsoo.server.annotation.InnerServerMessageHandler;
 import com.hbsoo.server.message.HBSPackage;
-import com.hbsoo.server.utils.SpringBeanFactory;
 import io.netty.channel.ChannelHandlerContext;
-
-import java.util.Map;
 
 /**
  * Created by zun.wei on 2024/6/6.
  */
 public class InnerUdpServerMessageDispatcher extends UdpServerMessageDispatcher {
 
+
+    @Override
+    public Object threadKey(HBSPackage.Decoder decoder) {
+        return null;
+    }
 
     @Override
     public boolean isInnerDispatcher() {

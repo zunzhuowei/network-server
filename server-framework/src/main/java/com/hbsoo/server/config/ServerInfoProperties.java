@@ -1,6 +1,5 @@
 package com.hbsoo.server.config;
 
-import com.hbsoo.server.session.ServerType;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.List;
@@ -14,7 +13,16 @@ public class ServerInfoProperties {
 
     private List<ServerInfo> innerServers;
     private Map<String, Object> outerServer;
+    private Map<String, Object> threadPoolSize;
     private Integer id;
+
+    public Map<String, Object> getThreadPoolSize() {
+        return threadPoolSize;
+    }
+
+    public void setThreadPoolSize(Map<String, Object> threadPoolSize) {
+        this.threadPoolSize = threadPoolSize;
+    }
 
     public Integer getId() {
         return id;

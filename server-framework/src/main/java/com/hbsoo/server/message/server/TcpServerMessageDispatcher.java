@@ -4,8 +4,11 @@ import com.hbsoo.server.annotation.InnerServerMessageHandler;
 import com.hbsoo.server.annotation.OuterServerMessageHandler;
 import com.hbsoo.server.message.HBSPackage;
 import com.hbsoo.server.utils.SpringBeanFactory;
+import com.hbsoo.server.utils.ThreadPoolScheduler;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 import javax.annotation.PostConstruct;
 import java.util.Map;
@@ -19,6 +22,12 @@ abstract class TcpServerMessageDispatcher implements ServerMessageHandler<ByteBu
 
     protected static final Map<Integer, TcpServerMessageDispatcher> innerTcpServerDispatchers = new ConcurrentHashMap<>();
     protected static final Map<Integer, TcpServerMessageDispatcher> outerTcpServerDispatchers = new ConcurrentHashMap<>();
+    @Autowired
+    private ThreadPoolScheduler innerServerThreadPoolScheduler;
+    @Qualifier("outerServerThreadPoolScheduler")
+    @Autowired(required = false)
+    private ThreadPoolScheduler outerServerThreadPoolScheduler;
+
     @PostConstruct
     protected void init() {
         final boolean innerDispatcher = isInnerDispatcher();
@@ -48,7 +57,15 @@ abstract class TcpServerMessageDispatcher implements ServerMessageHandler<ByteBu
         Map<Integer, TcpServerMessageDispatcher> dispatcherMap = innerDispatcher ? innerTcpServerDispatchers : outerTcpServerDispatchers;
         final TcpServerMessageDispatcher dispatcher = dispatcherMap.get(msgType);
         if (Objects.nonNull(dispatcher)) {
-            dispatcher.onMessage(ctx, decoder);
+            if (innerDispatcher) {
+                innerServerThreadPoolScheduler.execute(dispatcher.threadKey(decoder), () -> {
+                    dispatcher.onMessage(ctx, decoder);
+                });
+            } else {
+                outerServerThreadPoolScheduler.execute(dispatcher.threadKey(decoder), () -> {
+                    dispatcher.onMessage(ctx, decoder);
+                });
+            }
         }
         //onMessage(ctx, decoder);
     }

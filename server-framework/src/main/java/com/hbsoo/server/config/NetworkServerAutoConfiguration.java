@@ -17,6 +17,7 @@ import com.hbsoo.server.message.server.OuterWebsocketServerMessageDispatcher;
 import com.hbsoo.server.session.HeartbeatSender;
 import com.hbsoo.server.session.ServerType;
 import com.hbsoo.server.utils.SpringBeanFactory;
+import com.hbsoo.server.utils.ThreadPoolScheduler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -138,9 +139,55 @@ public class NetworkServerAutoConfiguration {
         return new NetworkClient(innerServers, dispatcher, id, type);
     }
 
+    /**
+     * 内部服务器，客户端发起心跳
+     * @return
+     */
     @Bean(initMethod = "startHeartbeatSender", destroyMethod = "stopHeartbeatSender")
     public HeartbeatSender heartbeatSender() {
         return new HeartbeatSender();
     }
 
+    @Bean(destroyMethod = "shutdown")
+    public ThreadPoolScheduler innerClientThreadPoolScheduler() {
+        final Map<String, Object> threadPoolSize = serverInfoProperties.getThreadPoolSize();
+        String poolName = "InnerClient";
+        if (threadPoolSize != null) {
+            final Object innerClient = threadPoolSize.get("innerClient");
+            if (innerClient != null) {
+                return new ThreadPoolScheduler(poolName, Integer.parseInt(innerClient.toString()));
+            }
+        }
+        int CPU_COUNT = Runtime.getRuntime().availableProcessors();
+        return new ThreadPoolScheduler(poolName, CPU_COUNT * 2);
+    }
+
+    @Bean(destroyMethod = "shutdown")
+    public ThreadPoolScheduler innerServerThreadPoolScheduler() {
+        final Map<String, Object> threadPoolSize = serverInfoProperties.getThreadPoolSize();
+        String poolName = "InnerServer";
+        if (threadPoolSize != null) {
+            final Object innerServer = threadPoolSize.get("innerServer");
+            if (innerServer != null) {
+                return new ThreadPoolScheduler(poolName, Integer.parseInt(innerServer.toString()));
+            }
+        }
+        int CPU_COUNT = Runtime.getRuntime().availableProcessors();
+        return new ThreadPoolScheduler(poolName, CPU_COUNT * 2);
+    }
+
+    @Bean(destroyMethod = "shutdown")
+    @ConditionalOnProperty(prefix = "hbsoo.server.outerServer", name = "enable", havingValue = "true")
+    public ThreadPoolScheduler outerServerThreadPoolScheduler() {
+        final Map<String, Object> threadPoolSize = serverInfoProperties.getThreadPoolSize();
+        String poolName = "OuterServer";
+        if (threadPoolSize != null) {
+            final Object outerServer = threadPoolSize.get("outerServer");
+            if (outerServer != null) {
+                return new ThreadPoolScheduler(poolName, Integer.parseInt(outerServer.toString()));
+            }
+        }
+        int CPU_COUNT = Runtime.getRuntime().availableProcessors();
+        return new ThreadPoolScheduler(poolName, CPU_COUNT * 2);
+    }
 }

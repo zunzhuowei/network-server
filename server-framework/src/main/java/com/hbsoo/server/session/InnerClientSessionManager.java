@@ -160,7 +160,7 @@ public final class InnerClientSessionManager {
         if (servers == null) {
             return;
         }
-        final Channel channel = servers.get(key.hashCode() % servers.size());
+        final Channel channel = servers.get(Math.abs(key.hashCode()) % servers.size());
         if (channel == null) {
             return;
         }

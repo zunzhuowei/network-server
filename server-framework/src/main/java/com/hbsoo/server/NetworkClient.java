@@ -12,6 +12,8 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Objects;
@@ -24,6 +26,7 @@ import java.util.concurrent.TimeUnit;
  */
 public final class NetworkClient {
 
+    private static Logger logger = LoggerFactory.getLogger(NetworkClient.class);
     private final InnerTcpClientMessageDispatcher dispatcher;
     private final List<ServerInfo> innerServers;
     private final Integer serverId;
@@ -62,7 +65,8 @@ public final class NetworkClient {
                         channel = start(host, port, type, id);
                     }
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    //e.printStackTrace();
+                    logger.error("connect error", e);
                 }
             }).start();
         }
@@ -85,7 +89,8 @@ public final class NetworkClient {
                         channel = start(host, port, type, id);
                     }
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    //e.printStackTrace();
+                    logger.error("reconnect error", e);
                 }
             }).start();
         }
@@ -131,7 +136,8 @@ public final class NetworkClient {
             channel.closeFuture().sync();
             System.out.println("client close id:"+ id);
         } catch (Exception e) {
-            e.printStackTrace();
+            //e.printStackTrace();
+            logger.warn("connect error host:{},port:{},serverType:{},id:{}", host, port, serverType, id);
             if (Objects.nonNull(channel)) {
                 channel.close();
             }

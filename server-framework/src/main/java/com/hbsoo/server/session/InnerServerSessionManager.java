@@ -110,7 +110,7 @@ public final class InnerServerSessionManager {
         //根据key的hash值判断使用哪个服务器
         if (servers != null) {
             int hash = key.hashCode();
-            int serverId = hash % servers.size();
+            int serverId = Math.abs(hash) % servers.size();
             final Channel channel = servers.get(serverId);
             if (channel != null) {
                 try {

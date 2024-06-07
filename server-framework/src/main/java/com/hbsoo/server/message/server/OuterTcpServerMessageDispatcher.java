@@ -10,6 +10,11 @@ public class OuterTcpServerMessageDispatcher extends TcpServerMessageDispatcher 
 
 
     @Override
+    public Object threadKey(HBSPackage.Decoder decoder) {
+        return null;
+    }
+
+    @Override
     public boolean isInnerDispatcher() {
         return false;
     }

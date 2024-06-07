@@ -4,9 +4,12 @@ import com.hbsoo.server.annotation.InnerServerMessageHandler;
 import com.hbsoo.server.annotation.OuterServerMessageHandler;
 import com.hbsoo.server.message.HBSPackage;
 import com.hbsoo.server.utils.SpringBeanFactory;
+import com.hbsoo.server.utils.ThreadPoolScheduler;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 import javax.annotation.PostConstruct;
 import java.util.Map;
@@ -16,10 +19,16 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Created by zun.wei on 2024/6/6.
  */
-abstract class WebsocketServerMessageDispatcher implements ServerMessageHandler<WebSocketFrame>{
+abstract class WebsocketServerMessageDispatcher implements ServerMessageHandler<WebSocketFrame> {
 
     protected static final Map<Integer, WebsocketServerMessageDispatcher> innerWebsocketServerDispatchers = new ConcurrentHashMap<>();
     protected static final Map<Integer, WebsocketServerMessageDispatcher> outerWebsocketServerDispatchers = new ConcurrentHashMap<>();
+    @Autowired
+    private ThreadPoolScheduler innerServerThreadPoolScheduler;
+    @Qualifier("outerServerThreadPoolScheduler")
+    @Autowired(required = false)
+    private ThreadPoolScheduler outerServerThreadPoolScheduler;
+
     @PostConstruct
     protected void init() {
         final boolean innerDispatcher = isInnerDispatcher();
@@ -49,7 +58,15 @@ abstract class WebsocketServerMessageDispatcher implements ServerMessageHandler<
         Map<Integer, WebsocketServerMessageDispatcher> dispatcherMap = innerDispatcher ? innerWebsocketServerDispatchers : outerWebsocketServerDispatchers;
         final WebsocketServerMessageDispatcher dispatcher = dispatcherMap.get(msgType);
         if (Objects.nonNull(dispatcher)) {
-            dispatcher.onMessage(ctx, decoder);
+            if (innerDispatcher) {
+                innerServerThreadPoolScheduler.execute(dispatcher.threadKey(decoder), () -> {
+                    dispatcher.onMessage(ctx, decoder);
+                });
+            } else {
+                outerServerThreadPoolScheduler.execute(dispatcher.threadKey(decoder), () -> {
+                    dispatcher.onMessage(ctx, decoder);
+                });
+            }
         }
         //onMessage(ctx, decoder);
     }

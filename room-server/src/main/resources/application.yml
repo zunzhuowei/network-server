@@ -1,9 +1,6 @@
 hbsoo:
   server:
     id: 3000
-    outerServer:
-      enable: true
-      port: 5557
     innerServers:
       - host: 192.168.1.104
         port: 6000
