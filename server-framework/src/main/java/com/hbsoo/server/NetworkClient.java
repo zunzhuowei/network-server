@@ -49,45 +49,42 @@ public final class NetworkClient {
 
 
     public void connect() {
-        for (int i = 0; i < innerServers.size(); i++) {
-            final Integer id = innerServers.get(i).getId();
+        for (ServerInfo innerServer : innerServers) {
+            final Integer id = innerServer.getId();
             if (Objects.equals(id, serverId)) {
                 continue;
             }
-            final String host = innerServers.get(i).getHost();
-            final int port = innerServers.get(i).getPort();
-            final ServerType type = innerServers.get(i).getType();
+            final String host = innerServer.getHost();
+            final int port = innerServer.getPort();
+            final ServerType type = innerServer.getType();
             new Thread(() -> {
-                try {
-                    Channel channel = start(host, port, type, id);
-                    while (channel == null) {
-                        TimeUnit.SECONDS.sleep(5);
+                Channel channel = null;
+                do {
+                    try {
                         channel = start(host, port, type, id);
+                        TimeUnit.SECONDS.sleep(3);
+                    } catch (InterruptedException e) {
+                        //e.printStackTrace();
+                        //logger.error("connect error", e);
+                        logger.warn("connect error host:{},port:{},serverType:{},id:{}", host, port, serverType, id);
                     }
-                } catch (InterruptedException e) {
-                    //e.printStackTrace();
-                    logger.error("connect error", e);
-                }
+                } while (channel == null);
             }).start();
         }
     }
 
     public void reconnect(ServerType serverType, Integer serverId) {
-        for (int i = 0; i < innerServers.size(); i++) {
-            final Integer id = innerServers.get(i).getId();
+        for (ServerInfo innerServer : innerServers) {
+            final Integer id = innerServer.getId();
             if (!Objects.equals(id, serverId)) {
                 continue;
             }
-            final String host = innerServers.get(i).getHost();
-            final int port = innerServers.get(i).getPort();
-            final ServerType type = innerServers.get(i).getType();
+            final String host = innerServer.getHost();
+            final int port = innerServer.getPort();
+            final ServerType type = innerServer.getType();
             new Thread(() -> {
                 try {
-                    Channel channel = start(host, port, type, id);
-                    while (channel == null) {
-                        TimeUnit.SECONDS.sleep(3);
-                        channel = start(host, port, type, id);
-                    }
+                    start(host, port, type, id);
                 } catch (InterruptedException e) {
                     //e.printStackTrace();
                     logger.error("reconnect error", e);
@@ -98,7 +95,9 @@ public final class NetworkClient {
 
     private Channel start(String host, int port, ServerType serverType, Integer id) throws InterruptedException {
         Channel channel = null;
-        EventLoopGroup group = new NioEventLoopGroup(1);
+        EventLoopGroup group = new NioEventLoopGroup(1, r -> {
+            return new Thread(r, "client-" + serverType.name() + "-" + id);
+        });
         try {
             Bootstrap b = new Bootstrap();
             b.group(group)
@@ -135,12 +134,6 @@ public final class NetworkClient {
             channel.writeAndFlush(buf).sync();
             channel.closeFuture().sync();
             System.out.println("client close id:"+ id);
-        } catch (Exception e) {
-            //e.printStackTrace();
-            logger.warn("connect error host:{},port:{},serverType:{},id:{}", host, port, serverType, id);
-            if (Objects.nonNull(channel)) {
-                channel.close();
-            }
         } finally {
             group.shutdownGracefully();
         }

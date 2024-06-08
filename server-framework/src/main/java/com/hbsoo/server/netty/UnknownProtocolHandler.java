@@ -32,4 +32,10 @@ public final class UnknownProtocolHandler extends SimpleChannelInboundHandler<Ob
         super.channelRegistered(ctx);
         System.out.println("UnknownProtocolHandler channelRegistered");
     }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        //super.exceptionCaught(ctx, cause);
+        System.out.println("UnknownProtocolHandler exceptionCaught");
+    }
 }

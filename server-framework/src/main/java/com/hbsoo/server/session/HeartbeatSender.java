@@ -27,7 +27,7 @@ public final class HeartbeatSender {
 
     // 每隔三秒向所有服务器发送心跳
     public void startHeartbeatSender() {
-        scheduler.scheduleAtFixedRate(new HeartbeatTask(), 0, 3, TimeUnit.SECONDS);
+        scheduler.scheduleWithFixedDelay(new HeartbeatTask(), 0, 1, TimeUnit.SECONDS);
     }
 
     // 停止心跳发送
@@ -60,6 +60,16 @@ public final class HeartbeatSender {
             InnerClientSessionManager.clients.forEach((serverType, e) -> {
                 e.forEach((id, channel) -> {
                     try {
+                        final boolean active = channel.isActive();
+                        if (!active) {
+                            // 断开连接
+                            InnerClientSessionManager.innerLogout(serverType, id);
+                            InnerServerSessionManager.innerLogout(serverType, id);
+                            // 重新链接
+                            tcpNetworkClient.reconnect(serverType, id);
+                            return;
+                        }
+
                         // 使用Unpooled.wrappedBuffer减少内存复制，提高性能
                         ByteBuf buf = Unpooled.wrappedBuffer(msg);
                         channel.writeAndFlush(buf).sync();
