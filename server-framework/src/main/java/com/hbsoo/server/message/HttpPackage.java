@@ -83,6 +83,8 @@ public final class HttpPackage {
                 ", path='" + path + '\'' +
                 ", parameters=" + parameters +
                 ", body=" + Arrays.toString(body) +
+                ", fullHttpRequest=" + fullHttpRequest +
+                ", method='" + method + '\'' +
                 '}';
     }
 }

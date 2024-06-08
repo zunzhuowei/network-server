@@ -15,7 +15,7 @@ public class WebSocketClient {
     public static void main(String[] args) throws Exception {
         EventLoopGroup group = new NioEventLoopGroup();
         try {
-            URI uri = new URI("ws://localhost:8080/ws");
+            URI uri = new URI("ws://localhost:5555/ws");
             String scheme = uri.getScheme() == null ? "ws" : uri.getScheme();
             String host = uri.getHost() == null ? "localhost" : uri.getHost();
             int port = uri.getPort();

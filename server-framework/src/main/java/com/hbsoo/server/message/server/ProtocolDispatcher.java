@@ -4,9 +4,11 @@ import com.hbsoo.server.netty.*;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.codec.http.HttpContentCompressor;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
+import io.netty.handler.codec.http.websocketx.extensions.compression.WebSocketServerCompressionHandler;
 
 import java.util.Objects;
 
@@ -58,10 +60,19 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<ByteBu
             }
             case WEBSOCKET:
             case HTTP: {
+                // 添加HTTP编解码器
                 ctx.pipeline().addLast(new HttpServerCodec());
+                // 添加Gzip压缩处理器, 用于压缩HTTP响应消息
+                ctx.pipeline().addLast(new HttpContentCompressor());
+                // 添加HTTP消息聚合处理器, 最大消息长度为64KB
                 ctx.pipeline().addLast(new HttpObjectAggregator(64 * 1024));
+                // 添加HTTP请求处理器
                 ctx.pipeline().addLast(new HttpRequestHandler(httpServerMessageDispatcher));
+                // 可选的压缩支持
+                ctx.pipeline().addLast(new WebSocketServerCompressionHandler());
+                // 添加WebSocket协议处理器
                 ctx.pipeline().addLast(new WebSocketServerProtocolHandler("/ws"));
+                // 添加WebSocket帧处理器
                 ctx.pipeline().addLast(new WebSocketFrameHandler(websocketServerMessageDispatcher));
                 ctx.pipeline().remove(this);
                 ctx.fireChannelRead(msg.retain());
@@ -102,7 +113,15 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<ByteBu
         if (tag.startsWith("POST")) {
             return ProtocolType.HTTP;
         }
-        // 其他协议先不处理
+        if (tag.startsWith("PUT")) {
+            return ProtocolType.HTTP;
+        }
+        // DELETE
+        if (tag.startsWith("DELE")) {
+            return ProtocolType.HTTP;
+        }
+        // 其他协议先不处理,PATCH,HEAD,OPTIONS,CONNECT,TRACE,PURGE,LINK,UNLINK,COPY,MOVE,PROPFIND,PROPPATCH,MKCOL,LOCK,
+        // UNLOCK,SEARCH,M-SEARCH,NOTIFY,SUBSCRIBE,UNSUBSCRIBE,PATCH,MKCALENDAR,VERSION-CONTROL,REPORT,CHECKIN,CHECKOUT
         return ProtocolType.UNKNOWN;
     }
 

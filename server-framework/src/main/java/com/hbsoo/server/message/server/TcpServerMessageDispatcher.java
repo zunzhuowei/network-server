@@ -67,6 +67,9 @@ abstract class TcpServerMessageDispatcher implements ServerMessageHandler<ByteBu
                         dispatcher.onMessage(ctx, decoder);
                     });
                 }
+            } else {
+                System.out.println("消息类型未注册：" + msgType);
+                ctx.close();
             }
         } catch (Exception e) {
             e.printStackTrace();

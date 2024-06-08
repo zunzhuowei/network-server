@@ -68,6 +68,9 @@ abstract class UdpServerMessageDispatcher implements ServerMessageHandler<Datagr
                         dispatcher.onMessage(ctx, decoder);
                     });
                 }
+            } else {
+                System.out.println("没有找到对应的消息处理器");
+                ctx.close();
             }
         } catch (Exception e) {
             e.printStackTrace();

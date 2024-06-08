@@ -57,7 +57,8 @@ abstract class HttpServerMessageDispatcher implements ServerMessageHandler<FullH
             final String uri = msg.uri();
             final HttpMethod method = msg.method();
             final HttpHeaders headers = msg.headers();
-            path = uri.substring(0, uri.indexOf("?"));
+            final int index = uri.indexOf("?");
+            path = index < 0 ? uri : uri.substring(0, index);
             //System.out.println("path:" + path);
             QueryStringDecoder decoder = new QueryStringDecoder(uri);
             final Map<String, List<String>> parameters = decoder.parameters();

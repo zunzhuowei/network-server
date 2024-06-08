@@ -214,22 +214,28 @@ public final class HBSPackage {
         }
 
         private byte[] getPackageBody(byte[] received) {
-            boolean matchHeader;
-            do {
-                byte[] readHeader = new byte[this.header.length];
-                //readInputStream(received, this.header.length, readHeader);
-                System.arraycopy(received, 0, readHeader, 0, this.header.length);
-                matchHeader = Arrays.equals(this.header, readHeader);
-            } while (!matchHeader);
+            if (received.length < this.header.length) {
+                return new byte[]{};
+            }
+            byte[] readHeader = new byte[this.header.length];
+            System.arraycopy(received, 0, readHeader, 0, this.header.length);
+            boolean matchHeader = Arrays.equals(this.header, readHeader);
+            if (!matchHeader) throw new RuntimeException("header not match");
 
             byte[] bodyLenBytes = new byte[4];
-            //readInputStream(received, bodyLenBytes.length, bodyLenBytes);
+            if (received.length < this.header.length + bodyLenBytes.length) {
+                return new byte[]{};
+            }
             System.arraycopy(received, this.header.length, bodyLenBytes, 0, bodyLenBytes.length);
             int bodyLen = ByteBuffer.wrap(bodyLenBytes).order(ByteOrder.BIG_ENDIAN).getInt();
             if (bodyLen <= 0) return new byte[]{};
 
             byte[] bodyBytes = new byte[bodyLen];
-            //readInputStream(received, bodyBytes.length, bodyBytes);
+            if (received.length < this.header.length + bodyLenBytes.length + bodyBytes.length) {
+                System.arraycopy(received, this.header.length + bodyLenBytes.length, bodyBytes, 0,
+                        received.length - (this.header.length + bodyLenBytes.length));
+                return bodyBytes;
+            }
             System.arraycopy(received, this.header.length + bodyLenBytes.length, bodyBytes, 0, bodyBytes.length);
             return bodyBytes;
         }

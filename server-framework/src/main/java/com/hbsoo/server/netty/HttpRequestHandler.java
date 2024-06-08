@@ -27,6 +27,12 @@ public final class HttpRequestHandler extends SimpleChannelInboundHandler<FullHt
         } else {
             ctx.fireChannelRead(request.retain());
         }*/
+        // 如果是websocket升级请求，则不走http请求处理
+        if (request.headers().contains(HttpHeaderNames.UPGRADE, "websocket", true) &&
+                request.headers().contains(HttpHeaderNames.CONNECTION, "Upgrade", true)) {
+            ctx.fireChannelRead(request.retain());
+            return;
+        }
         if (Objects.nonNull(httpServerMessageDispatcher)) {
             httpServerMessageDispatcher.onMessage(ctx, request);
         } else {

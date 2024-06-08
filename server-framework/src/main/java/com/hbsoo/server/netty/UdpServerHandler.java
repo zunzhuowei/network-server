@@ -33,4 +33,21 @@ public final class UdpServerHandler extends SimpleChannelInboundHandler<Datagram
             ctx.close();
         }
     }
+
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        super.channelInactive(ctx);
+        System.out.println("UdpServerHandler channelInactive");
+        ctx.close();
+    }
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        super.channelActive(ctx);
+        System.out.println("UdpServerHandler channelActive");
+    }
+    @Override
+    public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
+        super.channelRegistered(ctx);
+        System.out.println("UdpServerHandler channelRegistered");
+    }
 }
