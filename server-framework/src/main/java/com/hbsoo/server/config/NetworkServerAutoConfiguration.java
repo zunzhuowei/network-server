@@ -17,6 +17,7 @@ import com.hbsoo.server.message.server.OuterUdpServerMessageDispatcher;
 import com.hbsoo.server.message.server.OuterWebsocketServerMessageDispatcher;
 import com.hbsoo.server.session.HeartbeatSender;
 import com.hbsoo.server.session.ServerType;
+import com.hbsoo.server.utils.DelayThreadPoolScheduler;
 import com.hbsoo.server.utils.SpringBeanFactory;
 import com.hbsoo.server.utils.ThreadPoolScheduler;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -152,6 +153,9 @@ public class NetworkServerAutoConfiguration {
         return new HeartbeatSender();
     }
 
+    /**
+     * 内部客户端工作线程池
+     */
     @Bean(destroyMethod = "shutdown")
     public ThreadPoolScheduler innerClientThreadPoolScheduler() {
         final Map<String, Object> threadPoolSize = serverInfoProperties.getThreadPoolSize();
@@ -166,6 +170,9 @@ public class NetworkServerAutoConfiguration {
         return new ThreadPoolScheduler(poolName, CPU_COUNT * 2);
     }
 
+    /**
+     * 内部服务器工作线程池
+     */
     @Bean(destroyMethod = "shutdown")
     public ThreadPoolScheduler innerServerThreadPoolScheduler() {
         final Map<String, Object> threadPoolSize = serverInfoProperties.getThreadPoolSize();
@@ -180,6 +187,9 @@ public class NetworkServerAutoConfiguration {
         return new ThreadPoolScheduler(poolName, CPU_COUNT * 2);
     }
 
+    /**
+     * 外部服务器工作线程池
+     */
     @Bean(destroyMethod = "shutdown")
     @ConditionalOnProperty(prefix = "hbsoo.server.outerServer", name = "enable", havingValue = "true")
     public ThreadPoolScheduler outerServerThreadPoolScheduler() {
@@ -194,4 +204,22 @@ public class NetworkServerAutoConfiguration {
         int CPU_COUNT = Runtime.getRuntime().availableProcessors();
         return new ThreadPoolScheduler(poolName, CPU_COUNT * 2);
     }
+
+    /**
+     * 延迟线程池
+     */
+    @Bean(destroyMethod = "shutdown")
+    public DelayThreadPoolScheduler delayThreadPoolScheduler() {
+        final Map<String, Object> threadPoolSize = serverInfoProperties.getThreadPoolSize();
+        String poolName = "Delay";
+        if (threadPoolSize != null) {
+            final Object delay = threadPoolSize.get("delay");
+            if (delay != null) {
+                return new DelayThreadPoolScheduler(poolName, Integer.parseInt(delay.toString()));
+            }
+        }
+        int CPU_COUNT = Runtime.getRuntime().availableProcessors();
+        return new DelayThreadPoolScheduler(poolName, CPU_COUNT * 2);
+    }
+
 }

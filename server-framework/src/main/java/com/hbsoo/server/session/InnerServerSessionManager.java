@@ -22,13 +22,13 @@ public final class InnerServerSessionManager {
 
 
     public static void innerLogin(ServerType serverType, Integer serverId, Channel channel) {
-        final ConcurrentHashMap<Integer, Channel> servers = clients.get(serverType);
-        if (servers != null) {
-            servers.put(serverId, channel);
-        } else {
-            clients.put(serverType, new ConcurrentHashMap<>());
-            clients.get(serverType).put(serverId, channel);
+        final ConcurrentHashMap<Integer, Channel> servers = clients.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
+        if (servers.containsKey(serverId)) {
+            servers.get(serverId).close();
+            servers.get(serverId).eventLoop().shutdownGracefully();
+            servers.remove(serverId);
         }
+        servers.put(serverId, channel);
     }
     public static void innerLogout(ServerType serverType, Integer serverId) {
         final ConcurrentHashMap<Integer, Channel> servers = clients.get(serverType);
@@ -36,9 +36,21 @@ public final class InnerServerSessionManager {
             if (servers.containsKey(serverId)) {
                 servers.get(serverId).close();
                 servers.get(serverId).eventLoop().shutdownGracefully();
+                servers.remove(serverId);
             }
-            servers.remove(serverId);
         }
+    }
+
+    public static void innerLogoutWithChannel(Channel channel) {
+        clients.forEach((serverType, servers) -> {
+            servers.forEach((serverId, ch) -> {
+                if (ch == channel) {
+                    servers.get(serverId).close();
+                    servers.get(serverId).eventLoop().shutdownGracefully();
+                    servers.remove(serverId);
+                }
+            });
+        });
     }
 
     public static void sendMsg2ServerByType(HBSPackage.Builder msgBuilder, ServerType serverType) {

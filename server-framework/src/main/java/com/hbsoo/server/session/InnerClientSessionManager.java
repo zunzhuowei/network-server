@@ -20,16 +20,33 @@ public final class InnerClientSessionManager {
     public static Map<ServerType, ConcurrentHashMap<Integer, Channel>> clients = new ConcurrentHashMap<>();
 
     public static void innerLogin(ServerType serverType, Integer serverId, Channel channel) {
-        clients.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>()).put(serverId, channel);
+        final ConcurrentHashMap<Integer, Channel> map = clients.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
+        if (map.containsKey(serverId)) {
+            map.get(serverId).close();
+            map.get(serverId).eventLoop().shutdownGracefully();
+            map.remove(serverId);
+        }
+        map.put(serverId, channel);
     }
     public static void innerLogout(ServerType serverType, Integer serverId) {
         clients.computeIfPresent(serverType, (k, v) -> {
             if (v.containsKey(serverId)) {
                 v.get(serverId).close();
                 v.get(serverId).eventLoop().shutdownGracefully();
+                v.remove(serverId);
             }
-            v.remove(serverId);
             return v;
+        });
+    }
+    public static void innerLogoutWithChannel(Channel channel) {
+        clients.forEach((serverType, servers) -> {
+            servers.forEach((serverId, ch) -> {
+                if (ch == channel) {
+                    servers.get(serverId).close();
+                    servers.get(serverId).eventLoop().shutdownGracefully();
+                    servers.remove(serverId);
+                }
+            });
         });
     }
     public static void innerLogoutAll() {
