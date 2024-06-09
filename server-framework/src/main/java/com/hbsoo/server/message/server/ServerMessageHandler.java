@@ -13,6 +13,9 @@ public interface ServerMessageHandler<T> {
      */
     Object threadKey(HBSPackage.Decoder decoder);
 
+    /**
+     * 处理消息
+     */
     void onMessage(ChannelHandlerContext ctx, T msg);
 
 

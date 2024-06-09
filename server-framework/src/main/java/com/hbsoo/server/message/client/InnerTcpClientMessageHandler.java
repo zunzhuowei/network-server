@@ -20,10 +20,12 @@ abstract class InnerTcpClientMessageHandler implements InnerClientMessageHandler
     protected static final Map<Integer, InnerTcpClientMessageHandler> innerTcpClientDispatchers = new ConcurrentHashMap<>();
     @Autowired
     private ThreadPoolScheduler innerClientThreadPoolScheduler;
+    @Autowired
+    private SpringBeanFactory springBeanFactory;
 
     @PostConstruct
     protected void init() {
-        final Map<String, Object> handlers = SpringBeanFactory.getBeansWithAnnotation(com.hbsoo.server.annotation.InnerClientMessageHandler.class);
+        final Map<String, Object> handlers = springBeanFactory.getBeansWithAnnotation(com.hbsoo.server.annotation.InnerClientMessageHandler.class);
         handlers.values().stream().filter(handler -> {
             //再判断handler是否为InnerTcpClientMessageHandler的子类
             return handler instanceof InnerTcpClientMessageHandler;

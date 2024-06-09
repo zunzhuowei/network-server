@@ -23,7 +23,7 @@ public final class InnerClientSessionManager {
         final ConcurrentHashMap<Integer, Channel> map = clients.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
         if (map.containsKey(serverId)) {
             map.get(serverId).close();
-            map.get(serverId).eventLoop().shutdownGracefully();
+            //map.get(serverId).eventLoop().shutdownGracefully();
             map.remove(serverId);
         }
         map.put(serverId, channel);
@@ -32,7 +32,7 @@ public final class InnerClientSessionManager {
         clients.computeIfPresent(serverType, (k, v) -> {
             if (v.containsKey(serverId)) {
                 v.get(serverId).close();
-                v.get(serverId).eventLoop().shutdownGracefully();
+                //v.get(serverId).eventLoop().shutdownGracefully();
                 v.remove(serverId);
             }
             return v;
@@ -43,7 +43,7 @@ public final class InnerClientSessionManager {
             servers.forEach((serverId, ch) -> {
                 if (ch == channel) {
                     servers.get(serverId).close();
-                    servers.get(serverId).eventLoop().shutdownGracefully();
+                    //servers.get(serverId).eventLoop().shutdownGracefully();
                     servers.remove(serverId);
                 }
             });
@@ -53,7 +53,7 @@ public final class InnerClientSessionManager {
         clients.forEach((k, v) -> {
             v.values().forEach(channel -> {
                 channel.close();
-                channel.eventLoop().shutdownGracefully();
+                //channel.eventLoop().shutdownGracefully();
             });
             v.clear();
         });

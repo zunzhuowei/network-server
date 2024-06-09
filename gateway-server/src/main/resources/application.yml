@@ -2,9 +2,9 @@ hbsoo:
   server:
     id: 1000
     threadPoolSize:
-      innerClient: 10
-      innerServer: 10
-      outerServer: 10
+      innerClient: 5
+      innerServer: 5
+      outerServer: 5
     outerServer:
       enable: true
       port: 5555

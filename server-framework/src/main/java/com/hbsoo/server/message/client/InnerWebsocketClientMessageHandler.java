@@ -5,6 +5,7 @@ import com.hbsoo.server.utils.SpringBeanFactory;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.annotation.PostConstruct;
 import java.util.Map;
@@ -16,10 +17,13 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 abstract class InnerWebsocketClientMessageHandler implements InnerClientMessageHandler<WebSocketFrame> {
 
+    @Autowired
+    private SpringBeanFactory springBeanFactory;
     protected static final Map<Integer, InnerWebsocketClientMessageHandler> innerWebsocketClientDispatchers = new ConcurrentHashMap<>();
+
     @PostConstruct
     protected void init() {
-        final Map<String, Object> handlers = SpringBeanFactory.getBeansWithAnnotation(com.hbsoo.server.annotation.InnerClientMessageHandler.class);
+        final Map<String, Object> handlers = springBeanFactory.getBeansWithAnnotation(com.hbsoo.server.annotation.InnerClientMessageHandler.class);
         handlers.values().stream().filter(handler -> {
             //再判断handler是否为InnerWebsocketClientMessageHandler的子类
             return handler instanceof InnerWebsocketClientMessageHandler;

@@ -28,11 +28,13 @@ abstract class UdpServerMessageDispatcher implements ServerMessageHandler<Datagr
     @Qualifier("outerServerThreadPoolScheduler")
     @Autowired(required = false)
     private ThreadPoolScheduler outerServerThreadPoolScheduler;
+    @Autowired
+    private SpringBeanFactory springBeanFactory;
 
     @PostConstruct
     protected void init() {
         final boolean innerDispatcher = isInnerDispatcher();
-        final Map<String, Object> handlers = SpringBeanFactory.getBeansWithAnnotation(innerDispatcher ? InnerServerMessageHandler.class : OuterServerMessageHandler.class);
+        final Map<String, Object> handlers = springBeanFactory.getBeansWithAnnotation(innerDispatcher ? InnerServerMessageHandler.class : OuterServerMessageHandler.class);
         handlers.values().stream().filter(handler -> {
             return handler instanceof UdpServerMessageDispatcher;
         }).forEach(handler -> {
@@ -79,6 +81,10 @@ abstract class UdpServerMessageDispatcher implements ServerMessageHandler<Datagr
         //onMessage(ctx, decoder);
     }
 
+    /**
+     * 是否为内部消息
+     * @return boolean true 内部消息，false 外部消息
+     */
     public abstract boolean isInnerDispatcher();
 
     public abstract void onMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder);

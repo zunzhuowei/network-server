@@ -25,7 +25,7 @@ public final class InnerServerSessionManager {
         final ConcurrentHashMap<Integer, Channel> servers = clients.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
         if (servers.containsKey(serverId)) {
             servers.get(serverId).close();
-            servers.get(serverId).eventLoop().shutdownGracefully();
+            //servers.get(serverId).eventLoop().shutdownGracefully();
             servers.remove(serverId);
         }
         servers.put(serverId, channel);
@@ -35,7 +35,7 @@ public final class InnerServerSessionManager {
         if (servers != null) {
             if (servers.containsKey(serverId)) {
                 servers.get(serverId).close();
-                servers.get(serverId).eventLoop().shutdownGracefully();
+                //servers.get(serverId).eventLoop().shutdownGracefully();
                 servers.remove(serverId);
             }
         }
@@ -46,7 +46,7 @@ public final class InnerServerSessionManager {
             servers.forEach((serverId, ch) -> {
                 if (ch == channel) {
                     servers.get(serverId).close();
-                    servers.get(serverId).eventLoop().shutdownGracefully();
+                    //servers.get(serverId).eventLoop().shutdownGracefully();
                     servers.remove(serverId);
                 }
             });

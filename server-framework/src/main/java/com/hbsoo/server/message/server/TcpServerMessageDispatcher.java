@@ -27,11 +27,13 @@ abstract class TcpServerMessageDispatcher implements ServerMessageHandler<ByteBu
     @Qualifier("outerServerThreadPoolScheduler")
     @Autowired(required = false)
     private ThreadPoolScheduler outerServerThreadPoolScheduler;
+    @Autowired
+    private SpringBeanFactory springBeanFactory;
 
     @PostConstruct
     protected void init() {
         final boolean innerDispatcher = isInnerDispatcher();
-        final Map<String, Object> handlers = SpringBeanFactory.getBeansWithAnnotation(innerDispatcher ? InnerServerMessageHandler.class : OuterServerMessageHandler.class);
+        final Map<String, Object> handlers = springBeanFactory.getBeansWithAnnotation(innerDispatcher ? InnerServerMessageHandler.class : OuterServerMessageHandler.class);
         handlers.values().stream().filter(handler -> {
             //再判断handler是否为TcpServerMessageDispatcher的子类
             return handler instanceof TcpServerMessageDispatcher;
@@ -68,7 +70,8 @@ abstract class TcpServerMessageDispatcher implements ServerMessageHandler<ByteBu
                     });
                 }
             } else {
-                System.out.println("消息类型未注册：" + msgType);
+                final String s = ctx.channel().id().asShortText();
+                System.out.println("消息类型未注册：" + msgType + ",id:"+ s);
                 received = null;
                 ctx.close();
             }
@@ -78,8 +81,17 @@ abstract class TcpServerMessageDispatcher implements ServerMessageHandler<ByteBu
         }
     }
 
+    /**
+     * 是否为内部消息
+     * @return boolean true 内部消息，false 外部消息
+     */
     public abstract boolean isInnerDispatcher();
 
+    /**
+     * 消息处理
+     * @param ctx ChannelHandlerContext
+     * @param decoder HBSPackage.Decoder
+     */
     public abstract void onMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder);
 
 }

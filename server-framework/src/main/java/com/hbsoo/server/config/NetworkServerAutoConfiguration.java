@@ -1,22 +1,13 @@
 package com.hbsoo.server.config;
 
-import com.hbsoo.server.NetworkClient;
 import com.hbsoo.server.NetworkServer;
-import com.hbsoo.server.action.HttpIndexAction;
+import com.hbsoo.server.action.InnerClientHeartbeatAction;
 import com.hbsoo.server.action.InnerClientLoginAction;
+import com.hbsoo.server.action.InnerServerHeartbeatAction;
 import com.hbsoo.server.action.InnerServerLoginAction;
+import com.hbsoo.server.client.TcpClientRegister;
 import com.hbsoo.server.message.client.InnerTcpClientMessageDispatcher;
-import com.hbsoo.server.message.server.ServerMessageHandler;
-import com.hbsoo.server.message.server.InnerHttpServerMessageDispatcher;
-import com.hbsoo.server.message.server.InnerTcpServerMessageDispatcher;
-import com.hbsoo.server.message.server.InnerUdpServerMessageDispatcher;
-import com.hbsoo.server.message.server.InnerWebsocketServerMessageDispatcher;
-import com.hbsoo.server.message.server.OuterHttpServerMessageDispatcher;
-import com.hbsoo.server.message.server.OuterTcpServerMessageDispatcher;
-import com.hbsoo.server.message.server.OuterUdpServerMessageDispatcher;
-import com.hbsoo.server.message.server.OuterWebsocketServerMessageDispatcher;
-import com.hbsoo.server.session.HeartbeatSender;
-import com.hbsoo.server.session.ServerType;
+import com.hbsoo.server.message.server.*;
 import com.hbsoo.server.utils.DelayThreadPoolScheduler;
 import com.hbsoo.server.utils.SpringBeanFactory;
 import com.hbsoo.server.utils.ThreadPoolScheduler;
@@ -25,6 +16,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 
 import java.util.List;
 import java.util.Map;
@@ -33,6 +25,8 @@ import java.util.Optional;
 /**
  * Created by zun.wei on 2020/4/29.
  */
+//@ComponentScan(basePackages = {"com.hbsoo.server.action"})
+@Import({TcpClientRegister.class, InnerServerHeartbeatAction.class, InnerClientHeartbeatAction.class})
 @Configuration
 @EnableConfigurationProperties(ServerInfoProperties.class)
 public class NetworkServerAutoConfiguration {
@@ -40,35 +34,41 @@ public class NetworkServerAutoConfiguration {
     @Autowired
     private ServerInfoProperties serverInfoProperties;
 
-
     @Bean
     public SpringBeanFactory springBeanFactory() {
         return new SpringBeanFactory();
     }
+
     @Bean
     public InnerServerLoginAction innerServerLoginAction() {
         return new InnerServerLoginAction();
     }
+
     @Bean
     public InnerClientLoginAction innerClientLoginAction() {
         return new InnerClientLoginAction();
     }
+
     @Bean
     public InnerTcpClientMessageDispatcher innerTcpClientMessageDispatcher() {
         return new InnerTcpClientMessageDispatcher();
     }
+
     @Bean
     public InnerTcpServerMessageDispatcher innerTcpServerMessageDispatcher() {
         return new InnerTcpServerMessageDispatcher();
     }
+
     @Bean
     public InnerWebsocketServerMessageDispatcher innerWebsocketServerMessageDispatcher() {
         return new InnerWebsocketServerMessageDispatcher();
     }
+
     @Bean
     public InnerHttpServerMessageDispatcher innerHttpServerMessageDispatcher() {
         return new InnerHttpServerMessageDispatcher();
     }
+
     @Bean
     public InnerUdpServerMessageDispatcher innerUdpServerMessageDispatcher() {
         return new InnerUdpServerMessageDispatcher();
@@ -78,14 +78,17 @@ public class NetworkServerAutoConfiguration {
     public OuterHttpServerMessageDispatcher outerHttpServerMessageDispatcher() {
         return new OuterHttpServerMessageDispatcher();
     }
+
     @Bean
     public OuterTcpServerMessageDispatcher outerTcpServerMessageDispatcher() {
         return new OuterTcpServerMessageDispatcher();
     }
+
     @Bean
     public OuterUdpServerMessageDispatcher outerUdpServerMessageDispatcher() {
         return new OuterUdpServerMessageDispatcher();
     }
+
     @Bean
     public OuterWebsocketServerMessageDispatcher outerWebsocketServerMessageDispatcher() {
         return new OuterWebsocketServerMessageDispatcher();
@@ -94,6 +97,7 @@ public class NetworkServerAutoConfiguration {
 //    public HttpIndexAction httpIndexAction() {
 //        return new HttpIndexAction();
 //    }
+
     /**
      * 暴露给外网的端口服务器
      */
@@ -108,7 +112,7 @@ public class NetworkServerAutoConfiguration {
                 springBeanFactory().getBean("outerUdpServerMessageDispatcher", OuterUdpServerMessageDispatcher.class),
                 springBeanFactory().getBean("outerWebsocketServerMessageDispatcher", OuterWebsocketServerMessageDispatcher.class)
         };
-        return new NetworkServer(Integer.parseInt(port.toString()), handlers);
+        return new NetworkServer("outerServer", Integer.parseInt(port.toString()), handlers);
     }
 
     /**
@@ -127,30 +131,7 @@ public class NetworkServerAutoConfiguration {
                 springBeanFactory().getBean("innerHttpServerMessageDispatcher", InnerHttpServerMessageDispatcher.class),
                 springBeanFactory().getBean("innerUdpServerMessageDispatcher", InnerUdpServerMessageDispatcher.class)
         };
-        return new NetworkServer(port, handlers);
-    }
-
-    /**
-     * 内部服务沟通客户端
-     */
-    @Bean(initMethod = "connect", destroyMethod = "stop")
-    public NetworkClient tcpNetworkClient() {
-        final Integer id = serverInfoProperties.getId();
-        final List<ServerInfo> innerServers = serverInfoProperties.getInnerServers();
-        final Optional<ServerInfo> optional = innerServers.stream().filter(e -> e.getId().equals(id)).findFirst();
-        final ServerInfo serverInfo = optional.get();
-        final ServerType type = serverInfo.getType();
-        InnerTcpClientMessageDispatcher dispatcher = springBeanFactory().getBean("innerTcpClientMessageDispatcher", InnerTcpClientMessageDispatcher.class);
-        return new NetworkClient(innerServers, dispatcher, id, type);
-    }
-
-    /**
-     * 内部服务器，客户端发起心跳
-     * @return
-     */
-    @Bean(initMethod = "startHeartbeatSender", destroyMethod = "stopHeartbeatSender")
-    public HeartbeatSender heartbeatSender() {
-        return new HeartbeatSender();
+        return new NetworkServer("innerServer", port, handlers);
     }
 
     /**

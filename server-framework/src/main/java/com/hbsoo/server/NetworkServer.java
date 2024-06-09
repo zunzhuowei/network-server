@@ -18,15 +18,23 @@ import java.util.concurrent.ThreadFactory;
  */
 public final class NetworkServer {
 
-    private ServerMessageHandler[] handlers;
-    private int port;
-    private EventLoopGroup bossGroup;
-    private EventLoopGroup workerGroup;
+    private final ServerMessageHandler[] handlers;
+    private final int port;
+    private final EventLoopGroup bossGroup;
+    private final EventLoopGroup workerGroup;
     private Channel serverChannel;
 
-    public NetworkServer(int port, ServerMessageHandler... serverMessageHandlers) {
+    public NetworkServer(String serverName, int port, ServerMessageHandler... serverMessageHandlers) {
         this.port = port;
         this.handlers = serverMessageHandlers;
+        int bossThreadCount = 1; // 通常为1
+        int workerThreadCount = Runtime.getRuntime().availableProcessors() * 2; // 可以根据实际情况调整
+        bossGroup = new NioEventLoopGroup(bossThreadCount, r -> {
+            return new Thread(r, serverName + "-Boss-" + port);
+        });
+        workerGroup = new NioEventLoopGroup(workerThreadCount, r -> {
+            return new Thread(r, serverName + "-Worker-" + port);
+        });
     }
 
     /**
@@ -40,14 +48,6 @@ public final class NetworkServer {
      * 如果应用是I/O密集型，可以适当增加线程数，以便处理更多的并发连接。
      */
     public void start() throws Exception {
-        int bossThreadCount = 1; // 通常为1
-        int workerThreadCount = Runtime.getRuntime().availableProcessors() * 2; // 可以根据实际情况调整
-        bossGroup = new NioEventLoopGroup(bossThreadCount, r -> {
-            return new Thread(r, "Netty-Boss-" + r.hashCode());
-        });
-        workerGroup = new NioEventLoopGroup(workerThreadCount, r -> {
-            return new Thread(r, "Netty-Worker-" + r.hashCode());
-        });
         ServerBootstrap b = new ServerBootstrap();
         b.group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel.class)
