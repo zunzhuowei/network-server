@@ -41,10 +41,10 @@ abstract class TcpServerMessageDispatcher implements ServerMessageHandler<ByteBu
             TcpServerMessageDispatcher h = (TcpServerMessageDispatcher) handler;
             if (innerDispatcher) {
                 final InnerServerMessageHandler annotation = handler.getClass().getAnnotation(InnerServerMessageHandler.class);
-                innerTcpServerDispatchers.put(annotation.value(), h);
+                innerTcpServerDispatchers.putIfAbsent(annotation.value(), h);
             } else {
                 final OuterServerMessageHandler annotation = handler.getClass().getAnnotation(OuterServerMessageHandler.class);
-                outerTcpServerDispatchers.put(annotation.value(), h);
+                outerTcpServerDispatchers.putIfAbsent(annotation.value(), h);
             }
         });
     }

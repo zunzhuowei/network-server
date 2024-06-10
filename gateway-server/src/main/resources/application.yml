@@ -23,3 +23,7 @@ hbsoo:
         port: 6006
         type: room
         id: 3000
+# 配置日志输入级别
+logging:
+  level:
+    com.hbsoo: debug

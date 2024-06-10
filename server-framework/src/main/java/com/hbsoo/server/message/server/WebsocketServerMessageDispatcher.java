@@ -48,10 +48,10 @@ abstract class WebsocketServerMessageDispatcher implements ServerMessageHandler<
             WebsocketServerMessageDispatcher h = (WebsocketServerMessageDispatcher) handler;
             if (innerDispatcher) {
                 final InnerServerMessageHandler annotation = handler.getClass().getAnnotation(InnerServerMessageHandler.class);
-                innerWebsocketServerDispatchers.put(annotation.value(), h);
+                innerWebsocketServerDispatchers.putIfAbsent(annotation.value(), h);
             } else {
                 final OuterServerMessageHandler annotation = handler.getClass().getAnnotation(OuterServerMessageHandler.class);
-                outerWebsocketServerDispatchers.put(annotation.value(), h);
+                outerWebsocketServerDispatchers.putIfAbsent(annotation.value(), h);
             }
         });
     }

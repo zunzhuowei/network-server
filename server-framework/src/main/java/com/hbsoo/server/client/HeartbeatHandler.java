@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 import java.net.SocketAddress;
 import java.util.function.Consumer;
 
-public class HeartbeatHandler extends ChannelInboundHandlerAdapter {
+public final class HeartbeatHandler extends ChannelInboundHandlerAdapter {
     private static Logger logger = LoggerFactory.getLogger(HeartbeatHandler.class);
 
     private Bootstrap bootstrap;

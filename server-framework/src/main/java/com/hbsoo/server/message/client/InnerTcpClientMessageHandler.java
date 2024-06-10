@@ -32,7 +32,7 @@ abstract class InnerTcpClientMessageHandler implements InnerClientMessageHandler
         }).forEach(handler -> {
             final com.hbsoo.server.annotation.InnerClientMessageHandler annotation = handler.getClass().getAnnotation(com.hbsoo.server.annotation.InnerClientMessageHandler.class);
             InnerTcpClientMessageHandler h = (InnerTcpClientMessageHandler) handler;
-            innerTcpClientDispatchers.put(annotation.value(), h);
+            innerTcpClientDispatchers.putIfAbsent(annotation.value(), h);
         });
     }
 

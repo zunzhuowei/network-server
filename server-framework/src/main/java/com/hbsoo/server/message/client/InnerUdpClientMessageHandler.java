@@ -30,7 +30,7 @@ abstract class InnerUdpClientMessageHandler implements InnerClientMessageHandler
         }).forEach(handler -> {
             final com.hbsoo.server.annotation.InnerClientMessageHandler annotation = handler.getClass().getAnnotation(com.hbsoo.server.annotation.InnerClientMessageHandler.class);
             InnerUdpClientMessageHandler h = (InnerUdpClientMessageHandler) handler;
-            innerUdpClientDispatchers.put(annotation.value(), h);
+            innerUdpClientDispatchers.putIfAbsent(annotation.value(), h);
         });
     }
 

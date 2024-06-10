@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
  * 内部服务，链接客户端，用于内部服务之间的通信
  *
  */
-public class TcpClient {
+public final class TcpClient {
 
     @Autowired
     private InnerTcpClientMessageDispatcher innerTcpClientMessageDispatcher;

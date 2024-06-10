@@ -43,10 +43,10 @@ abstract class HttpServerMessageDispatcher implements ServerMessageHandler<FullH
             HttpServerMessageDispatcher h = (HttpServerMessageDispatcher) handler;
             if (innerDispatcher) {
                 final InnerServerMessageHandler annotation = handler.getClass().getAnnotation(InnerServerMessageHandler.class);
-                innerHttpServerDispatchers.put(annotation.uri(), h);
+                innerHttpServerDispatchers.putIfAbsent(annotation.uri(), h);
             } else {
                 final OuterServerMessageHandler annotation = handler.getClass().getAnnotation(OuterServerMessageHandler.class);
-                outerHttpServerDispatchers.put(annotation.uri(), h);
+                outerHttpServerDispatchers.putIfAbsent(annotation.uri(), h);
             }
         });
     }

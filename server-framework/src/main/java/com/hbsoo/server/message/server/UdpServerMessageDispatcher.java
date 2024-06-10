@@ -41,10 +41,10 @@ abstract class UdpServerMessageDispatcher implements ServerMessageHandler<Datagr
             UdpServerMessageDispatcher h = (UdpServerMessageDispatcher) handler;
             if (innerDispatcher) {
                 final InnerServerMessageHandler annotation = handler.getClass().getAnnotation(InnerServerMessageHandler.class);
-                innerUdpServerDispatchers.put(annotation.value(), h);
+                innerUdpServerDispatchers.putIfAbsent(annotation.value(), h);
             } else {
                 final OuterServerMessageHandler annotation = handler.getClass().getAnnotation(OuterServerMessageHandler.class);
-                outerUdpServerDispatchers.put(annotation.value(), h);
+                outerUdpServerDispatchers.putIfAbsent(annotation.value(), h);
             }
         });
     }

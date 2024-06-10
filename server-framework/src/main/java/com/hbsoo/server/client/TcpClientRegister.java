@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
  * 将内部服务链接用的客户端 注册到spring容器中
  * Created by zun.wei on 2024/6/9.
  */
-public class TcpClientRegister implements ImportBeanDefinitionRegistrar, EnvironmentAware {
+public final class TcpClientRegister implements ImportBeanDefinitionRegistrar, EnvironmentAware {
 
     private Environment environment;
 

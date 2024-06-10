@@ -5,7 +5,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
-public class TcpClientHandler extends ChannelInboundHandlerAdapter {
+public final class TcpClientHandler extends ChannelInboundHandlerAdapter {
 
     private final InnerTcpClientMessageDispatcher dispatcher;
 

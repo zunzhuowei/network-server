@@ -30,7 +30,7 @@ abstract class InnerHttpClientMessageHandler implements InnerClientMessageHandle
         }).forEach(handler -> {
             final com.hbsoo.server.annotation.InnerClientMessageHandler annotation = handler.getClass().getAnnotation(com.hbsoo.server.annotation.InnerClientMessageHandler.class);
             InnerHttpClientMessageHandler h = (InnerHttpClientMessageHandler) handler;
-            innerHttpClientDispatchers.put(annotation.value(), h);
+            innerHttpClientDispatchers.putIfAbsent(annotation.value(), h);
         });
     }
 
