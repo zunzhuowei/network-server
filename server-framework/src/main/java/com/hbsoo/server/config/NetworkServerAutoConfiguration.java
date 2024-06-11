@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
@@ -25,7 +26,7 @@ import java.util.Optional;
 /**
  * Created by zun.wei on 2020/4/29.
  */
-//@ComponentScan(basePackages = {"com.hbsoo.server.action"})
+//@ComponentScan(basePackages = {"com.hbsoo.server.actiontest"})
 @Import({TcpClientRegister.class, InnerServerHeartbeatAction.class, InnerClientHeartbeatAction.class})
 @Configuration
 @EnableConfigurationProperties(ServerInfoProperties.class)
@@ -140,7 +141,7 @@ public class NetworkServerAutoConfiguration {
     @Bean(destroyMethod = "shutdown")
     public ThreadPoolScheduler innerClientThreadPoolScheduler() {
         final Map<String, Object> threadPoolSize = serverInfoProperties.getThreadPoolSize();
-        String poolName = "InnerClient";
+        String poolName = "InnerClient-biz-pool";
         if (threadPoolSize != null) {
             final Object innerClient = threadPoolSize.get("innerClient");
             if (innerClient != null) {
@@ -157,7 +158,7 @@ public class NetworkServerAutoConfiguration {
     @Bean(destroyMethod = "shutdown")
     public ThreadPoolScheduler innerServerThreadPoolScheduler() {
         final Map<String, Object> threadPoolSize = serverInfoProperties.getThreadPoolSize();
-        String poolName = "InnerServer";
+        String poolName = "InnerServer-biz-pool";
         if (threadPoolSize != null) {
             final Object innerServer = threadPoolSize.get("innerServer");
             if (innerServer != null) {

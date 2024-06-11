@@ -4,141 +4,79 @@ import com.hbsoo.server.message.HBSPackage;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelOutboundInvoker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
+ * 内网服务端，管道存储集合
  * Created by zun.wei on 2024/5/31.
  */
 public final class InnerServerSessionManager {
 
     // 使用slf4j作为日志记录工具
-    private static Logger logger = LoggerFactory.getLogger(InnerServerSessionManager.class);
+    private static final Logger logger = LoggerFactory.getLogger(InnerServerSessionManager.class);
 
-    public static Map<ServerType, ConcurrentHashMap<Integer, Channel>> clients = new ConcurrentHashMap<>();
+    /*
+    {
+        {gateway:{1000:{0:channel,1:channel},2000:{0:channel,1:channel}}} ,
+        {room:{1000:{0:channel,1:channel},2000:{0:channel,1:channel}}},
+        {hall:{1000:{0:channel,1:channel},2000:{0:channel,1:channel}}}
+    }
+     */
+    //关于key的解释：1.serverType:服务器类型 2.serverId:服务器id 3.链接服务器的客户端编号
+    public static Map<ServerType, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = new ConcurrentHashMap<>();
 
-
-    public static void innerLogin(ServerType serverType, Integer serverId, Channel channel) {
-        final ConcurrentHashMap<Integer, Channel> servers = clients.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
-        if (servers.containsKey(serverId)) {
-            servers.get(serverId).close();
-            //servers.get(serverId).eventLoop().shutdownGracefully();
-            servers.remove(serverId);
+    static {
+        // 初始化数据
+        for (ServerType serverType : ServerType.values()) {
+            ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>> innerMap = new ConcurrentHashMap<>();
+            clientsMap.put(serverType, innerMap);
         }
-        servers.put(serverId, channel);
+
+    }
+
+    public static void innerLogin(ServerType serverType, Integer serverId, Channel channel, int index) {
+        InnerSessionManager.innerLogin(serverType, serverId, channel, index, () -> clientsMap);
     }
     public static void innerLogout(ServerType serverType, Integer serverId) {
-        final ConcurrentHashMap<Integer, Channel> servers = clients.get(serverType);
-        if (servers != null) {
-            if (servers.containsKey(serverId)) {
-                servers.get(serverId).close();
-                //servers.get(serverId).eventLoop().shutdownGracefully();
-                servers.remove(serverId);
-            }
-        }
+        InnerSessionManager.innerLogout(serverType, serverId, () -> clientsMap);
     }
 
     public static void innerLogoutWithChannel(Channel channel) {
-        clients.forEach((serverType, servers) -> {
-            servers.forEach((serverId, ch) -> {
-                if (ch == channel) {
-                    servers.get(serverId).close();
-                    //servers.get(serverId).eventLoop().shutdownGracefully();
-                    servers.remove(serverId);
-                }
-            });
-        });
+        InnerSessionManager.innerLogoutWithChannel(channel, () -> clientsMap);
     }
 
-    public static void sendMsg2ServerByType(HBSPackage.Builder msgBuilder, ServerType serverType) {
-        final ConcurrentHashMap<Integer, Channel> servers = clients.get(serverType);
-        if (servers != null) {
-            servers.forEach((serverId, channel) -> {
-                try {
-                    final byte[] msg = msgBuilder.buildPackage();
-                    ByteBuf buf = Unpooled.wrappedBuffer(msg);
-                    channel.writeAndFlush(buf).sync();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    logger.error("sendMsg2ServerByType error:{}", e.getMessage());
-                }
-            });
-        }
-    }
-
-    public static void sendMsg2ServerByServerId(HBSPackage.Builder msgBuilder, int serverId) {
-        clients.forEach((serverType, servers) -> {
-            final Channel channel = servers.get(serverId);
-            if (channel != null) {
-                try {
-                    final byte[] msg = msgBuilder.buildPackage();
-                    ByteBuf buf = Unpooled.wrappedBuffer(msg);
-                    channel.writeAndFlush(buf).sync();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    logger.error("sendMsg2ServerByServerId error:{}", e.getMessage());
-                }
-            }
-        });
-    }
-
+    /**
+     * 根据服务器ID和服务器类型向指定服务器发送消息。
+     * 此方法首先构建消息包，然后尝试找到目标服务器的连接通道，最后通过通道发送消息。
+     * 如果无法找到对应的服务器连接或发送消息失败，将打印错误信息。
+     *
+     * @param msgBuilder 消息包的构建器，用于构建待发送的消息包。
+     * @param serverId 目标服务器的ID，用于在服务器列表中定位目标服务器。
+     * @param serverType 目标服务器的类型，用于获取相应类型服务器的连接列表。
+     */
     public static void sendMsg2ServerByServerId(HBSPackage.Builder msgBuilder, int serverId, ServerType serverType) {
-        final ConcurrentHashMap<Integer, Channel> servers = clients.get(serverType);
-        if (servers != null) {
-            final Channel channel = servers.get(serverId);
-            if (channel != null) {
-                try {
-                    final byte[] msg = msgBuilder.buildPackage();
-                    ByteBuf buf = Unpooled.wrappedBuffer(msg);
-                    channel.writeAndFlush(buf).sync();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    logger.error("sendMsg2ServerByServerId error:{}", e.getMessage());
-               }
-           }
-       }
-   }
-
-   public static void sendMsg2AllServer(HBSPackage.Builder msgBuilder) {
-       clients.forEach((serverType, servers) -> {
-           servers.forEach((serverId, channel) -> {
-               try {
-                   final byte[] msg = msgBuilder.buildPackage();
-                   ByteBuf buf = Unpooled.wrappedBuffer(msg);
-                   channel.writeAndFlush(buf).sync();
-               } catch (Exception e) {
-                   e.printStackTrace();
-                   logger.error("sendMsg2AllServer error:{}", e.getMessage());
-               }
-           });
-       });
-   }
-
-    public static void sendMsg2ServerByTypeAndKey(HBSPackage.Builder msgBuilder, ServerType serverType, String key) {
-        final ConcurrentHashMap<Integer, Channel> servers = clients.get(serverType);
-        //根据key的hash值判断使用哪个服务器
-        if (servers != null) {
-            int hash = key.hashCode();
-            int serverId = Math.abs(hash) % servers.size();
-            final Channel channel = servers.get(serverId);
-            if (channel != null) {
-                try {
-                    final byte[] msg = msgBuilder.buildPackage();
-                    ByteBuf buf = Unpooled.wrappedBuffer(msg);
-                    channel.writeAndFlush(buf).sync();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    logger.error("sendMsg2ServerByTypeAndKey error:{}", e.getMessage());
-                }
-            }
-       }
+        InnerSessionManager.sendMsg2ServerByServerId(msgBuilder, serverId, serverType, () -> clientsMap);
     }
 
-    public static void sendMsg2ServerByTypeAndKey(HBSPackage.Builder msgBuilder, ServerType serverType, Long id) {
-        sendMsg2ServerByTypeAndKey(msgBuilder, serverType, String.valueOf(id));
+    /**
+     * 根据消息类型和键值向特定服务器发送消息。
+     * 使用Builder模式构建消息包，根据服务器类型和键值选择目标服务器，然后将消息发送到该服务器。
+     *
+     * @param msgBuilder 消息包的Builder对象，用于构建消息包。
+     * @param serverType 服务器类型，用于确定目标服务器群组。
+     *                   注意：如果与当前服务器类型相同，则发送到当前服务器之外的服务器。
+     * @param key 根据键值进行服务器选择的键，用于计算哈希值以选择具体服务器。
+     * 抛出异常：如果key为null，则抛出RuntimeException。
+     */
+    public static void sendMsg2ServerByTypeAndKey(HBSPackage.Builder msgBuilder, ServerType serverType, Object key) {
+        InnerSessionManager.sendMsg2ServerByTypeAndKey(msgBuilder, serverType, key, () -> clientsMap);
     }
 
 }

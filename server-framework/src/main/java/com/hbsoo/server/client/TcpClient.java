@@ -26,14 +26,16 @@ public final class TcpClient {
     private final int reconnectInterval;
     private final ServerInfo fromServerInfo;
     private final ServerInfo toServerInfo;
-    private final  NioEventLoopGroup group;
+    private final NioEventLoopGroup group;
+    private final int index;
 
-    public TcpClient(ServerInfo fromServerInfo, ServerInfo toServerInfo, int reconnectInterval) {
+    public TcpClient(ServerInfo fromServerInfo, ServerInfo toServerInfo, int reconnectInterval, int index) {
         this.reconnectInterval = reconnectInterval;
         this.fromServerInfo = fromServerInfo;
         this.toServerInfo = toServerInfo;
+        this.index = index;
         group = new NioEventLoopGroup(1, r -> {
-            return new Thread(r, "client-" + fromServerInfo.getType().name() + "-" + fromServerInfo.getId());
+            return new Thread(r, "client-" + toServerInfo.getType().name() + "-" + toServerInfo.getId() + "#" + index);
         });
     }
 
@@ -69,6 +71,7 @@ public final class TcpClient {
                         .msgType(HBSMessageType.InnerMessageType.LOGIN)
                         .writeInt(fromServerInfo.getId())//当前服务器的ID
                         .writeStr(fromServerInfo.getType().name())//当前服务器的类型
+                        .writeInt(index)//客户端编号
                         .writeInt(toServerInfo.getId())//登录服务器的ID
                         .writeStr(toServerInfo.getType().name())//登录服务器的类型
                         .buildPackage();

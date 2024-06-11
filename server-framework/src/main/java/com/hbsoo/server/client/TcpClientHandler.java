@@ -3,9 +3,9 @@ package com.hbsoo.server.client;
 import com.hbsoo.server.message.client.InnerTcpClientMessageDispatcher;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.SimpleChannelInboundHandler;
 
-public final class TcpClientHandler extends ChannelInboundHandlerAdapter {
+public final class TcpClientHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
     private final InnerTcpClientMessageDispatcher dispatcher;
 
@@ -14,11 +14,11 @@ public final class TcpClientHandler extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+    public void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
         //byte[] received = new byte[in.readableBytes()];
         //in.readBytes(received);
         //System.out.println("Received: " + new String(received));
-        dispatcher.onMessage(ctx, (ByteBuf) msg);
+        dispatcher.onMessage(ctx, msg);
     }
 
     @Override

@@ -4,7 +4,9 @@ import com.hbsoo.server.message.HBSPackage;
 import com.hbsoo.server.utils.SpringBeanFactory;
 import com.hbsoo.server.utils.ThreadPoolScheduler;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.util.ReferenceCountUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.annotation.PostConstruct;
@@ -58,5 +60,10 @@ abstract class InnerTcpClientMessageHandler implements InnerClientMessageHandler
 
     public abstract void onMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder);
 
+    public void redirectMessage(ChannelHandlerContext ctx, HBSPackage.Builder msgBuilder) {
+        final byte[] buildPackage = msgBuilder.buildPackage();
+        ByteBuf buf = Unpooled.wrappedBuffer(buildPackage);
+        redirectMessage(ctx, buf);
+    }
 
 }

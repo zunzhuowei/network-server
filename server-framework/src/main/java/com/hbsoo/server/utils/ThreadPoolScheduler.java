@@ -22,7 +22,7 @@ public class ThreadPoolScheduler {
         executors = new ExecutorService[poolSize];
         for (int i = 0; i < poolSize; i++) {
             int index = i;
-            executors[i] = Executors.newSingleThreadExecutor(r -> new Thread(r, poolName + " #" + index));
+            executors[i] = Executors.newSingleThreadExecutor(r -> new Thread(r, poolName + "#" + index));
         }
     }
 

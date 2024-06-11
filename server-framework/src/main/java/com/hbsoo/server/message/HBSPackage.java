@@ -76,6 +76,7 @@ public final class HBSPackage {
         }
 
         public Builder msgType(int msgType) {
+            msgTypeList.clear();
             final ByteBuffer buffer = ByteBuffer.allocate(4);
             buffer.putInt(msgType);
             final byte[] array = buffer.array();
@@ -180,6 +181,14 @@ public final class HBSPackage {
             msgTypeList.forEach(buffer::put);
             bodyByteList.forEach(buffer::put);
             return buffer.array();
+        }
+
+        public int readMsgType() {
+            byte[] msgTypeBytes = new byte[msgTypeList.size()];
+            for (int i = 0; i < msgTypeList.size(); i++) {
+                msgTypeBytes[i] = msgTypeList.get(i);
+            }
+            return ByteBuffer.wrap(msgTypeBytes).order(ByteOrder.BIG_ENDIAN).getInt();
         }
 
         /*public byte[] buildBody() {

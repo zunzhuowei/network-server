@@ -9,10 +9,6 @@ import io.netty.channel.ChannelHandlerContext;
 public class InnerUdpServerMessageDispatcher extends UdpServerMessageDispatcher {
 
 
-    @Override
-    public Object threadKey(HBSPackage.Decoder decoder) {
-        return null;
-    }
 
     @Override
     public boolean isInnerDispatcher() {

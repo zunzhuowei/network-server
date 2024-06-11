@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 @InnerClientMessageHandler(HBSMessageType.InnerMessageType.HEARTBEAT)
 public class InnerClientHeartbeatAction extends InnerTcpClientMessageDispatcher {
 
-    private static Logger logger = LoggerFactory.getLogger(InnerClientHeartbeatAction.class);
+    private static final Logger logger = LoggerFactory.getLogger(InnerClientHeartbeatAction.class);
 
     @Override
     public void onMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {

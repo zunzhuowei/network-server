@@ -71,7 +71,7 @@ abstract class TcpServerMessageDispatcher implements ServerMessageHandler<ByteBu
                 }
             } else {
                 final String s = ctx.channel().id().asShortText();
-                System.out.println("消息类型未注册：" + msgType + ",id:"+ s);
+                System.out.println("消息类型未注册：" + msgType + ",channelID:"+ s);
                 received = null;
                 ctx.close();
             }
@@ -93,5 +93,11 @@ abstract class TcpServerMessageDispatcher implements ServerMessageHandler<ByteBu
      * @param decoder HBSPackage.Decoder
      */
     public abstract void onMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder);
+
+//    public void redirectMessage(ChannelHandlerContext ctx, HBSPackage.Builder msgBuilder) {
+//        final byte[] buildPackage = msgBuilder.buildPackage();
+//        ByteBuf buf = Unpooled.wrappedBuffer(buildPackage);
+//        redirectMessage(ctx, buf);
+//    }
 
 }

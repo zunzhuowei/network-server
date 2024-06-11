@@ -1,4 +1,4 @@
-package com.hbsoo.server.action;
+package com.hbsoo.server.actiontest;
 
 import com.hbsoo.server.annotation.OuterServerMessageHandler;
 import com.hbsoo.server.message.HttpPackage;

@@ -10,11 +10,6 @@ public class OuterWebsocketServerMessageDispatcher extends WebsocketServerMessag
 
 
     @Override
-    public Object threadKey(HBSPackage.Decoder decoder) {
-        return null;
-    }
-
-    @Override
     public boolean isInnerDispatcher() {
         return false;
     }

@@ -1,5 +1,6 @@
 package com.hbsoo.server.client;
 
+import com.hbsoo.server.NowServer;
 import com.hbsoo.server.config.ServerInfo;
 import com.hbsoo.server.session.ServerType;
 import org.springframework.beans.factory.config.ConstructorArgumentValues;
@@ -29,6 +30,7 @@ public final class TcpClientRegister implements ImportBeanDefinitionRegistrar, E
     @Override
     public void registerBeanDefinitions(AnnotationMetadata annotationMetadata, BeanDefinitionRegistry beanDefinitionRegistry) {
         List<ServerInfo> innerServers = new ArrayList<>();
+        // 解析配置文件中的内网服务器配置
         MutablePropertySources sources = ((AbstractEnvironment) environment).getPropertySources();
         for (PropertySource<?> source : sources) {
             if (source instanceof EnumerablePropertySource) {
@@ -63,26 +65,31 @@ public final class TcpClientRegister implements ImportBeanDefinitionRegistrar, E
         Integer id = Integer.parseInt(serverIdStr);//当前服务器id
         Optional<ServerInfo> optional = innerServers.stream().filter(e -> e.getId().equals(id)).findFirst();
         ServerInfo fromServerInfo = optional.get();//当前服务器信息
-        //InnerTcpClientMessageDispatcher dispatcher = SpringBeanFactory.getBean("innerTcpClientMessageDispatcher", InnerTcpClientMessageDispatcher.class);
 
+        //填充当前服务器信息
+        NowServer.setServerInfo(fromServerInfo);
+
+        // 注册内网客户端
         for (ServerInfo innerServer : innerServers) {
             if (innerServer.getId().equals(id)) {
                 continue;
             }
-            AbstractBeanDefinition beanDefinition = BeanDefinitionBuilder.rootBeanDefinition(TcpClient.class).getBeanDefinition();
-            beanDefinition.setAutowireMode(AbstractBeanDefinition.AUTOWIRE_BY_NAME);
-            beanDefinition.setScope("singleton");
-            beanDefinition.setInitMethodName("start");
-            beanDefinition.setDestroyMethodName("stop");
-            ConstructorArgumentValues constructorArgumentValues = new ConstructorArgumentValues();
-            constructorArgumentValues.addIndexedArgumentValue(0, fromServerInfo);
-            constructorArgumentValues.addIndexedArgumentValue(1, innerServer);
-            constructorArgumentValues.addIndexedArgumentValue(2, 3);
-            //constructorArgumentValues.addIndexedArgumentValue(3, dispatcher);
-            beanDefinition.setConstructorArgumentValues(constructorArgumentValues);
-            String beanName = fromServerInfo.getType().name() + ":" + fromServerInfo.getId() + " to " +
-                    innerServer.getType().name() + ":" + innerServer.getId();
-            beanDefinitionRegistry.registerBeanDefinition(beanName, beanDefinition);
+            //每个服务器使用五个客户端链接
+            for (int i = 0; i < 5; i++) {
+                AbstractBeanDefinition beanDefinition = BeanDefinitionBuilder.rootBeanDefinition(TcpClient.class).getBeanDefinition();
+                beanDefinition.setAutowireMode(AbstractBeanDefinition.AUTOWIRE_BY_NAME);
+                beanDefinition.setScope("singleton");
+                beanDefinition.setInitMethodName("start");
+                beanDefinition.setDestroyMethodName("stop");
+                ConstructorArgumentValues constructorArgumentValues = new ConstructorArgumentValues();
+                constructorArgumentValues.addIndexedArgumentValue(0, fromServerInfo);
+                constructorArgumentValues.addIndexedArgumentValue(1, innerServer);
+                constructorArgumentValues.addIndexedArgumentValue(2, 3);
+                constructorArgumentValues.addIndexedArgumentValue(3, i);
+                beanDefinition.setConstructorArgumentValues(constructorArgumentValues);
+                String beanName = "innerClient:" + fromServerInfo.getId() + " to " + innerServer.getId() + "#" + i;
+                beanDefinitionRegistry.registerBeanDefinition(beanName, beanDefinition);
+            }
         }
     }
 

@@ -17,15 +17,16 @@ import org.slf4j.LoggerFactory;
 @InnerClientMessageHandler(HBSMessageType.InnerMessageType.LOGIN)
 public class InnerClientLoginAction extends InnerTcpClientMessageDispatcher {
 
-    private static Logger logger = LoggerFactory.getLogger(InnerClientLoginAction.class);
+    private static final Logger logger = LoggerFactory.getLogger(InnerClientLoginAction.class);
 
 
     @Override
     public void onMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
-        final int id = decoder.readInt();
-        final String loginServerTypeStr = decoder.readStr();
-        InnerClientSessionManager.innerLogin(ServerType.valueOf(loginServerTypeStr), id, ctx.channel());
-        logger.info("服务器返回的登录消息：InnerClientLoginAction login success,serverType[{}],id[{}]", loginServerTypeStr, id);
+        int id = decoder.readInt();
+        String loginServerTypeStr = decoder.readStr();
+        int index = decoder.readInt();
+        InnerClientSessionManager.innerLogin(ServerType.valueOf(loginServerTypeStr), id, ctx.channel(), index);
+        logger.info("服务器返回的登录消息：InnerClientLoginAction login success,serverType[{}],id[{}],index[{}]", loginServerTypeStr, id, index);
 
     }
 

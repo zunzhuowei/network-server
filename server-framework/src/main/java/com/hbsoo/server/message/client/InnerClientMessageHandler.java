@@ -15,5 +15,12 @@ interface InnerClientMessageHandler<T> {
 
     void onMessage(ChannelHandlerContext ctx, T msg);
 
+    /**
+     * 消息转发到【当前服务器】中的其他消息处理器中
+     * @param msg 消息
+     */
+    default void redirectMessage(ChannelHandlerContext ctx, T msg) {
+        onMessage(ctx, msg);
+    }
 
 }

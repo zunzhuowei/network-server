@@ -19,24 +19,27 @@ import org.slf4j.LoggerFactory;
 @InnerServerMessageHandler(HBSMessageType.InnerMessageType.LOGIN)
 public class InnerServerLoginAction extends InnerTcpServerMessageDispatcher {
 
-    private static Logger logger = LoggerFactory.getLogger(InnerServerLoginAction.class);
+    private static final Logger logger = LoggerFactory.getLogger(InnerServerLoginAction.class);
 
     @Override
     public void onMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
-        final int serverId = decoder.readInt();
-        final String serverTypeStr = decoder.readStr();
-        final int id = decoder.readInt();
-        final String loginServerTypeStr = decoder.readStr();
-        InnerServerSessionManager.innerLogin(ServerType.valueOf(serverTypeStr), serverId, ctx.channel());
+        int serverId = decoder.readInt();
+        String serverTypeStr = decoder.readStr();
+        int index = decoder.readInt();
+        int id = decoder.readInt();
+        String loginServerTypeStr = decoder.readStr();
+        InnerServerSessionManager.innerLogin(ServerType.valueOf(serverTypeStr), serverId, ctx.channel(), index);
         //decoder.resetBodyReadOffset();
-        final byte[] aPackage = HBSPackage.Builder.withDefaultHeader()
+        byte[] aPackage = HBSPackage.Builder.withDefaultHeader()
                 .msgType(HBSMessageType.InnerMessageType.LOGIN)
                 .writeInt(id)
                 .writeStr(loginServerTypeStr)
+                .writeInt(index)//客户端编号
                 .buildPackage();
         ByteBuf buf = Unpooled.wrappedBuffer(aPackage);
         ctx.channel().writeAndFlush(buf);
-        logger.info("接收到内部服务器登录消息：InnerServerLoginAction login success,serverType[{}],id[{}]", serverTypeStr, serverId);
+        logger.info("接收到内部服务器登录消息：InnerServerLoginAction login success,serverType[{}],id[{}],id[{}]", serverTypeStr, serverId, index);
+
     }
 
 }
