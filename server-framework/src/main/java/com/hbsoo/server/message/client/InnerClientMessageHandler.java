@@ -9,9 +9,12 @@ import io.netty.channel.ChannelHandlerContext;
 interface InnerClientMessageHandler<T> {
 
     /**
-     * 根据返回的值取hash，对线程池取模，指定线程处理消息
+     * 根据返回的值取hash，对线程池取模，指定线程处理消息。
+     * 如果返回的值是null，则随机选取线程执行
      */
-    Object threadKey(HBSPackage.Decoder decoder);
+    default Object threadKey(HBSPackage.Decoder decoder){
+        return null;
+    }
 
     void onMessage(ChannelHandlerContext ctx, T msg);
 

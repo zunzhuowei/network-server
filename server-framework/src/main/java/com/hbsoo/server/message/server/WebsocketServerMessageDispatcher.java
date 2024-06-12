@@ -73,6 +73,7 @@ abstract class WebsocketServerMessageDispatcher implements ServerMessageHandler<
                 Gson gson = new Gson();
                 final TextWebSocketPackage socketPackage = gson.fromJson(jsonStr, TextWebSocketPackage.class);
                 final int msgType = socketPackage.getMsgType();
+                //把文本消息，转成json格式
                 received = HBSPackage.Builder.withDefaultHeader().msgType(msgType).writeStr(jsonStr).buildPackage();
             }
 

@@ -52,7 +52,7 @@ public interface ServerMessageHandler<T> {
     }
 
     /**
-     * 消息转发到【当前服务器】中的其他消息处理器中
+     * 消息转发到【当前服务器】中的其他消息处理器中【同协议】
      * @param msg 消息
      */
     default void redirectMessage(ChannelHandlerContext ctx, T msg) {
@@ -62,7 +62,7 @@ public interface ServerMessageHandler<T> {
     }
 
     /**
-     * 消息转发到指定协议的消息处理器中处理,作用于【当前服务器】
+     * 消息转发到【指定协议】的消息处理器中处理,作用于【当前服务器】
      * @param ctx 上下文
      * @param protocolType 协议类型
      * @param msgBuilder 消息

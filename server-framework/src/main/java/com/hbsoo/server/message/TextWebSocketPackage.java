@@ -10,7 +10,7 @@ public class TextWebSocketPackage implements Serializable {
 
     private int msgType;
 
-    private Map<String,Object> data;
+    private Map<String, Object> data;
 
     public int getMsgType() {
         return msgType;

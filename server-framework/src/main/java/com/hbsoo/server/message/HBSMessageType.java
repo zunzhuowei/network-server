@@ -16,6 +16,8 @@ public interface HBSMessageType {
         int REDIRECT_TO_CLIENT = 8;
         int REDIRECT_TO_ALL_CLIENT = 9;
         int REDIRECT_TO_ALL_SERVER = 10;
+        int LOGIN_SYNC = 11;
+        int LOGOUT_SYNC = 12;
     }
 
     interface OuterMessageType {

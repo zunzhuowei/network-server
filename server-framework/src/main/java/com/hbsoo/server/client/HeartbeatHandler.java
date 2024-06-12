@@ -16,9 +16,9 @@ import java.net.SocketAddress;
 import java.util.function.Consumer;
 
 public final class HeartbeatHandler extends ChannelInboundHandlerAdapter {
-    private static Logger logger = LoggerFactory.getLogger(HeartbeatHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(HeartbeatHandler.class);
 
-    private Bootstrap bootstrap;
+    private final Bootstrap bootstrap;
     private final Consumer<Bootstrap> connectFun;
     public HeartbeatHandler(Bootstrap bootstrap, Consumer<Bootstrap> connectFun) {
         this.bootstrap = bootstrap;
@@ -37,7 +37,7 @@ public final class HeartbeatHandler extends ChannelInboundHandlerAdapter {
                 //System.out.println("Sent heartbeat to server");
                 final SocketAddress socketAddress = ctx.channel().remoteAddress();
                 final String remoteAddr = socketAddress.toString();
-                logger.debug("Sent heartbeat to server:{}", remoteAddr);
+                logger.trace("Sent heartbeat to server:{}", remoteAddr);
             }
         } else {
             super.userEventTriggered(ctx, evt);

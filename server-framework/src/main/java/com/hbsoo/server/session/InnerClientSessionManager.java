@@ -9,7 +9,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 内网客户端，管道存储集合
+ * 保存了当前服务器登录其他服务的channel;
+ * 如服务器id：1000【当前服务器】,2000,3000；
+ * 则这里保存的是1000客户端登录2000、3000服务器的channel
  * Created by zun.wei on 2024/6/5.
  */
 public final class InnerClientSessionManager {
@@ -71,5 +73,16 @@ public final class InnerClientSessionManager {
      */
     public static void sendMsg2ServerByTypeAndKey(HBSPackage.Builder msgBuilder, ServerType serverType, Object key) {
         InnerSessionManager.sendMsg2ServerByTypeAndKey(msgBuilder, serverType, key, () -> clientsMap);
+    }
+    /**
+     * 根据键值向所有服务器发送消息。
+     * 使用Builder模式构建消息包，遍历所有服务器，将消息发送到每个服务器。
+     *
+     * @param msgBuilder 消息包的Builder对象，用于构建消息包。
+     * @param key 根据键值进行服务器选择的键，用于计算哈希值以选择具体服务器。
+     * 抛出异常：如果key为null，则抛出RuntimeException。
+     */
+    public static void sendMsg2AllServerByKey(HBSPackage.Builder msgBuilder, Object key) {
+        InnerSessionManager.sendMsg2AllServerByKey(msgBuilder, key, () -> clientsMap);
     }
 }

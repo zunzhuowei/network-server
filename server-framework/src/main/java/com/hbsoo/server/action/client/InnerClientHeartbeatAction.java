@@ -1,11 +1,9 @@
-package com.hbsoo.server.action;
+package com.hbsoo.server.action.client;
 
 import com.hbsoo.server.annotation.InnerClientMessageHandler;
 import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.HBSPackage;
 import com.hbsoo.server.message.client.InnerTcpClientMessageDispatcher;
-import com.hbsoo.server.session.InnerClientSessionManager;
-import com.hbsoo.server.session.ServerType;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +20,7 @@ public class InnerClientHeartbeatAction extends InnerTcpClientMessageDispatcher 
     @Override
     public void onMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
         final String remoteAddr = ctx.channel().remoteAddress().toString();
-        logger.debug("InnerClientHeartbeatAction 心跳包：remoteAddr {}", remoteAddr);
+        logger.trace("InnerClientHeartbeatAction 心跳包：remoteAddr {}", remoteAddr);
     }
 
 }

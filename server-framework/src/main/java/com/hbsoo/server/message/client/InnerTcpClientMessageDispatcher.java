@@ -8,10 +8,6 @@ import io.netty.channel.ChannelHandlerContext;
  */
 public class InnerTcpClientMessageDispatcher extends InnerTcpClientMessageHandler {
 
-    @Override
-    public Object threadKey(HBSPackage.Decoder decoder) {
-        return null;
-    }
 
     @Override
     public void onMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {

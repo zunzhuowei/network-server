@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -59,14 +60,24 @@ class InnerSessionManager {
         });
     }
 
-
+    /**
+     * 发送消息到指定服务器
+     *
+     * @param msgBuilder 消息
+     * @param serverId   服务器id
+     * @param serverType 服务器类型
+     */
     public static void sendMsg2ServerByServerId(HBSPackage.Builder msgBuilder, int serverId, ServerType serverType,
                                                 Supplier<Map<ServerType, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>>> clientsMapSupplier) {
         Map<ServerType, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = clientsMapSupplier.get();
         ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>> serverTypeMap = clientsMap.get(serverType);
-        ConcurrentHashMap<Integer, Channel> servers = serverTypeMap.computeIfAbsent(serverId, k -> new ConcurrentHashMap<>());
-        final Channel channel = servers.get(serverId);
-        if (channel != null) {
+        ConcurrentHashMap<Integer, Channel> clients = serverTypeMap.computeIfAbsent(serverId, k -> new ConcurrentHashMap<>());
+        final Random random = new Random();
+        int key = random.nextInt();
+        int hash = Integer.hashCode(key);
+        int serverIndex = Math.abs(hash) % clients.size();
+        final Channel channel = clients.get(serverIndex);
+        if (channel != null && channel.isActive()) {
             try {
                 final byte[] msg = msgBuilder.buildPackage();
                 ByteBuf buf = Unpooled.wrappedBuffer(msg);
@@ -82,6 +93,7 @@ class InnerSessionManager {
      * 根据类型和键值向特定服务器发送消息。
      * 使用哈希算法和服务器列表的索引来决定消息发送到哪个服务器。
      * 此方法确保了消息的路由逻辑，使得消息能够根据服务器类型和键值被正确地路由到相应的服务器。
+     * 注意：消息不会发送给当前服务器。
      *
      * @param msgBuilder 消息构建器，用于构建待发送的消息包。
      * @param serverType 服务器类型，用于定位服务器集群。
@@ -102,18 +114,21 @@ class InnerSessionManager {
         if (typeSize < 1) {
             msgBuilder = null;
             //throw new RuntimeException("typeSize < 1 : " + serverType.name());
+            logger.trace("typeSize < 1 : {}", serverType.name());
             return;
         }
         int hash = key.hashCode();
         int serverIndex = Math.abs(hash) % typeSize;
         final List<Integer> serverIds = serverTypeMap.keySet().stream()
-                .filter(k -> !k.equals(serverInfo.getId()))
+                .filter(k -> !k.equals(serverInfo.getId()))//排除当前服务器
                 .sorted().collect(Collectors.toList());
         Integer serverId = serverIds.get(serverIndex);
         //根据key的hash值判断使用哪个客户端
         ConcurrentHashMap<Integer, Channel> clients = serverTypeMap.computeIfAbsent(serverId, k -> new ConcurrentHashMap<>());
         if (clients.isEmpty()) {
-            throw new RuntimeException("clients.isEmpty()");
+            //throw new RuntimeException("clients.isEmpty()");
+            logger.warn("clients.isEmpty()");
+            return;
         }
         int index = Math.abs(hash) % clients.size();
         final List<Integer> clientIds = clients.keySet().stream().sorted().collect(Collectors.toList());
@@ -121,6 +136,7 @@ class InnerSessionManager {
         final Channel channel = clients.get(clientId);
         if (channel == null) {
             msgBuilder = null;
+            logger.warn("channel is null");
             return;
         }
         try {
@@ -131,6 +147,25 @@ class InnerSessionManager {
             e.printStackTrace();
             logger.error("sendMsg2ServerByTypeAndKey error:{}", e.getMessage());
         }
+    }
+
+    /**
+     * 向所有服务器发送消息。
+     * 此方法遍历服务器类型列表，并使用sendMsg2ServerByTypeAndKey方法发送消息给每个服务器。
+     *
+     * @param msgBuilder 消息构建器，用于构建待发送的消息包。
+     * @param key 键值，用于计算消息应该发送到哪个服务器和选择哪个客户端发送
+     * @throws RuntimeException 如果键值为null，则抛出运行时异常。
+     */
+    public static void sendMsg2AllServerByKey(HBSPackage.Builder msgBuilder, Object key,
+                                                  Supplier<Map<ServerType, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>>> clientsMapSupplier) {
+        if (key == null) {
+            throw new RuntimeException("key is null");
+        }
+        Map<ServerType, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = clientsMapSupplier.get();
+        clientsMap.forEach((serverType, serverTypeMap) -> {
+            sendMsg2ServerByTypeAndKey(msgBuilder, serverType, key, clientsMapSupplier);
+        });
     }
 
 }

@@ -27,3 +27,5 @@ hbsoo:
 logging:
   level:
     com.hbsoo: debug
+  pattern:
+    dateformat: yyyy-MM-dd HH:mm:ss

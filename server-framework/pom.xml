@@ -16,9 +16,9 @@
         <maven.compiler.target>8</maven.compiler.target>
     </properties>
 
-<!--    <dependencyManagement>
+    <dependencyManagement>
         <dependencies>
-            &lt;!&ndash; Spring Boot &ndash;&gt;
+            <!-- Spring Boot -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
@@ -28,7 +28,7 @@
                 <optional>true</optional>
             </dependency>
         </dependencies>
-    </dependencyManagement>-->
+    </dependencyManagement>
 
     <dependencies>
         <dependency>

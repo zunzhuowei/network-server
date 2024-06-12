@@ -14,7 +14,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
  * Created by zun.wei on 2024/6/7.
  */
 @OuterServerMessageHandler(value = 0, uri = "/")
-public class HttpIndexAction extends OuterHttpServerMessageDispatcher {
+public class HttpIndexActionTest extends OuterHttpServerMessageDispatcher {
 
     @Override
     public void onMessage(ChannelHandlerContext ctx, HttpPackage httpPackage) {

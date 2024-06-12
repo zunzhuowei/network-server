@@ -21,9 +21,9 @@
         <maven.compiler.target>8</maven.compiler.target>
     </properties>
 
-    <dependencyManagement>
+<!--    <dependencyManagement>
         <dependencies>
-            <!-- Spring Boot -->
+            &lt;!&ndash; Spring Boot &ndash;&gt;
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
@@ -33,9 +33,9 @@
                 <optional>true</optional>
             </dependency>
         </dependencies>
-    </dependencyManagement>
+    </dependencyManagement>-->
 
-    <dependencies>
+<!--    <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
@@ -48,6 +48,6 @@
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
         </dependency>
-    </dependencies>
+    </dependencies>-->
 
 </project>

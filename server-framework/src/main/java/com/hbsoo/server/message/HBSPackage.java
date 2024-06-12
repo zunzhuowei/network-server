@@ -113,6 +113,10 @@ public final class HBSPackage {
             return this;
         }
 
+        public Builder writeString(String... strings) {
+            return writeStr(strings);
+        }
+
         public Builder writeStr(String... strings) {
             for (String str : strings) {
                 final byte[] bytes = str.getBytes(StandardCharsets.UTF_8);
@@ -183,7 +187,7 @@ public final class HBSPackage {
             return buffer.array();
         }
 
-        public int readMsgType() {
+        public int msgType() {
             byte[] msgTypeBytes = new byte[msgTypeList.size()];
             for (int i = 0; i < msgTypeList.size(); i++) {
                 msgTypeBytes[i] = msgTypeList.get(i);

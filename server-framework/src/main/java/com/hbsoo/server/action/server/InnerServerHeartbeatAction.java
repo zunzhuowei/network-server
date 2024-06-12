@@ -1,11 +1,9 @@
-package com.hbsoo.server.action;
+package com.hbsoo.server.action.server;
 
 import com.hbsoo.server.annotation.InnerServerMessageHandler;
 import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.HBSPackage;
-import com.hbsoo.server.message.ProtocolType;
 import com.hbsoo.server.message.server.InnerTcpServerMessageDispatcher;
-import com.hbsoo.server.session.ServerType;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
@@ -23,7 +21,7 @@ public class InnerServerHeartbeatAction extends InnerTcpServerMessageDispatcher 
     @Override
     public void onMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
         final String remoteAddr = ctx.channel().remoteAddress().toString();
-        logger.debug("InnerHeartbeatAction 心跳包：remoteAddr {}", remoteAddr);
+        logger.trace("InnerHeartbeatAction 心跳包：remoteAddr {}", remoteAddr);
         // 发送心跳包
         byte[] msg = HBSPackage.Builder.withDefaultHeader()
                 .msgType(HBSMessageType.InnerMessageType.HEARTBEAT).buildPackage();
