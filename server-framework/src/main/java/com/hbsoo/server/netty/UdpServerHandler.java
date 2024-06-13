@@ -9,10 +9,10 @@ import java.util.Objects;
 
 public final class UdpServerHandler extends SimpleChannelInboundHandler<DatagramPacket> {
 
-    private final ServerMessageHandler udpServerMessageDispatcher;
+    private final ServerMessageHandler handler;
 
-    public UdpServerHandler(ServerMessageHandler udpServerMessageDispatcher) {
-        this.udpServerMessageDispatcher = udpServerMessageDispatcher;
+    public UdpServerHandler(ServerMessageHandler handler) {
+        this.handler = handler;
     }
 
 
@@ -25,13 +25,7 @@ public final class UdpServerHandler extends SimpleChannelInboundHandler<Datagram
         System.out.println("Received UDP message: " + message);
         ByteBuf response = ctx.alloc().buffer().writeBytes(("Echo: " + message).getBytes());
         ctx.writeAndFlush(new DatagramPacket(response, packet.sender()));*/
-        if (Objects.nonNull(udpServerMessageDispatcher)) {
-            udpServerMessageDispatcher.onMessage(ctx, packet);
-        } else {
-            final String s = packet.toString();
-            System.err.println("UdpServerHandler not config = " + s);
-            ctx.close();
-        }
+        handler.onMessage(ctx, packet);
     }
 
     @Override

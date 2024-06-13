@@ -1,8 +1,9 @@
 package com.hbsoo.server.actiontest;
 
 import com.hbsoo.server.annotation.OuterServerMessageHandler;
+import com.hbsoo.server.message.HBSPackage;
 import com.hbsoo.server.message.HttpPackage;
-import com.hbsoo.server.message.server.OuterHttpServerMessageDispatcher;
+import com.hbsoo.server.message.server.ServerMessageDispatcher;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
@@ -14,10 +15,13 @@ import io.netty.handler.codec.http.HttpResponseStatus;
  * Created by zun.wei on 2024/6/7.
  */
 @OuterServerMessageHandler(value = 0, uri = "/")
-public class HttpIndexActionTest extends OuterHttpServerMessageDispatcher {
+public class HttpIndexActionTest extends ServerMessageDispatcher {
 
     @Override
-    public void onMessage(ChannelHandlerContext ctx, HttpPackage httpPackage) {
+    public void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {}
+
+    @Override
+    public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) {
         System.out.println("HttpIndexAction" + httpPackage);
         final FullHttpRequest fullHttpRequest = httpPackage.getFullHttpRequest();
         DefaultFullHttpResponse response = new DefaultFullHttpResponse(fullHttpRequest.protocolVersion(), HttpResponseStatus.OK);
@@ -44,4 +48,8 @@ public class HttpIndexActionTest extends OuterHttpServerMessageDispatcher {
         }
     }
 
+    @Override
+    public Object threadKey(HBSPackage.Decoder decoder) {
+        return null;
+    }
 }

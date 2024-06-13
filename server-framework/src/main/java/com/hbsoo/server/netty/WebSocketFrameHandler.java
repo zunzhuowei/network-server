@@ -1,18 +1,22 @@
 package com.hbsoo.server.netty;
 
 import com.hbsoo.server.message.server.ServerMessageHandler;
+import com.hbsoo.server.session.OuterSessionManager;
+import com.hbsoo.server.utils.SpringBeanFactory;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
+import io.netty.util.Attribute;
+import io.netty.util.AttributeKey;
 
 import java.util.Objects;
 
 public final class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocketFrame> {
 
-    private final ServerMessageHandler websocketServerMessageDispatcher;
+    private final ServerMessageHandler handler;
 
-    public WebSocketFrameHandler(ServerMessageHandler websocketServerMessageDispatcher) {
-        this.websocketServerMessageDispatcher = websocketServerMessageDispatcher;
+    public WebSocketFrameHandler(ServerMessageHandler handler) {
+        this.handler = handler;
     }
 
 
@@ -24,13 +28,7 @@ public final class WebSocketFrameHandler extends SimpleChannelInboundHandler<Web
         } else {
             throw new UnsupportedOperationException("Unsupported frame type: " + frame.getClass().getName());
         }*/
-        if (Objects.nonNull(websocketServerMessageDispatcher)) {
-            websocketServerMessageDispatcher.onMessage(ctx, frame);
-        } else {
-            final String s = frame.toString();
-            System.err.println("WebSocketFrameHandler not config = " + s);
-            ctx.close();
-        }
+        handler.onMessage(ctx, frame);
     }
 
     @Override
@@ -38,6 +36,16 @@ public final class WebSocketFrameHandler extends SimpleChannelInboundHandler<Web
         super.channelInactive(ctx);
         System.out.println("WebSocketFrameHandler channelInactive");
         ctx.close();
+
+        // 注销
+        AttributeKey<Long> idAttr = AttributeKey.valueOf("id");
+        Attribute<Long> attr = ctx.channel().attr(idAttr);
+        Long id = attr.get();
+        if (Objects.nonNull(id)) {
+            OuterSessionManager manager = SpringBeanFactory.getBean(OuterSessionManager.class);
+            System.out.println("channelInactive id = " + id);
+            manager.logoutAndSyncAllServer(id);
+        }
     }
 
     @Override

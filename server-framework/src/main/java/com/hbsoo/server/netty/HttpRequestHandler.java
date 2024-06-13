@@ -9,10 +9,10 @@ import java.util.Objects;
 
 public final class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
-    private final ServerMessageHandler httpServerMessageDispatcher;
+    private final ServerMessageHandler handler;
 
-    public HttpRequestHandler(ServerMessageHandler httpServerMessageDispatcher) {
-        this.httpServerMessageDispatcher = httpServerMessageDispatcher;
+    public HttpRequestHandler(ServerMessageHandler handler) {
+        this.handler = handler;
     }
 
 
@@ -33,12 +33,6 @@ public final class HttpRequestHandler extends SimpleChannelInboundHandler<FullHt
             ctx.fireChannelRead(request.retain());
             return;
         }
-        if (Objects.nonNull(httpServerMessageDispatcher)) {
-            httpServerMessageDispatcher.onMessage(ctx, request);
-        } else {
-            final String s = request.toString();
-            System.err.println("HttpMessageHandler not config = " + s);
-            ctx.close();
-        }
+        handler.onMessage(ctx, request);
     }
 }

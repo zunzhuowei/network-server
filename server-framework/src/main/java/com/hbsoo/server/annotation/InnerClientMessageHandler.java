@@ -13,5 +13,14 @@ import java.lang.annotation.*;
 @Component
 public @interface InnerClientMessageHandler {
 
+    /**
+     * 要处理的消息类型
+     */
     int value();
+
+    /**
+     * 要处理的协议类型
+     */
+    Protocol protocol() default Protocol.TCP;
+
 }

@@ -27,11 +27,10 @@ public interface ServerMessageHandler<T> {
 
     /**
      * 根据返回的值取hash，对线程池取模，指定线程处理消息。
-     * 如果返回的值是null，则随机选取线程执行
+     * 如果返回的值是null，则随机选取线程执行;
+     * @param decoder 如果http请求，值是null
      */
-    default Object threadKey(HBSPackage.Decoder decoder){
-        return null;
-    }
+    Object threadKey(HBSPackage.Decoder decoder);
 
     /**
      * 处理消息
@@ -39,7 +38,7 @@ public interface ServerMessageHandler<T> {
     void onMessage(ChannelHandlerContext ctx, T msg);
 
     /**
-     * 消息转发到其他内网服务器的消息处理器中，
+     * 消息转发到【其他内网服务器】的消息处理器中，
      * 注意：如果转发的服务器类型属于当前服务器类型，则会转发到兄弟服务器中。
      *
      * @param msgBuilder 消息
@@ -70,35 +69,31 @@ public interface ServerMessageHandler<T> {
     default void redirectMessage(ChannelHandlerContext ctx, ProtocolType protocolType, HBSPackage.Builder msgBuilder) {
         byte[] bytes = msgBuilder.buildPackage();
         ByteBuf msg = Unpooled.wrappedBuffer(bytes);
+        InnerServerMessageDispatcher innerServerMessageDispatcher = SpringBeanFactory.getBean(InnerServerMessageDispatcher.class);
+        OuterServerMessageDispatcher outerServerMessageDispatcher = SpringBeanFactory.getBean(OuterServerMessageDispatcher.class);
         try {
             switch (protocolType) {
                 case INNER_TCP:
-                    InnerTcpServerMessageDispatcher innerTcpServerMessageDispatcher = SpringBeanFactory.getBean("innerTcpServerMessageDispatcher", InnerTcpServerMessageDispatcher.class);
-                    innerTcpServerMessageDispatcher.onMessage(ctx, msg);
+                    innerServerMessageDispatcher.onMessage(ctx, msg);
                     break;
                 case INNER_UDP:
-                    InnerUdpServerMessageDispatcher innerUdpServerMessageDispatcher = SpringBeanFactory.getBean("innerUdpServerMessageDispatcher", InnerUdpServerMessageDispatcher.class);
                     DatagramPacket msg2 = new DatagramPacket(msg, (InetSocketAddress) ctx.channel().remoteAddress());
-                    innerUdpServerMessageDispatcher.onMessage(ctx, msg2);
+                    innerServerMessageDispatcher.onMessage(ctx, msg2);
                     break;
                 case INNER_WEBSOCKET:
-                    InnerWebsocketServerMessageDispatcher innerWebsocketServerMessageDispatcher = SpringBeanFactory.getBean("innerWebsocketServerMessageDispatcher", InnerWebsocketServerMessageDispatcher.class);
                     WebSocketFrame response = new BinaryWebSocketFrame(msg);
-                    innerWebsocketServerMessageDispatcher.onMessage(ctx, response);
+                    innerServerMessageDispatcher.onMessage(ctx, response);
                     break;
                 case OUTER_TCP:
-                    OuterTcpServerMessageDispatcher outerTcpServerMessageDispatcher = SpringBeanFactory.getBean("outerTcpServerMessageDispatcher", OuterTcpServerMessageDispatcher.class);
-                    outerTcpServerMessageDispatcher.onMessage(ctx, msg);
+                    outerServerMessageDispatcher.onMessage(ctx, msg);
                     break;
                 case OUTER_UDP:
-                    OuterUdpServerMessageDispatcher outerUdpServerMessageDispatcher = SpringBeanFactory.getBean("outerUdpServerMessageDispatcher", OuterUdpServerMessageDispatcher.class);
                     DatagramPacket msg4 = new DatagramPacket(msg, (InetSocketAddress) ctx.channel().remoteAddress());
-                    outerUdpServerMessageDispatcher.onMessage(ctx, msg4);
+                    outerServerMessageDispatcher.onMessage(ctx, msg4);
                     break;
                 case OUTER_WEBSOCKET:
-                    OuterWebsocketServerMessageDispatcher outerWebsocketServerMessageDispatcher = SpringBeanFactory.getBean("outerWebsocketServerMessageDispatcher", OuterWebsocketServerMessageDispatcher.class);
                     WebSocketFrame response2 = new BinaryWebSocketFrame(msg);
-                    outerWebsocketServerMessageDispatcher.onMessage(ctx, response2);
+                    outerServerMessageDispatcher.onMessage(ctx, response2);
                     break;
                 }
         } finally {

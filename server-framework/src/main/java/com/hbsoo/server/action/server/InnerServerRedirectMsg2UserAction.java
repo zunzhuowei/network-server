@@ -3,7 +3,8 @@ package com.hbsoo.server.action.server;
 import com.hbsoo.server.annotation.InnerServerMessageHandler;
 import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.HBSPackage;
-import com.hbsoo.server.message.server.InnerTcpServerMessageDispatcher;
+import com.hbsoo.server.message.HttpPackage;
+import com.hbsoo.server.message.server.ServerMessageDispatcher;
 import com.hbsoo.server.session.OuterSessionManager;
 import com.hbsoo.server.session.UserSessionProtocol;
 import io.netty.channel.ChannelHandlerContext;
@@ -16,14 +17,14 @@ import org.springframework.beans.factory.annotation.Autowired;
  * Created by zun.wei on 2024/6/6.
  */
 @InnerServerMessageHandler(HBSMessageType.InnerMessageType.REDIRECT)
-public class InnerServerRedirectMsg2UserAction extends InnerTcpServerMessageDispatcher {
+public class InnerServerRedirectMsg2UserAction extends ServerMessageDispatcher {
 
     private static final Logger logger = LoggerFactory.getLogger(InnerServerRedirectMsg2UserAction.class);
     @Autowired
     private OuterSessionManager outerSessionManager;
 
     @Override
-    public void onMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
+    public void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
         final long id = decoder.readLong();
         String protocolStr = decoder.readStr();
         byte[] innerPackage = decoder.readBytes();
@@ -32,4 +33,13 @@ public class InnerServerRedirectMsg2UserAction extends InnerTcpServerMessageDisp
         outerSessionManager.sendMsg2User(protocol, innerPackage, id);
     }
 
+    @Override
+    public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) {
+
+    }
+
+    @Override
+    public Object threadKey(HBSPackage.Decoder decoder) {
+        return decoder.skipGetLong(HBSPackage.DecodeSkip.INT);
+    }
 }

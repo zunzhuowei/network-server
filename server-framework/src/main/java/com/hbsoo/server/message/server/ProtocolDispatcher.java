@@ -4,6 +4,7 @@ import com.hbsoo.server.netty.*;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.http.HttpContentCompressor;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
@@ -16,29 +17,12 @@ import java.util.Objects;
 //@ChannelHandler.Sharable
 public final class ProtocolDispatcher extends SimpleChannelInboundHandler<ByteBuf> {
 
-    private HttpServerMessageDispatcher httpServerMessageDispatcher;
-    private TcpServerMessageDispatcher tcpServerMessageDispatcher;
-    private UdpServerMessageDispatcher udpServerMessageDispatcher;
-    private WebsocketServerMessageDispatcher websocketServerMessageDispatcher;
+    private final ServerMessageHandler handler;
+    private final int maxFrameLength;
 
-    public ProtocolDispatcher(ServerMessageHandler[] handlers) {
-        if (Objects.isNull(handlers)) {
-            return;
-        }
-        for (ServerMessageHandler handler : handlers) {
-            if (handler instanceof HttpServerMessageDispatcher) {
-                this.httpServerMessageDispatcher = (HttpServerMessageDispatcher) handler;
-            }
-            if (handler instanceof TcpServerMessageDispatcher) {
-                this.tcpServerMessageDispatcher = (TcpServerMessageDispatcher) handler;
-            }
-            if (handler instanceof UdpServerMessageDispatcher) {
-                this.udpServerMessageDispatcher = (UdpServerMessageDispatcher) handler;
-            }
-            if (handler instanceof WebsocketServerMessageDispatcher) {
-                this.websocketServerMessageDispatcher = (WebsocketServerMessageDispatcher) handler;
-            }
-        }
+    public ProtocolDispatcher(ServerMessageHandler handler, int maxFrameLength) {
+        this.maxFrameLength = maxFrameLength;
+        this.handler = handler;
     }
 
     @Override
@@ -47,13 +31,17 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<ByteBu
         ProtocolType protocolType = determineProtocolType(msg);
         switch (protocolType) {
             case TCP: {
-                ctx.pipeline().addLast(new TcpServerHandler(tcpServerMessageDispatcher));
+                ctx.pipeline().addLast(new LengthFieldBasedFrameDecoder
+                        (maxFrameLength, 4, 4, 0, 0));
+                ctx.pipeline().addLast(new TcpServerHandler(handler));
                 ctx.pipeline().remove(this);
                 ctx.fireChannelRead(msg.retain());
                 break;
             }
             case UDP: {
-                ctx.pipeline().addLast(new UdpServerHandler(udpServerMessageDispatcher));
+                ctx.pipeline().addLast(new LengthFieldBasedFrameDecoder
+                        (maxFrameLength, 4, 4, 0, 0));
+                ctx.pipeline().addLast(new UdpServerHandler(handler));
                 ctx.pipeline().remove(this);
                 ctx.fireChannelRead(msg.retain());
                 break;
@@ -64,16 +52,16 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<ByteBu
                 ctx.pipeline().addLast(new HttpServerCodec());
                 // 添加Gzip压缩处理器, 用于压缩HTTP响应消息
                 ctx.pipeline().addLast(new HttpContentCompressor());
-                // 添加HTTP消息聚合处理器, 最大消息长度为64KB
-                ctx.pipeline().addLast(new HttpObjectAggregator(64 * 1024));
+                // 添加HTTP消息聚合处理器,
+                ctx.pipeline().addLast(new HttpObjectAggregator(maxFrameLength));
                 // 添加HTTP请求处理器
-                ctx.pipeline().addLast(new HttpRequestHandler(httpServerMessageDispatcher));
+                ctx.pipeline().addLast(new HttpRequestHandler(handler));
                 // 可选的压缩支持
                 ctx.pipeline().addLast(new WebSocketServerCompressionHandler());
                 // 添加WebSocket协议处理器
                 ctx.pipeline().addLast(new WebSocketServerProtocolHandler("/ws"));
                 // 添加WebSocket帧处理器
-                ctx.pipeline().addLast(new WebSocketFrameHandler(websocketServerMessageDispatcher));
+                ctx.pipeline().addLast(new WebSocketFrameHandler(handler));
                 ctx.pipeline().remove(this);
                 ctx.fireChannelRead(msg.retain());
                 break;

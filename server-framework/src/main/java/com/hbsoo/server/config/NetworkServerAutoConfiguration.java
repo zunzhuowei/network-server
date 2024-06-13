@@ -3,7 +3,8 @@ package com.hbsoo.server.config;
 import com.hbsoo.server.NetworkServer;
 import com.hbsoo.server.client.TcpClientRegister;
 import com.hbsoo.server.message.client.InnerTcpClientMessageDispatcher;
-import com.hbsoo.server.message.server.*;
+import com.hbsoo.server.message.server.InnerServerMessageDispatcher;
+import com.hbsoo.server.message.server.OuterServerMessageDispatcher;
 import com.hbsoo.server.session.OuterSessionManager;
 import com.hbsoo.server.utils.DelayThreadPoolScheduler;
 import com.hbsoo.server.utils.SpringBeanFactory;
@@ -28,7 +29,12 @@ import java.util.Optional;
         "com.hbsoo.server.action.client",
         "com.hbsoo.server.action.server",
 })
-@Import({TcpClientRegister.class})
+@Import({
+        TcpClientRegister.class,
+        InnerTcpClientMessageDispatcher.class,
+        InnerServerMessageDispatcher.class,
+        OuterServerMessageDispatcher.class
+})
 @Configuration
 @EnableConfigurationProperties(ServerInfoProperties.class)
 public class NetworkServerAutoConfiguration {
@@ -41,51 +47,6 @@ public class NetworkServerAutoConfiguration {
         return new SpringBeanFactory();
     }
 
-    @Bean
-    public InnerTcpClientMessageDispatcher innerTcpClientMessageDispatcher() {
-        return new InnerTcpClientMessageDispatcher();
-    }
-
-    @Bean
-    public InnerTcpServerMessageDispatcher innerTcpServerMessageDispatcher() {
-        return new InnerTcpServerMessageDispatcher();
-    }
-
-    @Bean
-    public InnerWebsocketServerMessageDispatcher innerWebsocketServerMessageDispatcher() {
-        return new InnerWebsocketServerMessageDispatcher();
-    }
-
-    @Bean
-    public InnerHttpServerMessageDispatcher innerHttpServerMessageDispatcher() {
-        return new InnerHttpServerMessageDispatcher();
-    }
-
-    @Bean
-    public InnerUdpServerMessageDispatcher innerUdpServerMessageDispatcher() {
-        return new InnerUdpServerMessageDispatcher();
-    }
-
-    @Bean
-    public OuterHttpServerMessageDispatcher outerHttpServerMessageDispatcher() {
-        return new OuterHttpServerMessageDispatcher();
-    }
-
-    @Bean
-    public OuterTcpServerMessageDispatcher outerTcpServerMessageDispatcher() {
-        return new OuterTcpServerMessageDispatcher();
-    }
-
-    @Bean
-    public OuterUdpServerMessageDispatcher outerUdpServerMessageDispatcher() {
-        return new OuterUdpServerMessageDispatcher();
-    }
-
-    @Bean
-    public OuterWebsocketServerMessageDispatcher outerWebsocketServerMessageDispatcher() {
-        return new OuterWebsocketServerMessageDispatcher();
-    }
-
     /**
      * 暴露给外网的端口服务器
      */
@@ -94,25 +55,8 @@ public class NetworkServerAutoConfiguration {
     public NetworkServer outerServer() {
         final Map<String, Object> outerServer = serverInfoProperties.getOuterServer();
         final Object port = outerServer.get("port");
-        ServerMessageHandler[] handlers = new ServerMessageHandler[]{
-                SpringBeanFactory.getBean("outerHttpServerMessageDispatcher", OuterHttpServerMessageDispatcher.class),
-                SpringBeanFactory.getBean("outerTcpServerMessageDispatcher", OuterTcpServerMessageDispatcher.class),
-                SpringBeanFactory.getBean("outerUdpServerMessageDispatcher", OuterUdpServerMessageDispatcher.class),
-                SpringBeanFactory.getBean("outerWebsocketServerMessageDispatcher", OuterWebsocketServerMessageDispatcher.class)
-        };
-        return new NetworkServer("outerServer", Integer.parseInt(port.toString()), handlers);
-    }
-
-    /**
-     * 创建外网session管理器
-     */
-    @Bean
-    public OuterSessionManager outerSessionManager() {
-        List<ServerInfo> innerServers = serverInfoProperties.getInnerServers();
-        Integer id = serverInfoProperties.getId();
-        Optional<ServerInfo> optional = innerServers.stream().filter(e -> e.getId().equals(id)).findFirst();
-        ServerInfo serverInfo = optional.get();
-        return new OuterSessionManager(serverInfo);
+        OuterServerMessageDispatcher handler = SpringBeanFactory.getBean(OuterServerMessageDispatcher.class);
+        return new NetworkServer("outerServer", Integer.parseInt(port.toString()), 1024 * 64, handler);
     }
 
     /**
@@ -125,13 +69,8 @@ public class NetworkServerAutoConfiguration {
         Optional<ServerInfo> optional = innerServers.stream().filter(e -> e.getId().equals(id)).findFirst();
         ServerInfo serverInfo = optional.get();
         int port = serverInfo.getPort();
-        ServerMessageHandler[] handlers = new ServerMessageHandler[]{
-                SpringBeanFactory.getBean("innerTcpServerMessageDispatcher", InnerTcpServerMessageDispatcher.class),
-                SpringBeanFactory.getBean("innerWebsocketServerMessageDispatcher", InnerWebsocketServerMessageDispatcher.class),
-                SpringBeanFactory.getBean("innerHttpServerMessageDispatcher", InnerHttpServerMessageDispatcher.class),
-                SpringBeanFactory.getBean("innerUdpServerMessageDispatcher", InnerUdpServerMessageDispatcher.class)
-        };
-        return new NetworkServer("innerServer", port, handlers);
+        InnerServerMessageDispatcher handler = SpringBeanFactory.getBean(InnerServerMessageDispatcher.class);
+        return new NetworkServer("innerServer", port, 1024 * 1024, handler);
     }
 
     /**
@@ -201,6 +140,18 @@ public class NetworkServerAutoConfiguration {
         }
         int CPU_COUNT = Runtime.getRuntime().availableProcessors();
         return new DelayThreadPoolScheduler(poolName, CPU_COUNT * 2);
+    }
+
+    /**
+     * 创建外网session管理器
+     */
+    @Bean
+    public OuterSessionManager outerSessionManager() {
+        List<ServerInfo> innerServers = serverInfoProperties.getInnerServers();
+        Integer id = serverInfoProperties.getId();
+        Optional<ServerInfo> optional = innerServers.stream().filter(e -> e.getId().equals(id)).findFirst();
+        ServerInfo serverInfo = optional.get();
+        return new OuterSessionManager(serverInfo);
     }
 
 }

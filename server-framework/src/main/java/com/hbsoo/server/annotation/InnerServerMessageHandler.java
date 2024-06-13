@@ -13,10 +13,18 @@ import java.lang.annotation.*;
 @Component
 public @interface InnerServerMessageHandler {
 
+    /**
+     * 要处理的消息类型
+     */
     int value();
 
     /**
      * http协议专属 http请求
      */
     String uri() default "";
+
+    /**
+     * 要处理的协议类型
+     */
+    Protocol protocol() default Protocol.TCP;
 }

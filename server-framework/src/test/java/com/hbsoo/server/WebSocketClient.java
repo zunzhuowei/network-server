@@ -46,8 +46,16 @@ public class WebSocketClient {
             Channel ch = b.connect(host, port).sync().channel();
             handler.handshakeFuture().sync();
 
-            ch.writeAndFlush(new TextWebSocketFrame("Hello, WebSocket!")).sync();
-
+            for (int i = 0; i < 5000; i++) {
+                ch.writeAndFlush(new TextWebSocketFrame("{\n" +
+                        "    \"msgType\":1,\n" +
+                        "    \"data\":{\n" +
+                        "        \"id\":" + i + ",\n" +
+                        "        \"name\":\"zhangsan\",\n" +
+                        "        \"token\":\"dsxxdaee23fsa\"\n" +
+                        "    }\n" +
+                        "}")).sync();
+            }
             ch.closeFuture().sync();
         } finally {
             group.shutdownGracefully();

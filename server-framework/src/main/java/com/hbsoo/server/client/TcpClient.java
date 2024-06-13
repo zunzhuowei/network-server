@@ -10,6 +10,7 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.timeout.IdleStateHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -50,6 +51,8 @@ public final class TcpClient {
                         ChannelPipeline pipeline = ch.pipeline();
                         pipeline.addLast(new IdleStateHandler(0, 0, 5, TimeUnit.SECONDS));
                         pipeline.addLast(new HeartbeatHandler(bootstrap, b -> connect(b)));
+                        pipeline.addLast(new LengthFieldBasedFrameDecoder
+                                (102400, 4, 4, 0, 0));
                         pipeline.addLast(new TcpClientHandler(innerTcpClientMessageDispatcher));
                     }
                 });

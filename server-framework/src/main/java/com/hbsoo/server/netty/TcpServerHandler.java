@@ -9,11 +9,11 @@ import java.util.Objects;
 
 public final class TcpServerHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
-    private final ServerMessageHandler tcpServerMessageDispatcher;
+    private final ServerMessageHandler handler;
 
 
-    public TcpServerHandler(ServerMessageHandler tcpServerMessageDispatcher) {
-        this.tcpServerMessageDispatcher = tcpServerMessageDispatcher;
+    public TcpServerHandler(ServerMessageHandler handler) {
+        this.handler = handler;
     }
 
     @Override
@@ -23,13 +23,7 @@ public final class TcpServerHandler extends SimpleChannelInboundHandler<ByteBuf>
         String message = new String(received);
         System.out.println("Received TCP message: " + message);
         ctx.writeAndFlush(ctx.alloc().buffer().writeBytes(("Echo: " + message).getBytes()));*/
-        if (Objects.nonNull(tcpServerMessageDispatcher)) {
-            tcpServerMessageDispatcher.onMessage(ctx, msg);
-        } else {
-            final String s = msg.toString();
-            System.err.println("TcpServerHandler not config = " + s);
-            ctx.close();
-        }
+        handler.onMessage(ctx, msg);
     }
 
     @Override

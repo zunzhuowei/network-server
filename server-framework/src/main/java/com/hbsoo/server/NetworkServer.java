@@ -18,15 +18,17 @@ import java.util.concurrent.ThreadFactory;
  */
 public final class NetworkServer {
 
-    private final ServerMessageHandler[] handlers;
+    private final ServerMessageHandler handler;
     private final int port;
     private final EventLoopGroup bossGroup;
     private final EventLoopGroup workerGroup;
     private Channel serverChannel;
+    private final int maxFrameLength;
 
-    public NetworkServer(String serverName, int port, ServerMessageHandler... serverMessageHandlers) {
+    public NetworkServer(String serverName, int port, int maxFrameLength, ServerMessageHandler handler) {
         this.port = port;
-        this.handlers = serverMessageHandlers;
+        this.handler = handler;
+        this.maxFrameLength = maxFrameLength;
         int bossThreadCount = 1; // 通常为1
         int workerThreadCount = Runtime.getRuntime().availableProcessors() * 2; // 可以根据实际情况调整
         bossGroup = new NioEventLoopGroup(bossThreadCount, r -> {
@@ -54,7 +56,7 @@ public final class NetworkServer {
                 .childHandler(new ChannelInitializer<Channel>() {
                     @Override
                     public void initChannel(Channel ch) {
-                        ch.pipeline().addLast(new ProtocolDispatcher(handlers));
+                        ch.pipeline().addLast(new ProtocolDispatcher(handler, maxFrameLength));
                     }
                 })
                 .option(ChannelOption.SO_BACKLOG, 128)

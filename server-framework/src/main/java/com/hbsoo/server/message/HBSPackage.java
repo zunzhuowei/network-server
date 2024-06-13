@@ -233,7 +233,9 @@ public final class HBSPackage {
             byte[] readHeader = new byte[this.header.length];
             System.arraycopy(received, 0, readHeader, 0, this.header.length);
             boolean matchHeader = Arrays.equals(this.header, readHeader);
-            if (!matchHeader) throw new RuntimeException("header not match");
+            if (!matchHeader) {
+                throw new RuntimeException("header not match");
+            }
 
             byte[] bodyLenBytes = new byte[4];
             if (received.length < this.header.length + bodyLenBytes.length) {
@@ -368,6 +370,9 @@ public final class HBSPackage {
         }
 
         private int getOffset(DecodeSkip[] skips) {
+            if (skips == null) {
+                return 0;
+            }
             int offset = 0;
             for (DecodeSkip skip : skips) {
                 switch (skip) {

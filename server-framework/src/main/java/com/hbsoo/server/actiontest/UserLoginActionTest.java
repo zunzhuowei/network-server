@@ -6,11 +6,13 @@ import com.hbsoo.server.annotation.OuterServerMessageHandler;
 import com.hbsoo.server.config.ServerInfo;
 import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.HBSPackage;
+import com.hbsoo.server.message.HttpPackage;
 import com.hbsoo.server.message.TextWebSocketPackage;
-import com.hbsoo.server.message.server.OuterWebsocketServerMessageDispatcher;
+import com.hbsoo.server.message.server.ServerMessageDispatcher;
 import com.hbsoo.server.session.OuterSessionManager;
 import com.hbsoo.server.session.UserSession;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.util.AttributeKey;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.Map;
@@ -19,13 +21,13 @@ import java.util.Map;
  * Created by zun.wei on 2024/6/12.
  */
 @OuterServerMessageHandler(HBSMessageType.OuterMessageType.LOGIN)
-public class UserLoginActionTest extends OuterWebsocketServerMessageDispatcher {
+public class UserLoginActionTest extends ServerMessageDispatcher {
 
     @Autowired
     private OuterSessionManager outerSessionManager;
 
     @Override
-    public void onMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
+    public void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
         final String dataJson = decoder.readStr();
         System.out.println("UserLoginActionTest dataJson = " + dataJson);
         Gson gson = new Gson();
@@ -34,7 +36,20 @@ public class UserLoginActionTest extends OuterWebsocketServerMessageDispatcher {
         UserSession userSession = gson.fromJson(gson.toJson(data), UserSession.class);
         userSession.setBelongServer(NowServer.getServerInfo());
         userSession.setChannel(ctx.channel());
+        // 保存id,断线的时候踢出登录
+        AttributeKey<Long> idAttr = AttributeKey.valueOf("id");
+        ctx.channel().attr(idAttr).set(userSession.getId());
         outerSessionManager.loginAndSyncAllServer(userSession.getId(), userSession);
+    }
+
+    @Override
+    public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) {
+
+    }
+
+    @Override
+    public Object threadKey(HBSPackage.Decoder decoder) {
+        return null;
     }
     /*
     {

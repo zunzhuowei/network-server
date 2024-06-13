@@ -61,6 +61,7 @@ public final class TcpClientRegister implements ImportBeanDefinitionRegistrar, E
                 }
             }
         }
+        // 获取当前服务器id
         final String serverIdStr = environment.getProperty("hbsoo.server.id");
         Integer id = Integer.parseInt(serverIdStr);//当前服务器id
         Optional<ServerInfo> optional = innerServers.stream().filter(e -> e.getId().equals(id)).findFirst();
@@ -71,6 +72,7 @@ public final class TcpClientRegister implements ImportBeanDefinitionRegistrar, E
 
         // 注册内网客户端
         for (ServerInfo innerServer : innerServers) {
+            // 当前服务器不需要链接自己
             if (innerServer.getId().equals(id)) {
                 continue;
             }

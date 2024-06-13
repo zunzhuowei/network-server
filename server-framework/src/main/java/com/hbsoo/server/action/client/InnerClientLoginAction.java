@@ -3,7 +3,7 @@ package com.hbsoo.server.action.client;
 import com.hbsoo.server.annotation.InnerClientMessageHandler;
 import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.HBSPackage;
-import com.hbsoo.server.message.client.InnerTcpClientMessageDispatcher;
+import com.hbsoo.server.message.client.InnerTcpClientMessageHandler;
 import com.hbsoo.server.session.InnerClientSessionManager;
 import com.hbsoo.server.session.ServerType;
 import io.netty.channel.ChannelHandlerContext;
@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
  * Created by zun.wei on 2024/6/6.
  */
 @InnerClientMessageHandler(HBSMessageType.InnerMessageType.LOGIN)
-public class InnerClientLoginAction extends InnerTcpClientMessageDispatcher {
+public class InnerClientLoginAction extends InnerTcpClientMessageHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(InnerClientLoginAction.class);
 

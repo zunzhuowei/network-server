@@ -17,49 +17,23 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Created by zun.wei on 2024/5/31.
  */
-abstract class InnerTcpClientMessageHandler implements InnerClientMessageHandler<ByteBuf> {
+public abstract class InnerTcpClientMessageHandler implements InnerClientMessageHandler<ByteBuf> {
 
-    protected static final Map<Integer, InnerTcpClientMessageHandler> innerTcpClientDispatchers = new ConcurrentHashMap<>();
-    @Autowired
-    private ThreadPoolScheduler innerClientThreadPoolScheduler;
-    @Autowired
-    private SpringBeanFactory springBeanFactory;
 
-    @PostConstruct
-    protected void init() {
-        final Map<String, Object> handlers = springBeanFactory.getBeansWithAnnotation(com.hbsoo.server.annotation.InnerClientMessageHandler.class);
-        handlers.values().stream().filter(handler -> {
-            //再判断handler是否为InnerTcpClientMessageHandler的子类
-            return handler instanceof InnerTcpClientMessageHandler;
-        }).forEach(handler -> {
-            final com.hbsoo.server.annotation.InnerClientMessageHandler annotation = handler.getClass().getAnnotation(com.hbsoo.server.annotation.InnerClientMessageHandler.class);
-            InnerTcpClientMessageHandler h = (InnerTcpClientMessageHandler) handler;
-            innerTcpClientDispatchers.putIfAbsent(annotation.value(), h);
-        });
-    }
-
+    /**
+     * 只给分发器使用，业务处理器重写无效
+     */
     @Override
-    public void onMessage(ChannelHandlerContext ctx, ByteBuf msg) {
-        try {
-            byte[] received = new byte[msg.readableBytes()];
-            msg.readBytes(received);
-            final HBSPackage.Decoder decoder = HBSPackage.Decoder.withDefaultHeader().readPackageBody(received);
-            final int msgType = decoder.readMsgType();
-            final InnerTcpClientMessageHandler dispatcher = innerTcpClientDispatchers.get(msgType);
-            if (Objects.nonNull(dispatcher)) {
-                innerClientThreadPoolScheduler.execute(dispatcher.threadKey(decoder), () -> {
-                    dispatcher.onMessage(ctx, decoder);
-                });
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            ctx.close();
-        }
-        //onMessage(ctx, decoder);
-    }
+    public void onMessage(ChannelHandlerContext ctx, ByteBuf msg) { }
 
+    /**
+     * 专门给业务处理器处理消息
+     */
     public abstract void onMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder);
 
+    /**
+     * 消息转发到【当前服务器】中的其他消息处理器中
+     */
     public void redirectMessage(ChannelHandlerContext ctx, HBSPackage.Builder msgBuilder) {
         final byte[] buildPackage = msgBuilder.buildPackage();
         ByteBuf buf = Unpooled.wrappedBuffer(buildPackage);
