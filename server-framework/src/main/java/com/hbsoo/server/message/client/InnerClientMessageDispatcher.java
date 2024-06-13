@@ -78,10 +78,46 @@ public final class InnerClientMessageDispatcher extends ClientMessageDispatcher 
             return;
         }
         if (msg instanceof DatagramPacket) {
-            handleUdp(ctx, (DatagramPacket) msg);
+            handle(ctx, ((DatagramPacket) msg).content(), Protocol.UDP);
             return;
         }
         logger.warn("消息类型未注册：" + msg.getClass().getName());
+    }
+
+    public void onMessage(ChannelHandlerContext ctx, Object msg, Protocol protocol) {
+        handleMessage(ctx, msg, protocol);
+    }
+
+    void handleMessage(ChannelHandlerContext ctx, Object msg, Protocol protocol) {
+        if (msg instanceof HBSPackage.Builder) {
+            HBSPackage.Builder builder = (HBSPackage.Builder) msg;
+            byte[] bytes = builder.buildPackage();
+            HBSPackage.Decoder decoder = HBSPackage.Decoder
+                    .withHeader(builder.getHeader())
+                    .readPackageBody(bytes);
+            dispatcher(ctx, protocol, decoder);
+            return;
+        }
+        if (msg instanceof HBSPackage.Decoder) {
+            HBSPackage.Decoder decoder = (HBSPackage.Decoder) msg;
+            dispatcher(ctx, protocol, decoder);
+            return;
+        }
+        onMessage(ctx, msg);
+    }
+
+    void dispatcher(ChannelHandlerContext ctx, Protocol protocol, HBSPackage.Decoder decoder) {
+        int msgType = decoder.readMsgType();
+        ClientMessageDispatcher dispatcher = innerClientDispatchers.get(protocol).get(msgType);
+        if (Objects.isNull(dispatcher)) {
+            final String s = ctx.channel().id().asShortText();
+            logger.warn("消息类型未注册：" + msgType + ",channelID:" + s + ",protocol:" + protocol.name());
+            ctx.close();
+            return;
+        }
+        innerClientThreadPoolScheduler.execute(dispatcher.threadKey(ctx, decoder), () -> {
+            dispatcher.handle(ctx, decoder);
+        });
     }
 
     void handle(ChannelHandlerContext ctx, ByteBuf msg, Protocol protocol) {
@@ -94,18 +130,7 @@ public final class InnerClientMessageDispatcher extends ClientMessageDispatcher 
                     ? HBSPackage.Decoder.withDefaultHeader().readPackageBody(received)
                     : HBSPackage.Decoder.withHeader(new byte[]{'U', 'H', 'B', 'S'}).readPackageBody(received);
 
-            int msgType = decoder.readMsgType();
-            ClientMessageDispatcher dispatcher = innerClientDispatchers.get(protocol).get(msgType);
-            if (Objects.isNull(dispatcher)) {
-                final String s = ctx.channel().id().asShortText();
-                logger.warn("消息类型未注册：" + msgType + ",channelID:" + s + ",protocol:" + protocol.name());
-                received = null;
-                ctx.close();
-                return;
-            }
-            innerClientThreadPoolScheduler.execute(dispatcher.threadKey(ctx, decoder), () -> {
-                dispatcher.handle(ctx, decoder);
-            });
+            dispatcher(ctx, protocol, decoder);
         } catch (Exception e) {
             e.printStackTrace();
             ctx.close();
@@ -147,10 +172,6 @@ public final class InnerClientMessageDispatcher extends ClientMessageDispatcher 
             return null;
         }
         return bodyLen;
-    }
-
-    void handleUdp(ChannelHandlerContext ctx, DatagramPacket msg) {
-        handle(ctx, msg.content(), Protocol.UDP);
     }
 
     void handleWebsocket(ChannelHandlerContext ctx, WebSocketFrame webSocketFrame) {
