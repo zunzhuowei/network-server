@@ -51,11 +51,11 @@ public class InnerServerUserSessionLoginSyncAction extends ServerMessageDispatch
         userSession.setBelongServer(belongServer);
         outerSessionManager.login(id, userSession);
 
-        //TODO 测试发送消息给用户端
-        final ServerInfo serverInfo = NowServer.getServerInfo();
-        Gson gson = new Gson();
-        final String s = gson.toJson(serverInfo);
-        outerSessionManager.sendTextWebSocketFrameMsg2User(s, id);
+        //TODO测试发送消息给用户端
+        //final ServerInfo serverInfo = NowServer.getServerInfo();
+        //Gson gson = new Gson();
+        //final String s = gson.toJson(serverInfo);
+        //outerSessionManager.sendTextWebSocketFrameMsg2User(s, id);
     }
 
     @Override
@@ -64,7 +64,7 @@ public class InnerServerUserSessionLoginSyncAction extends ServerMessageDispatch
     }
 
     @Override
-    public Object threadKey(HBSPackage.Decoder decoder) {
+    public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
         return decoder.skipGetLong(HBSPackage.DecodeSkip.INT);
     }
 }

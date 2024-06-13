@@ -1,43 +1,74 @@
-package com.hbsoo.server.message.server;
+package com.hbsoo.server.message.client;
 
 import com.google.gson.Gson;
 import com.hbsoo.server.annotation.Protocol;
 import com.hbsoo.server.message.HBSPackage;
-import com.hbsoo.server.message.HttpPackage;
 import com.hbsoo.server.message.TextWebSocketPackage;
+import com.hbsoo.server.utils.SpringBeanFactory;
 import com.hbsoo.server.utils.ThreadPoolScheduler;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.DatagramPacket;
-import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import javax.annotation.PostConstruct;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Created by zun.wei on 2024/6/13.
+ * Created by zun.wei on 2024/6/12.
  */
-interface CommonDispatcher {
+public final class InnerClientMessageDispatcher extends ClientMessageDispatcher {
 
-    Logger logger = LoggerFactory.getLogger(CommonDispatcher.class);
+    private static final Logger logger = LoggerFactory.getLogger(InnerClientMessageDispatcher.class);
 
-    //协议分发
-    Map<Protocol, ConcurrentHashMap<Integer, ServerMessageDispatcher>> dispatchers();
+    private static final Map<Protocol, ConcurrentHashMap<Integer, ClientMessageDispatcher>> innerClientDispatchers = new ConcurrentHashMap<>();
 
-    //工作线程池
-    ThreadPoolScheduler threadPoolScheduler();
+    @Autowired
+    private ThreadPoolScheduler innerClientThreadPoolScheduler;
+    @Autowired
+    private SpringBeanFactory springBeanFactory; //必须注入，保证调用SpringBeanFactory.getBeansWithAnnotation时候，容器已经初始化完成
 
-    default void handleMessage(ChannelHandlerContext ctx, Object msg) {
+    @PostConstruct
+    protected void init() {
+        for (Protocol protocol : Protocol.values()) {
+            innerClientDispatchers.computeIfAbsent(protocol, k -> new ConcurrentHashMap<>());
+        }
+        Map<String, Object> innerHandlers = SpringBeanFactory.getBeansWithAnnotation(com.hbsoo.server.annotation.InnerClientMessageHandler.class);
+        innerHandlers.values().stream()
+        .filter(handler -> handler instanceof ClientMessageDispatcher)
+        .map(handler -> (ClientMessageDispatcher) handler)
+        .forEach(handler -> {
+            com.hbsoo.server.annotation.InnerClientMessageHandler annotation = handler.getClass().getAnnotation(com.hbsoo.server.annotation.InnerClientMessageHandler.class);
+            Protocol protocol = annotation.protocol();
+            int msgType = annotation.value();
+            if (protocol == Protocol.HTTP) {
+                throw new RuntimeException("un support http protocol!");
+            }
+            innerClientDispatchers.get(protocol).putIfAbsent(msgType, handler);
+        });
+
+    }
+
+    @Override
+    public void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) { }
+
+    @Override
+    public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
+        return null;
+    }
+
+    @Override
+    public void onMessage(ChannelHandlerContext ctx, Object msg) {
         if (msg instanceof ByteBuf) {
             handle(ctx, (ByteBuf) msg, Protocol.TCP);
             return;
@@ -47,50 +78,13 @@ interface CommonDispatcher {
             return;
         }
         if (msg instanceof DatagramPacket) {
-            handle(ctx, ((DatagramPacket) msg).content(), Protocol.UDP);
-            return;
-        }
-        if (msg instanceof FullHttpRequest) {
-            handleHttp(ctx, (FullHttpRequest) msg);
+            handleUdp(ctx, (DatagramPacket) msg);
             return;
         }
         logger.warn("消息类型未注册：" + msg.getClass().getName());
     }
 
-    default void handleMessage(ChannelHandlerContext ctx, Object msg, Protocol protocol) {
-        if (msg instanceof HBSPackage.Builder) {
-            HBSPackage.Builder builder = (HBSPackage.Builder) msg;
-            byte[] bytes = builder.buildPackage();
-            HBSPackage.Decoder decoder = HBSPackage.Decoder
-                    .withHeader(builder.getHeader())
-                    .readPackageBody(bytes);
-            dispatcher(ctx, protocol, decoder);
-            return;
-        }
-        if (msg instanceof HBSPackage.Decoder) {
-            HBSPackage.Decoder decoder = (HBSPackage.Decoder) msg;
-            dispatcher(ctx, protocol, decoder);
-            return;
-        }
-        handleMessage(ctx, msg);
-    }
-
-    default void dispatcher(ChannelHandlerContext ctx, Protocol protocol, HBSPackage.Decoder decoder) {
-        int msgType = decoder.readMsgType();
-        ServerMessageDispatcher dispatcher = dispatchers().get(protocol).get(msgType);
-        if (Objects.isNull(dispatcher)) {
-            final String s = ctx.channel().id().asShortText();
-            logger.warn("消息类型未注册：" + msgType + ",channelID:" + s + ",protocol:" + protocol.name());
-            ctx.close();
-            return;
-        }
-        threadPoolScheduler().execute(dispatcher.threadKey(ctx, decoder), () -> {
-            dispatcher.handle(ctx, decoder);
-        });
-    }
-
-
-    default void handle(ChannelHandlerContext ctx, ByteBuf msg, Protocol protocol) {
+    void handle(ChannelHandlerContext ctx, ByteBuf msg, Protocol protocol) {
         try {
             Integer bodyLen = getBodyLen(msg, protocol);
             if (bodyLen == null) return;
@@ -99,14 +93,26 @@ interface CommonDispatcher {
             HBSPackage.Decoder decoder = protocol == Protocol.TCP
                     ? HBSPackage.Decoder.withDefaultHeader().readPackageBody(received)
                     : HBSPackage.Decoder.withHeader(new byte[]{'U', 'H', 'B', 'S'}).readPackageBody(received);
-            dispatcher(ctx, protocol, decoder);
+
+            int msgType = decoder.readMsgType();
+            ClientMessageDispatcher dispatcher = innerClientDispatchers.get(protocol).get(msgType);
+            if (Objects.isNull(dispatcher)) {
+                final String s = ctx.channel().id().asShortText();
+                logger.warn("消息类型未注册：" + msgType + ",channelID:" + s + ",protocol:" + protocol.name());
+                received = null;
+                ctx.close();
+                return;
+            }
+            innerClientThreadPoolScheduler.execute(dispatcher.threadKey(ctx, decoder), () -> {
+                dispatcher.handle(ctx, decoder);
+            });
         } catch (Exception e) {
             e.printStackTrace();
             ctx.close();
         }
     }
 
-    default Integer getBodyLen(ByteBuf msg, Protocol protocol) {
+    Integer getBodyLen(ByteBuf msg, Protocol protocol) {
         int readableBytes = msg.readableBytes();
         if (readableBytes < 4) {
             byte[] received = new byte[readableBytes];
@@ -143,7 +149,11 @@ interface CommonDispatcher {
         return bodyLen;
     }
 
-    default void handleWebsocket(ChannelHandlerContext ctx, WebSocketFrame webSocketFrame) {
+    void handleUdp(ChannelHandlerContext ctx, DatagramPacket msg) {
+        handle(ctx, msg.content(), Protocol.UDP);
+    }
+
+    void handleWebsocket(ChannelHandlerContext ctx, WebSocketFrame webSocketFrame) {
         try {
             final ByteBuf msg = webSocketFrame.content();
             byte[] received = new byte[msg.readableBytes()];
@@ -161,7 +171,7 @@ interface CommonDispatcher {
             // BinaryWebSocketFrame
             HBSPackage.Decoder decoder = HBSPackage.Decoder.withDefaultHeader().readPackageBody(received);
             int msgType = decoder.readMsgType();
-            ServerMessageDispatcher dispatcher = dispatchers().get(Protocol.WEBSOCKET).get(msgType);
+            ClientMessageDispatcher dispatcher = innerClientDispatchers.get(Protocol.WEBSOCKET).get(msgType);
             if (Objects.isNull(dispatcher)) {
                 try {
                     String _404 = "404";
@@ -173,7 +183,7 @@ interface CommonDispatcher {
                 }
                 return;
             }
-            threadPoolScheduler().execute(dispatcher.threadKey(ctx, decoder), () -> {
+            innerClientThreadPoolScheduler.execute(dispatcher.threadKey(ctx, decoder), () -> {
                 dispatcher.handle(ctx, decoder);
             });
         } catch (Exception e) {
@@ -182,57 +192,5 @@ interface CommonDispatcher {
         }
     }
 
-    default void handleHttp(ChannelHandlerContext ctx, FullHttpRequest msg) {
-        final String path;
-        HttpPackage httpPackage = new HttpPackage();
-        try {
-            final String uri = msg.uri();
-            final HttpMethod method = msg.method();
-            final HttpHeaders headers = msg.headers();
-            final int index = uri.indexOf("?");
-            path = index < 0 ? uri : uri.substring(0, index);
-            //System.out.println("path:" + path);
-            QueryStringDecoder decoder = new QueryStringDecoder(uri);
-            final Map<String, List<String>> parameters = decoder.parameters();
-            final ByteBuf content = msg.content();
-            final boolean readable = content.isReadable();
-            httpPackage.setHeaders(headers);
-            httpPackage.setParameters(parameters);
-            httpPackage.setPath(path);
-            httpPackage.setUri(uri);
-            httpPackage.setFullHttpRequest(msg);
-            httpPackage.setMethod(method.name());
-            if (readable) {
-                byte[] received = new byte[content.readableBytes()];
-                content.readBytes(received);
-                httpPackage.setBody(received);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            try {
-                ctx.channel().closeFuture().sync();
-            } catch (InterruptedException interruptedException) {
-                interruptedException.printStackTrace();
-            }
-            return;
-        }
-        int h;
-        int msgType = (h = path.hashCode()) ^ (h >>> 16);
-        ServerMessageDispatcher dispatcher = dispatchers().get(Protocol.HTTP).get(msgType);
-        if (Objects.nonNull(dispatcher)) {
-            threadPoolScheduler().execute(dispatcher.threadKey(ctx,null), () -> {
-                dispatcher.handle(ctx, httpPackage);
-                //ctx.close();
-            });
-        } else {
-            DefaultFullHttpResponse response = new DefaultFullHttpResponse(msg.protocolVersion(), HttpResponseStatus.NOT_FOUND);
-            try {
-                ctx.writeAndFlush(response).sync();
-                ctx.close();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-    }
 
 }

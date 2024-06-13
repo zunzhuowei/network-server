@@ -43,7 +43,7 @@ public class UserLogoutActionTest extends ServerMessageDispatcher {
     }
 
     @Override
-    public Object threadKey(HBSPackage.Decoder decoder) {
+    public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
         return null;
     }
     /*

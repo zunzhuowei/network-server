@@ -1,5 +1,7 @@
 package com.hbsoo.server.message.server;
 
+import com.hbsoo.server.annotation.InnerServerMessageHandler;
+import com.hbsoo.server.annotation.OuterServerMessageHandler;
 import com.hbsoo.server.message.HBSPackage;
 import com.hbsoo.server.message.ProtocolType;
 import com.hbsoo.server.session.InnerClientSessionManager;
@@ -30,7 +32,7 @@ public interface ServerMessageHandler<T> {
      * 如果返回的值是null，则随机选取线程执行;
      * @param decoder 如果http请求，值是null
      */
-    Object threadKey(HBSPackage.Decoder decoder);
+    Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder);
 
     /**
      * 处理消息
@@ -46,18 +48,60 @@ public interface ServerMessageHandler<T> {
      * @param key        键值，用于计算消息应该发送到哪个服务器。
      *                   同时，键值的哈希值被用于决定客户端的选择。
      */
-    default void redirectMessage(HBSPackage.Builder msgBuilder, ServerType serverType, Object key) {
+    default void redirect2InnerServer(HBSPackage.Builder msgBuilder, ServerType serverType, Object key) {
         InnerClientSessionManager.sendMsg2ServerByTypeAndKey(msgBuilder, serverType, key);
     }
 
     /**
-     * 消息转发到【当前服务器】中的其他消息处理器中【同协议】
-     * @param msg 消息
+     * 消息转发到【当前服务器】中的其他消息处理器中，与当前处理器【相同协议】
+     * 注意：不支持http协议类型的处理器调用。
      */
-    default void redirectMessage(ChannelHandlerContext ctx, T msg) {
+    default void redirectMessage(HBSPackage.Builder builder, ChannelHandlerContext ctx) {
+        redirectMessage(ctx, builder);
+    }
+
+    /**
+     * 消息转发到【当前服务器】中的其他消息处理器中，与当前处理器【相同协议】
+     * 注意：不支持http协议类型的处理器调用。
+     * @param decoder 注意重置阅读偏移量
+     */
+    default void redirectMessage(HBSPackage.Decoder decoder, ChannelHandlerContext ctx) {
+        redirectMessage(ctx, decoder);
+    }
+    /**
+     * 消息转发到【当前服务器】中的其他消息处理器中，与当前处理器【相同协议】
+     * 注意：不支持http协议类型的处理器调用。
+     * @param msg 消息, 类型必须为其中一种：
+     *            1.tcp:ByteBuf,
+     *            2.websocket:WebSocketFrame,
+     *            4.udp:DatagramPacket,
+     *            5.HBSPackage.Decoder,（推荐，注意重置阅读偏移量）
+     *            6.HBSPackage.Builder（推荐）
+     */
+    default void redirectMessage(ChannelHandlerContext ctx, Object msg) {
         //final byte[] buildPackage = msgBuilder.buildPackage();
         //ByteBuf buf = Unpooled.wrappedBuffer(buildPackage);
-        onMessage(ctx, msg);
+        try {
+            boolean outerHandler = this.getClass().isAnnotationPresent(OuterServerMessageHandler.class);
+            if (outerHandler) {
+                OuterServerMessageHandler handler = this.getClass().getAnnotation(OuterServerMessageHandler.class);
+                OuterServerMessageDispatcher outerServerMessageDispatcher = SpringBeanFactory.getBean(OuterServerMessageDispatcher.class);
+                outerServerMessageDispatcher.onMessage(ctx, msg, handler.protocol());
+                return;
+            }
+            boolean innerHandler = this.getClass().isAnnotationPresent(InnerServerMessageHandler.class);
+            if (innerHandler) {
+                InnerServerMessageHandler handler = this.getClass().getAnnotation(InnerServerMessageHandler.class);
+                InnerServerMessageDispatcher innerServerMessageDispatcher = SpringBeanFactory.getBean(InnerServerMessageDispatcher.class);
+                innerServerMessageDispatcher.onMessage(ctx, msg, handler.protocol());
+            }
+        } finally {
+            int i = ReferenceCountUtil.refCnt(msg);
+            if (i > 0) {
+                ReferenceCountUtil.release(msg);
+            }
+        }
+        //onMessage(ctx, msg);
     }
 
     /**
@@ -66,7 +110,7 @@ public interface ServerMessageHandler<T> {
      * @param protocolType 协议类型
      * @param msgBuilder 消息
      */
-    default void redirectMessage(ChannelHandlerContext ctx, ProtocolType protocolType, HBSPackage.Builder msgBuilder) {
+    default void redirectAndSwitchProtocol(ChannelHandlerContext ctx, ProtocolType protocolType, HBSPackage.Builder msgBuilder) {
         byte[] bytes = msgBuilder.buildPackage();
         ByteBuf msg = Unpooled.wrappedBuffer(bytes);
         InnerServerMessageDispatcher innerServerMessageDispatcher = SpringBeanFactory.getBean(InnerServerMessageDispatcher.class);

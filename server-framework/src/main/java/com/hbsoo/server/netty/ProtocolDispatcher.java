@@ -1,5 +1,6 @@
-package com.hbsoo.server.message.server;
+package com.hbsoo.server.netty;
 
+import com.hbsoo.server.message.server.ServerMessageHandler;
 import com.hbsoo.server.netty.*;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;

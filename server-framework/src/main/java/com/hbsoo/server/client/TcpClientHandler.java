@@ -1,15 +1,15 @@
 package com.hbsoo.server.client;
 
-import com.hbsoo.server.message.client.InnerTcpClientMessageDispatcher;
+import com.hbsoo.server.message.client.InnerClientMessageDispatcher;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 
 public final class TcpClientHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
-    private final InnerTcpClientMessageDispatcher dispatcher;
+    private final InnerClientMessageDispatcher dispatcher;
 
-    public TcpClientHandler(InnerTcpClientMessageDispatcher dispatcher) {
+    public TcpClientHandler(InnerClientMessageDispatcher dispatcher) {
         this.dispatcher = dispatcher;
     }
 

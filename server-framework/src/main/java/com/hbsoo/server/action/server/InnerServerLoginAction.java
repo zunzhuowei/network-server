@@ -47,7 +47,7 @@ public class InnerServerLoginAction extends ServerMessageDispatcher {
     }
 
     @Override
-    public Object threadKey(HBSPackage.Decoder decoder) {
+    public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
         //服务器id + 客户端编号
         return decoder.skipGetInt(HBSPackage.DecodeSkip.INT) +
                 decoder.skipGetInt(

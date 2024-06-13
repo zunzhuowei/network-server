@@ -7,6 +7,7 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.netty.util.AttributeKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,6 +55,9 @@ public final class OuterSessionManager {
      */
     public void loginAndSyncAllServer(Long id, UserSession userSession) {
         login(id, userSession);
+        // 保存id,断线的时候踢出登录
+        AttributeKey<Long> idAttr = AttributeKey.valueOf("id");
+        userSession.getChannel().attr(idAttr).set(userSession.getId());
         HBSPackage.Builder builder = HBSPackage.Builder.withDefaultHeader()
                 .msgType(HBSMessageType.InnerMessageType.LOGIN_SYNC)
                 .writeLong(id)//登录用户id

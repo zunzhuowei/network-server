@@ -1,7 +1,7 @@
 package com.hbsoo.server;
 
 import com.hbsoo.server.message.server.ServerMessageHandler;
-import com.hbsoo.server.message.server.ProtocolDispatcher;
+import com.hbsoo.server.netty.ProtocolDispatcher;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
@@ -9,8 +9,6 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-
-import java.util.concurrent.ThreadFactory;
 
 /**
  * 网络服务器，可用于内部服务也可以用于外部服务

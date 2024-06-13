@@ -2,7 +2,7 @@ package com.hbsoo.server.config;
 
 import com.hbsoo.server.NetworkServer;
 import com.hbsoo.server.client.TcpClientRegister;
-import com.hbsoo.server.message.client.InnerTcpClientMessageDispatcher;
+import com.hbsoo.server.message.client.InnerClientMessageDispatcher;
 import com.hbsoo.server.message.server.InnerServerMessageDispatcher;
 import com.hbsoo.server.message.server.OuterServerMessageDispatcher;
 import com.hbsoo.server.session.OuterSessionManager;
@@ -31,7 +31,7 @@ import java.util.Optional;
 })
 @Import({
         TcpClientRegister.class,
-        InnerTcpClientMessageDispatcher.class,
+        InnerClientMessageDispatcher.class,
         InnerServerMessageDispatcher.class,
         OuterServerMessageDispatcher.class
 })

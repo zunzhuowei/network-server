@@ -36,10 +36,9 @@ public class UserLoginActionTest extends ServerMessageDispatcher {
         UserSession userSession = gson.fromJson(gson.toJson(data), UserSession.class);
         userSession.setBelongServer(NowServer.getServerInfo());
         userSession.setChannel(ctx.channel());
-        // 保存id,断线的时候踢出登录
-        AttributeKey<Long> idAttr = AttributeKey.valueOf("id");
-        ctx.channel().attr(idAttr).set(userSession.getId());
         outerSessionManager.loginAndSyncAllServer(userSession.getId(), userSession);
+
+        //redirectMessage();
     }
 
     @Override
@@ -48,7 +47,7 @@ public class UserLoginActionTest extends ServerMessageDispatcher {
     }
 
     @Override
-    public Object threadKey(HBSPackage.Decoder decoder) {
+    public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
         return null;
     }
     /*

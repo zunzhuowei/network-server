@@ -3,7 +3,7 @@ package com.hbsoo.server.client;
 import com.hbsoo.server.config.ServerInfo;
 import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.HBSPackage;
-import com.hbsoo.server.message.client.InnerTcpClientMessageDispatcher;
+import com.hbsoo.server.message.client.InnerClientMessageDispatcher;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 public final class TcpClient {
 
     @Autowired
-    private InnerTcpClientMessageDispatcher innerTcpClientMessageDispatcher;
+    private InnerClientMessageDispatcher innerClientMessageDispatcher;
     private final int reconnectInterval;
     private final ServerInfo fromServerInfo;
     private final ServerInfo toServerInfo;
@@ -52,8 +52,8 @@ public final class TcpClient {
                         pipeline.addLast(new IdleStateHandler(0, 0, 5, TimeUnit.SECONDS));
                         pipeline.addLast(new HeartbeatHandler(bootstrap, b -> connect(b)));
                         pipeline.addLast(new LengthFieldBasedFrameDecoder
-                                (102400, 4, 4, 0, 0));
-                        pipeline.addLast(new TcpClientHandler(innerTcpClientMessageDispatcher));
+                                (1024 * 1024, 4, 4, 0, 0));
+                        pipeline.addLast(new TcpClientHandler(innerClientMessageDispatcher));
                     }
                 });
         connect(bootstrap);

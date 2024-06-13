@@ -55,8 +55,12 @@ public final class OuterServerMessageDispatcher extends ServerMessageDispatcher 
     }
 
     @Override
-    public Object threadKey(HBSPackage.Decoder decoder) {
+    public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
         return null;
+    }
+
+    public void onMessage(ChannelHandlerContext ctx, Object msg, Protocol protocol) {
+        handleMessage(ctx, msg, protocol);
     }
 
     @Override

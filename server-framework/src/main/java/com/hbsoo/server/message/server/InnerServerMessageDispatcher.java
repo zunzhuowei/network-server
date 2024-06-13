@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.annotation.PostConstruct;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -58,8 +59,12 @@ public final class InnerServerMessageDispatcher extends ServerMessageDispatcher 
     public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) { }
 
     @Override
-    public Object threadKey(HBSPackage.Decoder decoder) {
+    public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
         return null;
+    }
+
+    public void onMessage(ChannelHandlerContext ctx, Object msg, Protocol protocol) {
+        handleMessage(ctx, msg, protocol);
     }
 
     @Override

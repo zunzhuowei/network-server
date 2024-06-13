@@ -37,7 +37,7 @@ public final class WebSocketFrameHandler extends SimpleChannelInboundHandler<Web
         System.out.println("WebSocketFrameHandler channelInactive");
         ctx.close();
 
-        // 注销
+        // 注销登录
         AttributeKey<Long> idAttr = AttributeKey.valueOf("id");
         Attribute<Long> attr = ctx.channel().attr(idAttr);
         Long id = attr.get();

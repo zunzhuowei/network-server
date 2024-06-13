@@ -7,13 +7,38 @@ import com.hbsoo.server.session.ServerType;
  */
 public class ServerInfo {
 
+    /**
+     * 服务器地址
+     */
     private String host;
 
+    /**
+     * 服务器端口
+     */
     private int port;
 
+    /**
+     * 服务器类型
+     */
     private ServerType type;
 
+    /**
+     * 服务器id，唯一
+     */
     private Integer id;
+
+    /**
+     * 链接该服务器的客户端数量
+     */
+    private Integer clientAmount;
+
+    public Integer getClientAmount() {
+        return clientAmount;
+    }
+
+    public void setClientAmount(Integer clientAmount) {
+        this.clientAmount = clientAmount;
+    }
 
     public Integer getId() {
         return id;

@@ -41,6 +41,12 @@ public final class HBSPackage {
             return new Builder(header);
         }
 
+        public byte[] getHeader() {
+            ByteBuffer buffer = ByteBuffer.allocate(4);
+            headerByteList.forEach(buffer::put);
+            return buffer.array();
+        }
+
         public Builder writeByte(byte b) {
             bodyByteList.add(b);
             packageLength.incrementAndGet();

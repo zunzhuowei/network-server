@@ -13,10 +13,7 @@ import org.springframework.core.env.*;
 import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -35,7 +32,9 @@ public final class TcpClientRegister implements ImportBeanDefinitionRegistrar, E
         for (PropertySource<?> source : sources) {
             if (source instanceof EnumerablePropertySource) {
                 final String[] names = ((EnumerablePropertySource) source).getPropertyNames();
-                List<String> collect = Arrays.stream(names).filter(name -> name.startsWith("hbsoo.server.innerServers")).collect(Collectors.toList());
+                List<String> collect = Arrays.stream(names)
+                        .filter(name -> name.startsWith("hbsoo.server.innerServers"))
+                        .collect(Collectors.toList());
                 if (collect.isEmpty()) {
                     continue;
                 }
@@ -44,19 +43,25 @@ public final class TcpClientRegister implements ImportBeanDefinitionRegistrar, E
                     String portKey = "hbsoo.server.innerServers[" + i + "].port";
                     String typeKey = "hbsoo.server.innerServers[" + i + "].type";
                     String idKey = "hbsoo.server.innerServers[" + i + "].id";
+                    String clientAmountKey = "hbsoo.server.innerServers[" + i + "].clientAmount";
+                    ServerInfo serverInfo = new ServerInfo();
                     if (StringUtils.hasText(environment.getProperty(hostKey))) {
-                        if (StringUtils.hasText(environment.getProperty(portKey))) {
-                            if (StringUtils.hasText(environment.getProperty(typeKey))) {
-                                if (StringUtils.hasText(environment.getProperty(idKey))) {
-                                    ServerInfo serverInfo = new ServerInfo();
-                                    serverInfo.setHost(environment.getProperty(hostKey));
-                                    serverInfo.setPort(Integer.parseInt(environment.getProperty(portKey)));
-                                    serverInfo.setType(ServerType.valueOf(environment.getProperty(typeKey)));
-                                    serverInfo.setId(Integer.parseInt(environment.getProperty(idKey)));
-                                    innerServers.add(serverInfo);
-                                }
-                            }
-                        }
+                        serverInfo.setHost(environment.getProperty(hostKey));
+                    }
+                    if (StringUtils.hasText(environment.getProperty(portKey))) {
+                        serverInfo.setPort(Integer.parseInt(environment.getProperty(portKey)));
+                    }
+                    if (StringUtils.hasText(environment.getProperty(typeKey))) {
+                        serverInfo.setType(ServerType.valueOf(environment.getProperty(typeKey)));
+                    }
+                    if (StringUtils.hasText(environment.getProperty(idKey))) {
+                        serverInfo.setId(Integer.parseInt(environment.getProperty(idKey)));
+                    }
+                    if (StringUtils.hasText(environment.getProperty(clientAmountKey))) {
+                        serverInfo.setClientAmount(Integer.parseInt(environment.getProperty(clientAmountKey)));
+                    }
+                    if (serverInfo.getPort() > 0) {
+                        innerServers.add(serverInfo);
                     }
                 }
             }
@@ -71,13 +76,14 @@ public final class TcpClientRegister implements ImportBeanDefinitionRegistrar, E
         NowServer.setServerInfo(fromServerInfo);
 
         // 注册内网客户端
-        for (ServerInfo innerServer : innerServers) {
+        for (ServerInfo toServer : innerServers) {
             // 当前服务器不需要链接自己
-            if (innerServer.getId().equals(id)) {
+            if (toServer.getId().equals(id)) {
                 continue;
             }
+            Integer clientAmount = toServer.getClientAmount();
             //每个服务器使用五个客户端链接
-            for (int i = 0; i < 5; i++) {
+            for (int i = 0; i < (Objects.isNull(clientAmount) ? 3 : clientAmount); i++) {
                 AbstractBeanDefinition beanDefinition = BeanDefinitionBuilder.rootBeanDefinition(TcpClient.class).getBeanDefinition();
                 beanDefinition.setAutowireMode(AbstractBeanDefinition.AUTOWIRE_BY_NAME);
                 beanDefinition.setScope("singleton");
@@ -85,11 +91,11 @@ public final class TcpClientRegister implements ImportBeanDefinitionRegistrar, E
                 beanDefinition.setDestroyMethodName("stop");
                 ConstructorArgumentValues constructorArgumentValues = new ConstructorArgumentValues();
                 constructorArgumentValues.addIndexedArgumentValue(0, fromServerInfo);
-                constructorArgumentValues.addIndexedArgumentValue(1, innerServer);
+                constructorArgumentValues.addIndexedArgumentValue(1, toServer);
                 constructorArgumentValues.addIndexedArgumentValue(2, 3);
                 constructorArgumentValues.addIndexedArgumentValue(3, i);
                 beanDefinition.setConstructorArgumentValues(constructorArgumentValues);
-                String beanName = "innerClient:" + fromServerInfo.getId() + " to " + innerServer.getId() + "#" + i;
+                String beanName = "innerClient:" + fromServerInfo.getId() + " to " + toServer.getId() + "#" + i;
                 beanDefinitionRegistry.registerBeanDefinition(beanName, beanDefinition);
             }
         }

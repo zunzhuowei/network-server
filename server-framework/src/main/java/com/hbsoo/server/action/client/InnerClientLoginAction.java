@@ -3,7 +3,7 @@ package com.hbsoo.server.action.client;
 import com.hbsoo.server.annotation.InnerClientMessageHandler;
 import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.HBSPackage;
-import com.hbsoo.server.message.client.InnerTcpClientMessageHandler;
+import com.hbsoo.server.message.client.ClientMessageDispatcher;
 import com.hbsoo.server.session.InnerClientSessionManager;
 import com.hbsoo.server.session.ServerType;
 import io.netty.channel.ChannelHandlerContext;
@@ -15,13 +15,12 @@ import org.slf4j.LoggerFactory;
  * Created by zun.wei on 2024/6/6.
  */
 @InnerClientMessageHandler(HBSMessageType.InnerMessageType.LOGIN)
-public class InnerClientLoginAction extends InnerTcpClientMessageHandler {
+public class InnerClientLoginAction extends ClientMessageDispatcher {
 
     private static final Logger logger = LoggerFactory.getLogger(InnerClientLoginAction.class);
 
-
     @Override
-    public void onMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
+    public void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
         int id = decoder.readInt();
         String loginServerTypeStr = decoder.readStr();
         int index = decoder.readInt();
@@ -30,4 +29,8 @@ public class InnerClientLoginAction extends InnerTcpClientMessageHandler {
 
     }
 
+    @Override
+    public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
+        return decoder.skipGetInt(HBSPackage.DecodeSkip.INT, HBSPackage.DecodeSkip.INT);
+    }
 }

@@ -35,7 +35,7 @@ public class InnerServerUserSessionLogoutSyncAction extends ServerMessageDispatc
     }
 
     @Override
-    public Object threadKey(HBSPackage.Decoder decoder) {
+    public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
         return decoder.skipGetLong(HBSPackage.DecodeSkip.INT);
     }
 }

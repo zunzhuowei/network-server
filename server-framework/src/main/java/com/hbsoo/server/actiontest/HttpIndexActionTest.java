@@ -43,13 +43,17 @@ public class HttpIndexActionTest extends ServerMessageDispatcher {
             //response.headers().set(HttpHeaderNames.CONTENT_TRANSFER_ENCODING, "base64");
             //response.headers().set(HttpHeaderNames.CONTENT_MD5, "Q2hlY2sgSW50ZWdyaXR5IQ==");
             ctx.writeAndFlush(response).sync();
+            ctx.close();
+
+            //java.lang.IllegalStateException: cannot send more responses than requests
+            //redirectMessage(ctx, httpPackage.getFullHttpRequest());
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
 
     @Override
-    public Object threadKey(HBSPackage.Decoder decoder) {
+    public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
         return null;
     }
 }
