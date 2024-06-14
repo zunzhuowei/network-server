@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.hbsoo.server.annotation.Protocol;
 import com.hbsoo.server.message.HBSPackage;
 import com.hbsoo.server.message.TextWebSocketPackage;
+import com.hbsoo.server.utils.DelayThreadPoolScheduler;
 import com.hbsoo.server.utils.SpringBeanFactory;
 import com.hbsoo.server.utils.ThreadPoolScheduler;
 import io.netty.buffer.ByteBuf;
@@ -33,6 +34,8 @@ public final class InnerClientMessageDispatcher extends ClientMessageDispatcher 
 
     private static final Map<Protocol, ConcurrentHashMap<Integer, ClientMessageDispatcher>> innerClientDispatchers = new ConcurrentHashMap<>();
 
+    @Autowired
+    protected DelayThreadPoolScheduler delayThreadPoolScheduler;
     @Autowired
     private ThreadPoolScheduler innerClientThreadPoolScheduler;
     @Autowired

@@ -4,19 +4,25 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 延迟线程池
  * Created by zun.wei on 2024/6/8.
  */
 public class DelayThreadPoolScheduler {
+
+    private static final AtomicInteger instanceCounter = new AtomicInteger(0);
     final ScheduledExecutorService threadPool;
+    private final String uniquePoolName;
 
     public DelayThreadPoolScheduler(String poolName, int poolSize) {
-        threadPool = Executors.newScheduledThreadPool(poolSize, r -> new Thread(r, poolName));
-        //threadPool.scheduleAtFixedRate();
-        //threadPool.scheduleWithFixedDelay();
-        //threadPool.schedule();
+        if(poolSize <= 0) {
+            throw new IllegalArgumentException("线程池大小必须大于0");
+        }
+        // 为避免线程名冲突，添加一个唯一的标识符
+        uniquePoolName = poolName + "-" + instanceCounter.incrementAndGet();
+        threadPool = Executors.newScheduledThreadPool(poolSize, r -> new Thread(r, uniquePoolName));
     }
 
     /**
@@ -30,6 +36,23 @@ public class DelayThreadPoolScheduler {
      */
     public void shutdown() {
         threadPool.shutdown();
+    }
+
+    /**
+     * 销毁线程池，立即停止所有任务并关闭线程池。
+     */
+    public void destroy() {
+        threadPool.shutdownNow();
+        // 等待所有线程终止，可设置一个合理的超时时间
+        try {
+            if (!threadPool.awaitTermination(5, TimeUnit.SECONDS)) {
+                // 如果超时，强制中断所有线程
+                threadPool.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            threadPool.shutdownNow();
+        }
     }
 
     /**

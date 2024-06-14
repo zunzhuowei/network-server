@@ -7,14 +7,19 @@ import com.hbsoo.server.message.HBSPackage;
 import com.hbsoo.server.message.ProtocolType;
 import com.hbsoo.server.session.InnerClientSessionManager;
 import com.hbsoo.server.session.ServerType;
+import com.hbsoo.server.utils.DelayThreadPoolScheduler;
 import com.hbsoo.server.utils.SpringBeanFactory;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.util.ReferenceCountUtil;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * Created by zun.wei on 2024/6/13.
  */
 public abstract class ServerMessageDispatcher implements ServerMessageHandler {
+
+    @Autowired
+    protected DelayThreadPoolScheduler delayThreadPoolScheduler;
 
     /**
      * 注意，业务层不要重写此方法。此方法给分发器使用
