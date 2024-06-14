@@ -4,6 +4,7 @@ import com.hbsoo.server.annotation.InnerServerMessageHandler;
 import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.HBSPackage;
 import com.hbsoo.server.message.HttpPackage;
+import com.hbsoo.server.message.ProtocolType;
 import com.hbsoo.server.message.server.ServerMessageDispatcher;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -29,16 +30,16 @@ public class InnerServerHeartbeatAction extends ServerMessageDispatcher {
         ByteBuf buf = Unpooled.wrappedBuffer(msg);
         ctx.writeAndFlush(buf);
 
-        /*redirectMessage(ctx,
+        /*redirectAndSwitchProtocol(ctx,
                 ProtocolType.INNER_WEBSOCKET,
                 HBSPackage.Builder.withDefaultHeader()
                         .msgType(HBSMessageType.InnerMessageType.LOGOUT)
         );*/
-    }
 
-    @Override
-    public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) {
-
+        /*HBSPackage.Builder builder = HBSPackage.Builder.withDefaultHeader()
+                .msgType(HBSMessageType.InnerMessageType.HEARTBEAT)
+                .writeInt(1);
+        redirectMessage(ctx, builder);*/
     }
 
     @Override

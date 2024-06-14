@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class OuterServerMessageDispatcher extends ServerMessageDispatcher implements CommonDispatcher {
 
     private static final Logger logger = LoggerFactory.getLogger(OuterServerMessageDispatcher.class);
-    private static final Map<Protocol, ConcurrentHashMap<Integer, ServerMessageDispatcher>> outerServerDispatchers = new ConcurrentHashMap<>();
+    private static final Map<Protocol, ConcurrentHashMap<Integer, HttpServerMessageDispatcher>> outerServerDispatchers = new ConcurrentHashMap<>();
 
     @Qualifier("outerServerThreadPoolScheduler")
     @Autowired(required = false)
@@ -37,8 +37,8 @@ public final class OuterServerMessageDispatcher extends ServerMessageDispatcher 
         }
         Map<String, Object> outerHandlers = SpringBeanFactory.getBeansWithAnnotation(OuterServerMessageHandler.class);
         outerHandlers.values().stream()
-        .filter(handler -> handler instanceof ServerMessageDispatcher)
-        .map(handler -> (ServerMessageDispatcher) handler)
+        .filter(handler -> handler instanceof HttpServerMessageDispatcher)
+        .map(handler -> (HttpServerMessageDispatcher) handler)
         .forEach(handler -> {
             OuterServerMessageHandler annotation = handler.getClass().getAnnotation(OuterServerMessageHandler.class);
             Protocol protocol = annotation.protocol();
@@ -75,7 +75,7 @@ public final class OuterServerMessageDispatcher extends ServerMessageDispatcher 
     public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) { }
 
     @Override
-    public Map<Protocol, ConcurrentHashMap<Integer, ServerMessageDispatcher>> dispatchers() {
+    public Map<Protocol, ConcurrentHashMap<Integer, HttpServerMessageDispatcher>> dispatchers() {
         return outerServerDispatchers;
     }
 

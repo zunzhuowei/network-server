@@ -296,7 +296,6 @@ public final class HBSPackage {
 
         /**
          * 获取消息类型,阅读偏移量不移动
-         * @return
          */
         public int getMsgType() {
             return skipGetInt();
@@ -304,7 +303,6 @@ public final class HBSPackage {
 
         /**
          * 获取消息类型,阅读偏移量移动4个字节
-         * @return
          */
         public int readMsgType() {
             return readInt();

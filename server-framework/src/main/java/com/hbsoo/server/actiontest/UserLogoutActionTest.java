@@ -37,10 +37,6 @@ public class UserLogoutActionTest extends ServerMessageDispatcher {
         outerSessionManager.logoutAndSyncAllServer(userSession.getId());
     }
 
-    @Override
-    public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) {
-
-    }
 
     @Override
     public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {

@@ -33,10 +33,6 @@ public class InnerServerRedirectMsg2UserAction extends ServerMessageDispatcher {
         outerSessionManager.sendMsg2User(protocol, innerPackage, id);
     }
 
-    @Override
-    public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) {
-
-    }
 
     @Override
     public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {

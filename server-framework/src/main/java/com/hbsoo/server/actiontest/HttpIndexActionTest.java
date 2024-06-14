@@ -3,6 +3,7 @@ package com.hbsoo.server.actiontest;
 import com.hbsoo.server.annotation.OuterServerMessageHandler;
 import com.hbsoo.server.message.HBSPackage;
 import com.hbsoo.server.message.HttpPackage;
+import com.hbsoo.server.message.server.HttpServerMessageDispatcher;
 import com.hbsoo.server.message.server.ServerMessageDispatcher;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
@@ -15,10 +16,8 @@ import io.netty.handler.codec.http.HttpResponseStatus;
  * Created by zun.wei on 2024/6/7.
  */
 @OuterServerMessageHandler(value = 0, uri = "/")
-public class HttpIndexActionTest extends ServerMessageDispatcher {
+public class HttpIndexActionTest extends HttpServerMessageDispatcher {
 
-    @Override
-    public void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {}
 
     @Override
     public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) {

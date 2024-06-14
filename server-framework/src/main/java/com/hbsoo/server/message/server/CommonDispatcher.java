@@ -32,7 +32,7 @@ interface CommonDispatcher {
     Logger logger = LoggerFactory.getLogger(CommonDispatcher.class);
 
     //协议分发
-    Map<Protocol, ConcurrentHashMap<Integer, ServerMessageDispatcher>> dispatchers();
+    Map<Protocol, ConcurrentHashMap<Integer, HttpServerMessageDispatcher>> dispatchers();
 
     //工作线程池
     ThreadPoolScheduler threadPoolScheduler();
@@ -69,6 +69,7 @@ interface CommonDispatcher {
         }
         if (msg instanceof HBSPackage.Decoder) {
             HBSPackage.Decoder decoder = (HBSPackage.Decoder) msg;
+            decoder.resetBodyReadOffset();//重置读取偏移
             dispatcher(ctx, protocol, decoder);
             return;
         }
@@ -77,14 +78,17 @@ interface CommonDispatcher {
 
     default void dispatcher(ChannelHandlerContext ctx, Protocol protocol, HBSPackage.Decoder decoder) {
         int msgType = decoder.readMsgType();
-        ServerMessageDispatcher dispatcher = dispatchers().get(protocol).get(msgType);
+        ServerMessageDispatcher dispatcher = (ServerMessageDispatcher) dispatchers().get(protocol).get(msgType);
         if (Objects.isNull(dispatcher)) {
             final String s = ctx.channel().id().asShortText();
             logger.warn("消息类型未注册：" + msgType + ",channelID:" + s + ",protocol:" + protocol.name());
             ctx.close();
             return;
         }
-        threadPoolScheduler().execute(dispatcher.threadKey(ctx, decoder), () -> {
+        Object threadKey = dispatcher.threadKey(ctx, decoder);
+        decoder.resetBodyReadOffset();//重置读取位置
+        decoder.readMsgType();//消息类型
+        threadPoolScheduler().execute(threadKey, () -> {
             dispatcher.handle(ctx, decoder);
         });
     }
@@ -161,7 +165,7 @@ interface CommonDispatcher {
             // BinaryWebSocketFrame
             HBSPackage.Decoder decoder = HBSPackage.Decoder.withDefaultHeader().readPackageBody(received);
             int msgType = decoder.readMsgType();
-            ServerMessageDispatcher dispatcher = dispatchers().get(Protocol.WEBSOCKET).get(msgType);
+            ServerMessageDispatcher dispatcher = (ServerMessageDispatcher)dispatchers().get(Protocol.WEBSOCKET).get(msgType);
             if (Objects.isNull(dispatcher)) {
                 try {
                     String _404 = "404";
@@ -173,7 +177,10 @@ interface CommonDispatcher {
                 }
                 return;
             }
-            threadPoolScheduler().execute(dispatcher.threadKey(ctx, decoder), () -> {
+            Object threadKey = dispatcher.threadKey(ctx, decoder);
+            decoder.resetBodyReadOffset();//重置读取位置
+            decoder.readMsgType();//消息类型
+            threadPoolScheduler().execute(threadKey, () -> {
                 dispatcher.handle(ctx, decoder);
             });
         } catch (Exception e) {
@@ -218,9 +225,11 @@ interface CommonDispatcher {
         }
         int h;
         int msgType = (h = path.hashCode()) ^ (h >>> 16);
-        ServerMessageDispatcher dispatcher = dispatchers().get(Protocol.HTTP).get(msgType);
+        HttpServerMessageDispatcher dispatcher = dispatchers().get(Protocol.HTTP).get(msgType);
         if (Objects.nonNull(dispatcher)) {
-            threadPoolScheduler().execute(dispatcher.threadKey(ctx,null), () -> {
+            Object threadKey = dispatcher.threadKey(ctx, null);
+            //decoder.resetBodyReadOffset();//重置读取位置
+            threadPoolScheduler().execute(threadKey, () -> {
                 dispatcher.handle(ctx, httpPackage);
                 //ctx.close();
             });

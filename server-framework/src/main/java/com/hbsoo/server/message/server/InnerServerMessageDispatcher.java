@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class InnerServerMessageDispatcher extends ServerMessageDispatcher implements CommonDispatcher  {
 
-    private static final Map<Protocol, ConcurrentHashMap<Integer, ServerMessageDispatcher>> innerServerDispatchers = new ConcurrentHashMap<>();
+    private static final Map<Protocol, ConcurrentHashMap<Integer, HttpServerMessageDispatcher>> innerServerDispatchers = new ConcurrentHashMap<>();
 
     @Autowired
     private ThreadPoolScheduler innerServerThreadPoolScheduler;
@@ -34,8 +34,8 @@ public final class InnerServerMessageDispatcher extends ServerMessageDispatcher 
         }
         Map<String, Object> innerHandlers = SpringBeanFactory.getBeansWithAnnotation(InnerServerMessageHandler.class);
         innerHandlers.values().stream()
-        .filter(handler -> handler instanceof ServerMessageDispatcher)
-        .map(handler -> (ServerMessageDispatcher) handler)
+        .filter(handler -> handler instanceof HttpServerMessageDispatcher)
+        .map(handler -> (HttpServerMessageDispatcher) handler)
         .forEach(handler -> {
             InnerServerMessageHandler annotation = handler.getClass().getAnnotation(InnerServerMessageHandler.class);
             Protocol protocol = annotation.protocol();
@@ -73,7 +73,7 @@ public final class InnerServerMessageDispatcher extends ServerMessageDispatcher 
     }
 
     @Override
-    public Map<Protocol, ConcurrentHashMap<Integer, ServerMessageDispatcher>> dispatchers() {
+    public Map<Protocol, ConcurrentHashMap<Integer, HttpServerMessageDispatcher>> dispatchers() {
         return innerServerDispatchers;
     }
 

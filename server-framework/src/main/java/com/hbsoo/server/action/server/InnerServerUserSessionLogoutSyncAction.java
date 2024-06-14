@@ -29,10 +29,6 @@ public class InnerServerUserSessionLogoutSyncAction extends ServerMessageDispatc
         outerSessionManager.logout(id);
     }
 
-    @Override
-    public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) {
-
-    }
 
     @Override
     public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {

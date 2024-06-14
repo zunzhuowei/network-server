@@ -41,10 +41,6 @@ public class UserLoginActionTest extends ServerMessageDispatcher {
         //redirectMessage();
     }
 
-    @Override
-    public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) {
-
-    }
 
     @Override
     public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {

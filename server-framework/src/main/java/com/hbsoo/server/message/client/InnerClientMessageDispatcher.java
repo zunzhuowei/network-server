@@ -115,7 +115,10 @@ public final class InnerClientMessageDispatcher extends ClientMessageDispatcher 
             ctx.close();
             return;
         }
-        innerClientThreadPoolScheduler.execute(dispatcher.threadKey(ctx, decoder), () -> {
+        Object threadKey = dispatcher.threadKey(ctx, decoder);
+        decoder.resetBodyReadOffset();//重置读取位置
+        decoder.readMsgType();//消息类型
+        innerClientThreadPoolScheduler.execute(threadKey , () -> {
             dispatcher.handle(ctx, decoder);
         });
     }
@@ -204,7 +207,10 @@ public final class InnerClientMessageDispatcher extends ClientMessageDispatcher 
                 }
                 return;
             }
-            innerClientThreadPoolScheduler.execute(dispatcher.threadKey(ctx, decoder), () -> {
+            Object threadKey = dispatcher.threadKey(ctx, decoder);
+            decoder.resetBodyReadOffset();//重置读取位置
+            decoder.readMsgType();//消息类型
+            innerClientThreadPoolScheduler.execute(threadKey, () -> {
                 dispatcher.handle(ctx, decoder);
             });
         } catch (Exception e) {

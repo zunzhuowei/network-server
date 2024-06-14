@@ -58,10 +58,6 @@ public class InnerServerUserSessionLoginSyncAction extends ServerMessageDispatch
         //outerSessionManager.sendTextWebSocketFrameMsg2User(s, id);
     }
 
-    @Override
-    public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) {
-
-    }
 
     @Override
     public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
