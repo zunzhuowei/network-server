@@ -3,7 +3,6 @@ package com.hbsoo.server.message.server;
 import com.hbsoo.server.annotation.OuterServerMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
 import com.hbsoo.server.message.HBSPackage;
-import com.hbsoo.server.message.HttpPackage;
 import com.hbsoo.server.utils.SpringBeanFactory;
 import com.hbsoo.server.utils.ThreadPoolScheduler;
 import io.netty.channel.ChannelHandlerContext;
@@ -22,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class OuterServerMessageDispatcher extends ServerMessageDispatcher implements CommonDispatcher {
 
     private static final Logger logger = LoggerFactory.getLogger(OuterServerMessageDispatcher.class);
-    private static final Map<Protocol, ConcurrentHashMap<Integer, HttpServerMessageDispatcher>> outerServerDispatchers = new ConcurrentHashMap<>();
+    private static final Map<Protocol, ConcurrentHashMap<Integer, ServerMessageDispatcher>> outerServerDispatchers = new ConcurrentHashMap<>();
 
     @Qualifier("outerServerThreadPoolScheduler")
     @Autowired(required = false)
@@ -32,26 +31,7 @@ public final class OuterServerMessageDispatcher extends ServerMessageDispatcher 
 
     @PostConstruct
     protected void init() {
-        for (Protocol protocol : Protocol.values()) {
-            outerServerDispatchers.computeIfAbsent(protocol, k -> new ConcurrentHashMap<>());
-        }
-        Map<String, Object> outerHandlers = SpringBeanFactory.getBeansWithAnnotation(OuterServerMessageHandler.class);
-        outerHandlers.values().stream()
-        .filter(handler -> handler instanceof HttpServerMessageDispatcher)
-        .map(handler -> (HttpServerMessageDispatcher) handler)
-        .forEach(handler -> {
-            OuterServerMessageHandler annotation = handler.getClass().getAnnotation(OuterServerMessageHandler.class);
-            Protocol protocol = annotation.protocol();
-            int msgType = annotation.value();
-            String uri = annotation.uri();
-            if (protocol == Protocol.HTTP || !"".equals(uri)) {
-                int h;
-                msgType = (h = uri.hashCode()) ^ (h >>> 16);
-                outerServerDispatchers.get(Protocol.HTTP).putIfAbsent(msgType, handler);
-                return;
-            }
-            outerServerDispatchers.get(protocol).putIfAbsent(msgType, handler);
-        });
+        assembleDispatchers(OuterServerMessageHandler.class);
     }
 
     @Override
@@ -72,10 +52,7 @@ public final class OuterServerMessageDispatcher extends ServerMessageDispatcher 
     public void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) { }
 
     @Override
-    public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) { }
-
-    @Override
-    public Map<Protocol, ConcurrentHashMap<Integer, HttpServerMessageDispatcher>> dispatchers() {
+    public Map<Protocol, ConcurrentHashMap<Integer, ServerMessageDispatcher>> dispatchers() {
         return outerServerDispatchers;
     }
 

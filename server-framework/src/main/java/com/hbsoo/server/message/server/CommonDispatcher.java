@@ -1,10 +1,13 @@
 package com.hbsoo.server.message.server;
 
 import com.google.gson.Gson;
+import com.hbsoo.server.annotation.InnerServerMessageHandler;
+import com.hbsoo.server.annotation.OuterServerMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
 import com.hbsoo.server.message.HBSPackage;
 import com.hbsoo.server.message.HttpPackage;
 import com.hbsoo.server.message.TextWebSocketPackage;
+import com.hbsoo.server.utils.SpringBeanFactory;
 import com.hbsoo.server.utils.ThreadPoolScheduler;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -17,6 +20,7 @@ import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.annotation.Annotation;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.List;
@@ -32,11 +36,53 @@ interface CommonDispatcher {
     Logger logger = LoggerFactory.getLogger(CommonDispatcher.class);
 
     //协议分发
-    Map<Protocol, ConcurrentHashMap<Integer, HttpServerMessageDispatcher>> dispatchers();
+    Map<Protocol, ConcurrentHashMap<Integer, ServerMessageDispatcher>> dispatchers();
 
     //工作线程池
     ThreadPoolScheduler threadPoolScheduler();
 
+    /**
+     * 组装协议分发
+     * @param serverMessageHandler 1.InnerServerMessageHandler; OuterServerMessageHandler
+     * @param <T> com.hbsoo.server.annotation.InnerServerMessageHandler | com.hbsoo.server.annotation.OuterServerMessageHandler
+     */
+    default <T extends Annotation> void assembleDispatchers(Class<T> serverMessageHandler) {
+        for (Protocol protocol : Protocol.values()) {
+            dispatchers().computeIfAbsent(protocol, k -> new ConcurrentHashMap<>());
+        }
+        Map<String, Object> innerHandlers = SpringBeanFactory.getBeansWithAnnotation(serverMessageHandler);
+        innerHandlers.values().stream()
+                .filter(handler -> handler instanceof ServerMessageDispatcher)
+                .map(handler -> (ServerMessageDispatcher) handler)
+                .forEach(handler -> {
+                    T annotation = handler.getClass().getAnnotation(serverMessageHandler);
+                    boolean inner = annotation instanceof InnerServerMessageHandler;
+                    //boolean outer = annotation instanceof OuterServerMessageHandler;
+                    Protocol protocol = inner ? ((InnerServerMessageHandler) annotation).protocol() : ((OuterServerMessageHandler) annotation).protocol();
+                    String uri = inner ? ((InnerServerMessageHandler) annotation).uri() : ((OuterServerMessageHandler) annotation).uri();
+                    int msgType = inner ? ((InnerServerMessageHandler) annotation).value() : ((OuterServerMessageHandler) annotation).value();
+                    if (handler instanceof HttpServerMessageDispatcher) {
+                        if (protocol != Protocol.HTTP || "".equals(uri)) {
+                            throw new RuntimeException("http message handler must type in protocol and uri !");
+                        }
+                        int h;
+                        msgType = (h = uri.hashCode()) ^ (h >>> 16);
+                        dispatchers().get(Protocol.HTTP).putIfAbsent(msgType, handler);
+                        return;
+                    }
+                    if (protocol == Protocol.HTTP) {
+                        throw new RuntimeException("http message must extends HttpServerMessageDispatcher!");
+                    }
+                    dispatchers().get(protocol).putIfAbsent(msgType, handler);
+                });
+    }
+
+    /**
+     * 消息分发
+     *
+     * @param ctx
+     * @param msg
+     */
     default void handleMessage(ChannelHandlerContext ctx, Object msg) {
         if (msg instanceof ByteBuf) {
             handle(ctx, (ByteBuf) msg, Protocol.TCP);
@@ -57,6 +103,13 @@ interface CommonDispatcher {
         logger.warn("消息类型未注册：" + msg.getClass().getName());
     }
 
+    /**
+     * 消息分发
+     *
+     * @param ctx
+     * @param msg
+     * @param protocol
+     */
     default void handleMessage(ChannelHandlerContext ctx, Object msg, Protocol protocol) {
         if (msg instanceof HBSPackage.Builder) {
             HBSPackage.Builder builder = (HBSPackage.Builder) msg;
@@ -76,9 +129,16 @@ interface CommonDispatcher {
         handleMessage(ctx, msg);
     }
 
+    /**
+     * 消息分发
+     *
+     * @param ctx
+     * @param protocol
+     * @param decoder
+     */
     default void dispatcher(ChannelHandlerContext ctx, Protocol protocol, HBSPackage.Decoder decoder) {
         int msgType = decoder.readMsgType();
-        ServerMessageDispatcher dispatcher = (ServerMessageDispatcher) dispatchers().get(protocol).get(msgType);
+        ServerMessageDispatcher dispatcher = dispatchers().get(protocol).get(msgType);
         if (Objects.isNull(dispatcher)) {
             final String s = ctx.channel().id().asShortText();
             logger.warn("消息类型未注册：" + msgType + ",channelID:" + s + ",protocol:" + protocol.name());
@@ -94,6 +154,13 @@ interface CommonDispatcher {
     }
 
 
+    /**
+     * 处理消息
+     *
+     * @param ctx
+     * @param msg
+     * @param protocol tcp,udp
+     */
     default void handle(ChannelHandlerContext ctx, ByteBuf msg, Protocol protocol) {
         try {
             Integer bodyLen = getBodyLen(msg, protocol);
@@ -110,6 +177,13 @@ interface CommonDispatcher {
         }
     }
 
+    /**
+     * 获取消息长度
+     *
+     * @param msg
+     * @param protocol
+     * @return
+     */
     default Integer getBodyLen(ByteBuf msg, Protocol protocol) {
         int readableBytes = msg.readableBytes();
         if (readableBytes < 4) {
@@ -147,6 +221,12 @@ interface CommonDispatcher {
         return bodyLen;
     }
 
+    /**
+     * 处理Websocket请求
+     *
+     * @param ctx
+     * @param webSocketFrame
+     */
     default void handleWebsocket(ChannelHandlerContext ctx, WebSocketFrame webSocketFrame) {
         try {
             final ByteBuf msg = webSocketFrame.content();
@@ -165,7 +245,7 @@ interface CommonDispatcher {
             // BinaryWebSocketFrame
             HBSPackage.Decoder decoder = HBSPackage.Decoder.withDefaultHeader().readPackageBody(received);
             int msgType = decoder.readMsgType();
-            ServerMessageDispatcher dispatcher = (ServerMessageDispatcher)dispatchers().get(Protocol.WEBSOCKET).get(msgType);
+            ServerMessageDispatcher dispatcher = dispatchers().get(Protocol.WEBSOCKET).get(msgType);
             if (Objects.isNull(dispatcher)) {
                 try {
                     String _404 = "404";
@@ -189,6 +269,12 @@ interface CommonDispatcher {
         }
     }
 
+    /**
+     * 处理http请求
+     *
+     * @param ctx
+     * @param msg
+     */
     default void handleHttp(ChannelHandlerContext ctx, FullHttpRequest msg) {
         final String path;
         HttpPackage httpPackage = new HttpPackage();
@@ -225,7 +311,7 @@ interface CommonDispatcher {
         }
         int h;
         int msgType = (h = path.hashCode()) ^ (h >>> 16);
-        HttpServerMessageDispatcher dispatcher = dispatchers().get(Protocol.HTTP).get(msgType);
+        HttpServerMessageDispatcher dispatcher = (HttpServerMessageDispatcher) dispatchers().get(Protocol.HTTP).get(msgType);
         if (Objects.nonNull(dispatcher)) {
             Object threadKey = dispatcher.threadKey(ctx, null);
             //decoder.resetBodyReadOffset();//重置读取位置

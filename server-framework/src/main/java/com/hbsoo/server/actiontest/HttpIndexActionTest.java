@@ -1,6 +1,7 @@
 package com.hbsoo.server.actiontest;
 
 import com.hbsoo.server.annotation.OuterServerMessageHandler;
+import com.hbsoo.server.annotation.Protocol;
 import com.hbsoo.server.message.HBSPackage;
 import com.hbsoo.server.message.HttpPackage;
 import com.hbsoo.server.message.server.HttpServerMessageDispatcher;
@@ -15,7 +16,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
  * 测试请求，需要在NetworkServerAutoConfiguration中注入bean对象，否则springboot扫描不到
  * Created by zun.wei on 2024/6/7.
  */
-@OuterServerMessageHandler(value = 0, uri = "/")
+@OuterServerMessageHandler(value = 0, uri = "/", protocol = Protocol.HTTP)
 public class HttpIndexActionTest extends HttpServerMessageDispatcher {
 
 

@@ -4,7 +4,6 @@ import com.hbsoo.server.annotation.InnerServerMessageHandler;
 import com.hbsoo.server.annotation.OuterServerMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
 import com.hbsoo.server.message.HBSPackage;
-import com.hbsoo.server.message.HttpPackage;
 import com.hbsoo.server.message.ProtocolType;
 import com.hbsoo.server.session.InnerClientSessionManager;
 import com.hbsoo.server.session.ServerType;
@@ -15,15 +14,17 @@ import io.netty.util.ReferenceCountUtil;
 /**
  * Created by zun.wei on 2024/6/13.
  */
-public abstract class ServerMessageDispatcher extends HttpServerMessageDispatcher {
+public abstract class ServerMessageDispatcher implements ServerMessageHandler {
+
+    /**
+     * 注意，业务层不要重写此方法。此方法给分发器使用
+     */
+    public void onMessage(ChannelHandlerContext ctx, Object msg) { }
 
     /**
      * 处理消息，tcp, udp, websocket
      */
     public abstract void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder);
-
-    @Override
-    public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) { }
 
     /**
      * 消息转发到【其他内网服务器】的消息处理器中，
