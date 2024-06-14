@@ -1,6 +1,5 @@
 package com.hbsoo.server.config;
 
-import com.hbsoo.server.session.ServerType;
 
 /**
  * Created by zun.wei on 2024/5/30.
@@ -20,7 +19,7 @@ public class ServerInfo {
     /**
      * 服务器类型
      */
-    private ServerType type;
+    private String type;
 
     /**
      * 服务器id，唯一
@@ -64,11 +63,11 @@ public class ServerInfo {
         this.port = port;
     }
 
-    public ServerType getType() {
+    public String getType() {
         return type;
     }
 
-    public void setType(ServerType type) {
+    public void setType(String type) {
         this.type = type;
     }
 }

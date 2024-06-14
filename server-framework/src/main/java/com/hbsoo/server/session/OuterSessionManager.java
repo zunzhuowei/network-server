@@ -66,7 +66,7 @@ public final class OuterSessionManager {
                 .writeInt(userSession.getBelongServer().getId()) //登录所属服务器id
                 .writeStr(userSession.getBelongServer().getHost())
                 .writeInt(userSession.getBelongServer().getPort())
-                .writeStr(userSession.getBelongServer().getType().name());
+                .writeStr(userSession.getBelongServer().getType());
         InnerClientSessionManager.sendMsg2AllServerByKey(builder, id);
     }
 

@@ -36,7 +36,7 @@ public final class TcpClient {
         this.toServerInfo = toServerInfo;
         this.index = index;
         group = new NioEventLoopGroup(1, r -> {
-            return new Thread(r, "client-" + toServerInfo.getType().name() + "-" + toServerInfo.getId() + "#" + index);
+            return new Thread(r, "client-" + toServerInfo.getType() + "-" + toServerInfo.getId() + "#" + index);
         });
     }
 
@@ -73,10 +73,10 @@ public final class TcpClient {
                 byte[] aPackage = HBSPackage.Builder.withDefaultHeader()
                         .msgType(HBSMessageType.InnerMessageType.LOGIN)
                         .writeInt(fromServerInfo.getId())//当前服务器的ID
-                        .writeStr(fromServerInfo.getType().name())//当前服务器的类型
+                        .writeStr(fromServerInfo.getType())//当前服务器的类型
                         .writeInt(index)//客户端编号
                         .writeInt(toServerInfo.getId())//登录服务器的ID
-                        .writeStr(toServerInfo.getType().name())//登录服务器的类型
+                        .writeStr(toServerInfo.getType())//登录服务器的类型
                         .buildPackage();
                 ByteBuf buf = Unpooled.wrappedBuffer(aPackage);
                 channel.writeAndFlush(buf).sync();

@@ -25,9 +25,9 @@ class InnerSessionManager {
     // 使用slf4j作为日志记录工具
     private static final Logger logger = LoggerFactory.getLogger(InnerSessionManager.class);
 
-    public static void innerLogin(ServerType serverType, Integer serverId, Channel channel, int index,
-                                  Supplier<Map<ServerType, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>>> clientsMapSupplier) {
-        Map<ServerType, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = clientsMapSupplier.get();
+    public static void innerLogin(String serverType, Integer serverId, Channel channel, int index,
+                                  Supplier<Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>>> clientsMapSupplier) {
+        Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = clientsMapSupplier.get();
         ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>> serverTypeMap = clientsMap.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
         ConcurrentHashMap<Integer, Channel> servers = serverTypeMap.computeIfAbsent(serverId, k -> new ConcurrentHashMap<>());
         if (servers.containsKey(index)) {
@@ -36,9 +36,9 @@ class InnerSessionManager {
         }
         servers.put(index, channel);
     }
-    public static void innerLogout(ServerType serverType, Integer serverId,
-                                   Supplier<Map<ServerType, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>>> clientsMapSupplier) {
-        Map<ServerType, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = clientsMapSupplier.get();
+    public static void innerLogout(String serverType, Integer serverId,
+                                   Supplier<Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>>> clientsMapSupplier) {
+        Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = clientsMapSupplier.get();
         ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>> serverTypeMap = clientsMap.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
         ConcurrentHashMap<Integer, Channel> servers = serverTypeMap.computeIfAbsent(serverId, k -> new ConcurrentHashMap<>());
         servers.values().forEach(ChannelOutboundInvoker::close);
@@ -46,8 +46,8 @@ class InnerSessionManager {
     }
 
     public static void innerLogoutWithChannel(Channel channel,
-                                              Supplier<Map<ServerType, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>>> clientsMapSupplier) {
-        Map<ServerType, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = clientsMapSupplier.get();
+                                              Supplier<Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>>> clientsMapSupplier) {
+        Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = clientsMapSupplier.get();
         clientsMap.values().forEach(servers -> {
             servers.values().forEach(server -> {
                 server.forEach((index, ch) -> {
@@ -67,9 +67,9 @@ class InnerSessionManager {
      * @param serverId   服务器id
      * @param serverType 服务器类型
      */
-    public static void sendMsg2ServerByServerId(HBSPackage.Builder msgBuilder, int serverId, ServerType serverType,
-                                                Supplier<Map<ServerType, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>>> clientsMapSupplier) {
-        Map<ServerType, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = clientsMapSupplier.get();
+    public static void sendMsg2ServerByServerId(HBSPackage.Builder msgBuilder, int serverId, String serverType,
+                                                Supplier<Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>>> clientsMapSupplier) {
+        Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = clientsMapSupplier.get();
         ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>> serverTypeMap = clientsMap.get(serverType);
         ConcurrentHashMap<Integer, Channel> clients = serverTypeMap.computeIfAbsent(serverId, k -> new ConcurrentHashMap<>());
         if (clients.isEmpty()) {
@@ -104,13 +104,13 @@ class InnerSessionManager {
      * @param key 键值，用于计算消息应该发送到哪个服务器和选择哪个客户端发送
      * @throws RuntimeException 如果键值为null，则抛出运行时异常。
      */
-    public static void sendMsg2ServerByTypeAndKey(HBSPackage.Builder msgBuilder, ServerType serverType, Object key,
-                                                  Supplier<Map<ServerType, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>>> clientsMapSupplier) {
+    public static void sendMsg2ServerByTypeAndKey(HBSPackage.Builder msgBuilder, String serverType, Object key,
+                                                  Supplier<Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>>> clientsMapSupplier) {
         if (key == null) {
             msgBuilder = null;
             throw new RuntimeException("key is null");
         }
-        Map<ServerType, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = clientsMapSupplier.get();
+        Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = clientsMapSupplier.get();
         //判断使用哪个服务器
         //ServerInfo serverInfo = NowServer.getServerInfo();
         ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>> serverTypeMap = clientsMap.get(serverType);
@@ -119,7 +119,7 @@ class InnerSessionManager {
         if (typeSize < 1) {
             msgBuilder = null;
             //throw new RuntimeException("typeSize < 1 : " + serverType.name());
-            logger.trace("typeSize < 1 : {}", serverType.name());
+            logger.trace("typeSize < 1 : {}", serverType);
             return;
         }
         int hash = key.hashCode();
@@ -163,11 +163,11 @@ class InnerSessionManager {
      * @throws RuntimeException 如果键值为null，则抛出运行时异常。
      */
     public static void sendMsg2AllServerByKey(HBSPackage.Builder msgBuilder, Object key,
-                                                  Supplier<Map<ServerType, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>>> clientsMapSupplier) {
+                                                  Supplier<Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>>> clientsMapSupplier) {
         if (key == null) {
             throw new RuntimeException("key is null");
         }
-        Map<ServerType, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = clientsMapSupplier.get();
+        Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = clientsMapSupplier.get();
         clientsMap.forEach((serverType, serverTypeMap) -> {
             sendMsg2ServerByTypeAndKey(msgBuilder, serverType, key, clientsMapSupplier);
         });

@@ -6,7 +6,6 @@ import com.hbsoo.server.annotation.Protocol;
 import com.hbsoo.server.message.HBSPackage;
 import com.hbsoo.server.message.ProtocolType;
 import com.hbsoo.server.session.InnerClientSessionManager;
-import com.hbsoo.server.session.ServerType;
 import com.hbsoo.server.utils.DelayThreadPoolScheduler;
 import com.hbsoo.server.utils.SpringBeanFactory;
 import io.netty.channel.ChannelHandlerContext;
@@ -40,7 +39,7 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
      * @param key        键值，用于计算消息应该发送到哪个服务器。
      *                   同时，键值的哈希值被用于决定客户端的选择。
      */
-    public void redirect2InnerServer(HBSPackage.Builder msgBuilder, ServerType serverType, Object key) {
+    public void redirect2InnerServer(HBSPackage.Builder msgBuilder, String serverType, Object key) {
         InnerClientSessionManager.sendMsg2ServerByTypeAndKey(msgBuilder, serverType, key);
     }
 

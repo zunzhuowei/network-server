@@ -36,21 +36,13 @@ public final class InnerServerSessionManager {
     }
      */
     //关于key的解释：1.serverType:服务器类型 2.serverId:服务器id 3.链接服务器的channel编号
-    public static Map<ServerType, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = new ConcurrentHashMap<>();
+    public static Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = new ConcurrentHashMap<>();
 
-    static {
-        // 初始化数据
-        for (ServerType serverType : ServerType.values()) {
-            ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>> innerMap = new ConcurrentHashMap<>();
-            clientsMap.put(serverType, innerMap);
-        }
 
-    }
-
-    public static void innerLogin(ServerType serverType, Integer serverId, Channel channel, int index) {
+    public static void innerLogin(String serverType, Integer serverId, Channel channel, int index) {
         InnerSessionManager.innerLogin(serverType, serverId, channel, index, () -> clientsMap);
     }
-    public static void innerLogout(ServerType serverType, Integer serverId) {
+    public static void innerLogout(String serverType, Integer serverId) {
         InnerSessionManager.innerLogout(serverType, serverId, () -> clientsMap);
     }
 
@@ -67,7 +59,7 @@ public final class InnerServerSessionManager {
      * @param serverId 目标服务器的ID，用于在服务器列表中定位目标服务器。
      * @param serverType 目标服务器的类型，用于获取相应类型服务器的连接列表。
      */
-    public static void sendMsg2ServerByServerId(HBSPackage.Builder msgBuilder, int serverId, ServerType serverType) {
+    public static void sendMsg2ServerByServerId(HBSPackage.Builder msgBuilder, int serverId, String serverType) {
         InnerSessionManager.sendMsg2ServerByServerId(msgBuilder, serverId, serverType, () -> clientsMap);
     }
 
@@ -81,7 +73,7 @@ public final class InnerServerSessionManager {
      * @param key 根据键值进行服务器选择的键，用于计算哈希值以选择具体服务器。
      * 抛出异常：如果key为null，则抛出RuntimeException。
      */
-    public static void sendMsg2ServerByTypeAndKey(HBSPackage.Builder msgBuilder, ServerType serverType, Object key) {
+    public static void sendMsg2ServerByTypeAndKey(HBSPackage.Builder msgBuilder, String serverType, Object key) {
         InnerSessionManager.sendMsg2ServerByTypeAndKey(msgBuilder, serverType, key, () -> clientsMap);
     }
 

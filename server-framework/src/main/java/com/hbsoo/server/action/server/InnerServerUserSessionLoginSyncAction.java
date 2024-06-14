@@ -9,7 +9,6 @@ import com.hbsoo.server.message.HBSPackage;
 import com.hbsoo.server.message.HttpPackage;
 import com.hbsoo.server.message.server.ServerMessageDispatcher;
 import com.hbsoo.server.session.OuterSessionManager;
-import com.hbsoo.server.session.ServerType;
 import com.hbsoo.server.session.UserSession;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
@@ -47,7 +46,7 @@ public class InnerServerUserSessionLoginSyncAction extends ServerMessageDispatch
         belongServer.setId(belongServerId);
         belongServer.setHost(belongServerHost);
         belongServer.setPort(belongServerPort);
-        belongServer.setType(ServerType.valueOf(belongServerType));
+        belongServer.setType(belongServerType);
         userSession.setBelongServer(belongServer);
         outerSessionManager.login(id, userSession);
 

@@ -2,7 +2,8 @@ package com.hbsoo.server.client;
 
 import com.hbsoo.server.NowServer;
 import com.hbsoo.server.config.ServerInfo;
-import com.hbsoo.server.session.ServerType;
+import com.hbsoo.server.session.InnerClientSessionManager;
+import com.hbsoo.server.session.InnerServerSessionManager;
 import org.springframework.beans.factory.config.ConstructorArgumentValues;
 import org.springframework.beans.factory.support.AbstractBeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
@@ -14,6 +15,7 @@ import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.util.StringUtils;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -52,7 +54,7 @@ public final class TcpClientRegister implements ImportBeanDefinitionRegistrar, E
                         serverInfo.setPort(Integer.parseInt(environment.getProperty(portKey)));
                     }
                     if (StringUtils.hasText(environment.getProperty(typeKey))) {
-                        serverInfo.setType(ServerType.valueOf(environment.getProperty(typeKey)));
+                        serverInfo.setType(environment.getProperty(typeKey));
                     }
                     if (StringUtils.hasText(environment.getProperty(idKey))) {
                         serverInfo.setId(Integer.parseInt(environment.getProperty(idKey)));
@@ -62,6 +64,7 @@ public final class TcpClientRegister implements ImportBeanDefinitionRegistrar, E
                     }
                     if (serverInfo.getPort() > 0) {
                         innerServers.add(serverInfo);
+                        NowServer.addServerType(serverInfo.getType());
                     }
                 }
             }
@@ -74,6 +77,11 @@ public final class TcpClientRegister implements ImportBeanDefinitionRegistrar, E
 
         //填充当前服务器信息
         NowServer.setServerInfo(fromServerInfo);
+        // 初始化数据
+        for (String serverType : NowServer.getServerTypes()) {
+            InnerClientSessionManager.clientsMap.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
+            InnerServerSessionManager.clientsMap.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
+        }
 
         // 注册内网客户端
         for (ServerInfo toServer : innerServers) {
