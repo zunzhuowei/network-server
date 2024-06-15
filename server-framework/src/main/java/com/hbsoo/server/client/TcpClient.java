@@ -81,7 +81,9 @@ public final class TcpClient {
                 ByteBuf buf = Unpooled.wrappedBuffer(aPackage);
                 channel.writeAndFlush(buf).sync();
             } else {
-                System.out.println("Failed to connect to server " + toServerInfo.getHost() + ":" + toServerInfo.getPort()
+                System.out.println("【" + fromServerInfo.getType() + "】 Client #" + index
+                        + " Failed to connect to server 【" + toServerInfo.getType() + "】"
+                        + toServerInfo.getHost() + ":" + toServerInfo.getPort()
                         + ", trying to reconnect in " + reconnectInterval + " seconds");
                 // 延迟重连
                 future.channel().eventLoop().schedule(() -> connect(bootstrap), reconnectInterval, TimeUnit.SECONDS);
