@@ -1,0 +1,4 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.hbsoo.database.config.ConfigureDataSources,\
+com.hbsoo.database.config.DruidProperties,\
+com.hbsoo.database.config.MybatisPlusExpandConfigure

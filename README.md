@@ -16,3 +16,5 @@ This is the network server for the project.Based on netty framework.The target i
 9. ~~服务端、客户端消息转发待测试~~
 10. ~~延迟线程池装配，任务执行完之后，处理逻辑~~
 11. ~~http协议抽离~~
+12. 完善readme
+13. mysql、mybatis、redis、mq等配置

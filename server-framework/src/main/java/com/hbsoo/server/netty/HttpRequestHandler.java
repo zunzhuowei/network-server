@@ -1,9 +1,13 @@
 package com.hbsoo.server.netty;
 
 import com.hbsoo.server.message.server.ServerMessageHandler;
+import com.hbsoo.server.session.OuterSessionManager;
+import com.hbsoo.server.utils.SpringBeanFactory;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
+import io.netty.util.Attribute;
+import io.netty.util.AttributeKey;
 
 import java.util.Objects;
 
@@ -35,4 +39,24 @@ public final class HttpRequestHandler extends SimpleChannelInboundHandler<FullHt
         }
         handler.onMessage(ctx, request);
     }
+
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        //super.channelInactive(ctx);
+        System.out.println("HttpRequestHandler channelInactive");
+        ctx.close();
+    }
+
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        super.channelActive(ctx);
+        System.out.println("HttpRequestHandler channelActive");
+    }
+
+    @Override
+    public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
+        super.channelRegistered(ctx);
+        System.out.println("HttpRequestHandler channelRegistered");
+    }
+
 }
