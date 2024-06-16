@@ -15,6 +15,7 @@
         <module>hall-server</module>
         <module>room-server</module>
         <module>server-database</module>
+        <module>server-cache</module>
     </modules>
 
     <properties>

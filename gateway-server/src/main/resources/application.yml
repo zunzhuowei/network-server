@@ -34,3 +34,6 @@ spring:
   profiles:
     active:
     include: database
+
+redisson:
+  yamlFileName: redssion/redssion-single.yml

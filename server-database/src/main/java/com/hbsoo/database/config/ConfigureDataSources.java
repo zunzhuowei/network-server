@@ -1,6 +1,9 @@
 package com.hbsoo.database.config;
 
 import com.alibaba.druid.pool.DruidDataSource;
+import com.hbsoo.database.entity.DruidSource;
+import com.hbsoo.database.utils.DynamicDataSource;
+import com.hbsoo.database.utils.RealDruidSources;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

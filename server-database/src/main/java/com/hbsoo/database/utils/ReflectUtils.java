@@ -1,4 +1,4 @@
-package com.hbsoo.database.config;
+package com.hbsoo.database.utils;
 
 
 import org.apache.commons.lang3.StringUtils;

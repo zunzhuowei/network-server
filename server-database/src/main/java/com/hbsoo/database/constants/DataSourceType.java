@@ -1,4 +1,4 @@
-package com.hbsoo.database.config;
+package com.hbsoo.database.constants;
 
 /**
  * Created by zun.wei on 2024/6/15.

@@ -1,5 +1,9 @@
 package com.hbsoo.database.config;
 
+import com.hbsoo.database.constants.DataSource;
+import com.hbsoo.database.utils.DynamicDataSourceContextHolder;
+import com.hbsoo.database.utils.RealDruidSources;
+import com.hbsoo.database.utils.ReflectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -30,8 +34,8 @@ public class DataSourceExtAspect {
 
     @Pointcut("@annotation(org.springframework.stereotype.Controller)"
             + "|| @within(org.springframework.stereotype.Controller)"
-            + "|| @annotation(com.hbsoo.database.config.DataSource)"
-            + "|| @within(com.hbsoo.database.config.DataSource)"
+            + "|| @annotation(com.hbsoo.database.constants.DataSource)"
+            + "|| @within(com.hbsoo.database.constants.DataSource)"
     )
     public void dsPointCut() {
 

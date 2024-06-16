@@ -1,0 +1,49 @@
+singleServerConfig:
+  idleConnectionTimeout: 10000
+  connectTimeout: 10000
+  timeout: 3000
+  retryAttempts: 3
+  retryInterval: 1500
+  password: null
+  subscriptionsPerConnection: 5
+  clientName: null
+  address: "redis://127.0.0.1:6379"
+  subscriptionConnectionMinimumIdleSize: 1
+  subscriptionConnectionPoolSize: 50
+  connectionMinimumIdleSize: 24
+  connectionPoolSize: 64
+  database: 0
+  dnsMonitoringInterval: 5000
+threads: 16
+nettyThreads: 32
+codec: !<org.redisson.codec.Kryo5Codec> {}
+transportMode: "NIO"
+
+
+
+#  Codec class name	Description
+#  org.redisson.codec.Kryo5Codec	Kryo 5 binary codec
+#  (Android compatible) Default codec
+#  org.redisson.codec.KryoCodec	Kryo 4 binary codec
+#  org.redisson.codec.JsonJacksonCodec	Jackson JSON codec.
+#  Stores type information in @class field
+#  (Android compatible)
+#  org.redisson.codec.TypedJsonJacksonCodec	Jackson JSON codec which doesn't store type id (@class field) during encoding and doesn't require it for decoding
+#  org.redisson.codec.AvroJacksonCodec	Avro binary json codec
+#  org.redisson.codec.ProtobufCodec	Protobuf codec
+#  org.redisson.codec.SmileJacksonCodec	Smile binary json codec
+#  org.redisson.codec.CborJacksonCodec	CBOR binary json codec
+#  org.redisson.codec.MsgPackJacksonCodec	MsgPack binary json codec
+#  org.redisson.codec.IonJacksonCodec	Amazon Ion codec
+#  org.redisson.codec.SerializationCodec	JDK Serialization binary codec
+#  (Android compatible)
+#  org.redisson.codec.LZ4Codec	LZ4 compression codec.
+#  Uses Kryo5Codec for serialization by default
+#  org.redisson.codec.LZ4CodecV2	LZ4 Apache Commons compression codec.
+#  Uses Kryo5Codec for serialization by default
+#  org.redisson.codec.SnappyCodecV2	Snappy compression codec based on snappy-java project.
+#  Uses Kryo5Codec for serialization by default
+#  org.redisson.client.codec.StringCodec	String codec
+#  org.redisson.client.codec.LongCodec	Long codec
+#  org.redisson.client.codec.ByteArrayCodec	Byte array codec
+#  org.redisson.codec.CompositeCodec	Allows to mix different codecs as one

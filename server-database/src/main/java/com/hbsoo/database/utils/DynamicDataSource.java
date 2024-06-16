@@ -1,4 +1,4 @@
-package com.hbsoo.database.config;
+package com.hbsoo.database.utils;
 
 import java.util.Map;
 import javax.sql.DataSource;

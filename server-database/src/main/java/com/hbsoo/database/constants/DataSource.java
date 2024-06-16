@@ -1,4 +1,4 @@
-package com.hbsoo.database.config;
+package com.hbsoo.database.constants;
 
 import java.lang.annotation.*;
 

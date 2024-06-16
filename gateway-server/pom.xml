@@ -27,6 +27,11 @@
             <artifactId>server-database</artifactId>
             <version>1.0.0</version>
         </dependency>
+        <dependency>
+            <groupId>com.hbsoo</groupId>
+            <artifactId>server-cache</artifactId>
+            <version>1.0.0</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -34,7 +39,7 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>2.1.1.RELEASE</version>
+                <version>2.5.15</version>
                 <configuration>
                     <mainClass>com.hbsoo.gateway.GatewayServerApplication</mainClass>
                 </configuration>

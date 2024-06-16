@@ -1,4 +1,4 @@
-package com.hbsoo.database.config;
+package com.hbsoo.database.utils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

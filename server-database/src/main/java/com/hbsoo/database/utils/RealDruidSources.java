@@ -1,9 +1,12 @@
-package com.hbsoo.database.config;
+package com.hbsoo.database.utils;
+
+import com.hbsoo.database.entity.DruidSource;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
+ * 存储当前应用中连接的所有数据源
  * Created by zun.wei on 2024/6/15.
  */
 public class RealDruidSources {
