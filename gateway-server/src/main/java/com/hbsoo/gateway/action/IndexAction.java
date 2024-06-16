@@ -30,24 +30,19 @@ public class IndexAction extends HttpServerMessageDispatcher {
     public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) {
         final List<Genealogy> genealogies = genealogyService.listAll();
         System.out.println("genealogies = " + genealogies);
-        final FullHttpRequest fullHttpRequest = httpPackage.getFullHttpRequest();
-        DefaultFullHttpResponse response = new DefaultFullHttpResponse(fullHttpRequest.protocolVersion(), HttpResponseStatus.OK);
-        response.content().writeCharSequence(genealogies.toString(), io.netty.util.CharsetUtil.UTF_8);
-        response.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/plain; charset=UTF-8");
-        response.headers().set(HttpHeaderNames.CONTENT_LENGTH, response.content().readableBytes());
-        ctx.writeAndFlush(response).addListener(future -> {
+        addResponseListener(future -> {
             if (future.isSuccess()) {
                 System.out.println("writeAndFlush success");
             } else {
                 System.out.println("writeAndFlush fail");
             }
-        });
+        }).responseJson(ctx, genealogies, response -> {});
+
         redirect2InnerServer(
                 HBSPackage.Builder.withDefaultHeader()
                         .msgType(100).writeStr(genealogies.toString()),
                 "hall",
                 "");
-        ctx.close();
     }
 
     @Override
