@@ -8,12 +8,15 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
 import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 
 public final class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
     private final ServerMessageHandler handler;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public HttpRequestHandler(ServerMessageHandler handler) {
         this.handler = handler;
@@ -43,20 +46,20 @@ public final class HttpRequestHandler extends SimpleChannelInboundHandler<FullHt
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         //super.channelInactive(ctx);
-        System.out.println("HttpRequestHandler channelInactive");
+        logger.debug("HttpRequestHandler channelInactive");
         ctx.close();
     }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         super.channelActive(ctx);
-        System.out.println("HttpRequestHandler channelActive");
+        logger.debug("HttpRequestHandler channelActive");
     }
 
     @Override
     public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
         super.channelRegistered(ctx);
-        System.out.println("HttpRequestHandler channelRegistered");
+        logger.debug("HttpRequestHandler channelRegistered");
     }
 
 }

@@ -17,6 +17,6 @@ This is the network server for the project.Based on netty framework.The target i
 10. ~~延迟线程池装配，任务执行完之后，处理逻辑~~
 11. ~~http协议抽离~~
 12. 完善readme
-13. mysql、mybatis、redis、mq等配置
-14. 本地缓存，缓存失效时间，缓存失效时，重新查询数据库
+13. ~~mysql~~、~~mybatis~~、~~redis~~、mq等配置
+14. ~~本地缓存~~~~，缓存失效时间，缓存失效时，重新查询数据库~~
 15. 请求限流

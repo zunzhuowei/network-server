@@ -35,5 +35,29 @@ spring:
     active:
     include: database
 
+# 使用redisson模块
 redisson:
   yamlFileName: redssion/redssion-single.yml
+# 配置caffeine本地缓存
+caffeine:
+  defaultCache:
+    #设置初始容量
+    initialCapacity: 100
+    #设置缓存的最大容量
+    maximumSize: 1000
+    #设置缓存在写入后多久过期,(秒)
+    expireAfterWrite: 60
+  customCaches:
+    userCache:
+      initialCapacity: 100
+      maximumSize: 1000
+      expireAfterWrite: 60
+      refreshAfterWrite: 60
+    roomCache:
+      maximumSize: 1000
+      #设置缓存在访问后多久过期(秒)
+      expireAfterAccess: 60
+      #设置缓存在写入后多久刷新(秒)
+      refreshAfterWrite: 60
+      #使用弱键，当键被垃圾回收时，键和值都会从缓存中移除
+      useWeakKeys: true

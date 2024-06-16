@@ -119,7 +119,7 @@ class InnerSessionManager {
         if (typeSize < 1) {
             msgBuilder = null;
             //throw new RuntimeException("typeSize < 1 : " + serverType.name());
-            logger.trace("typeSize < 1 : {}", serverType);
+            logger.warn("sendMsg2ServerByTypeAndKey typeSize < 1, serverType:{}", serverType);
             return;
         }
         int hash = key.hashCode();

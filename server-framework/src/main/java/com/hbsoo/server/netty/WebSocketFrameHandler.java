@@ -8,11 +8,14 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 
 public final class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocketFrame> {
 
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ServerMessageHandler handler;
 
     public WebSocketFrameHandler(ServerMessageHandler handler) {
@@ -34,7 +37,7 @@ public final class WebSocketFrameHandler extends SimpleChannelInboundHandler<Web
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         //super.channelInactive(ctx);
-        System.out.println("WebSocketFrameHandler channelInactive");
+        logger.debug("WebSocketFrameHandler channelInactive");
         ctx.close();
 
         // 注销登录
@@ -43,7 +46,7 @@ public final class WebSocketFrameHandler extends SimpleChannelInboundHandler<Web
         Long id = attr.get();
         if (Objects.nonNull(id)) {
             OuterSessionManager manager = SpringBeanFactory.getBean(OuterSessionManager.class);
-            System.out.println("channelInactive id = " + id);
+            logger.debug("channelInactive id = " + id);
             manager.logoutAndSyncAllServer(id);
         }
     }
@@ -51,12 +54,12 @@ public final class WebSocketFrameHandler extends SimpleChannelInboundHandler<Web
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         super.channelActive(ctx);
-        System.out.println("WebSocketFrameHandler channelActive");
+        logger.debug("WebSocketFrameHandler channelActive");
     }
 
     @Override
     public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
         super.channelRegistered(ctx);
-        System.out.println("WebSocketFrameHandler channelRegistered");
+        logger.debug("WebSocketFrameHandler channelRegistered");
     }
 }
