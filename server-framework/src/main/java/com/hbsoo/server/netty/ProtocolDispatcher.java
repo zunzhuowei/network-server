@@ -104,15 +104,6 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<ByteBu
             }
         }
         if (tag.startsWith("GET")) {
-          /*
-        GET /ws HTTP/1.1
-        Sec-WebSocket-Version: 13
-        Sec-WebSocket-Key: RAo8tOERCwmCqGOkHAOrww==
-        Connection: Upgrade
-        Upgrade: websocket
-        Sec-WebSocket-Extensions: permessage-deflate; client_max_window_bits
-        Host: 127.0.0.1:5555
-             */
             if (readableBytes > 7) {
                 byte[] firstLine = new byte[7];
                 msg.getBytes(0, firstLine);
@@ -151,12 +142,30 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<ByteBu
         UNKNOWN
     }
 
+    /**
+    GET /ws HTTP/1.1
+    Sec-WebSocket-Version: 13
+    Sec-WebSocket-Key: RAo8tOERCwmCqGOkHAOrww==
+    Connection: Upgrade
+    Upgrade: websocket
+    Sec-WebSocket-Extensions: permessage-deflate; client_max_window_bits
+    Host: 127.0.0.1:5555
+
+    GET /ws HTTP/1.1
+    host: localhost:5555
+    upgrade: websocket
+    connection: upgrade
+    sec-websocket-key: FQ5/lPFU1JlH7G89GSwmaA==
+    origin: http://localhost:5555
+    sec-websocket-version: 13
+   */
     private boolean checkRequestHeaders(String requestHeader) {
+        final String raw = requestHeader.toLowerCase();
         //boolean containsSecWebSocketVersion = requestHeader.contains("Sec-WebSocket-Version:");
         //boolean containsSecWebSocketKey = requestHeader.contains("Sec-WebSocket-Key:");
-        boolean containsConnectionUpgrade = requestHeader.contains("Connection: Upgrade");
-        boolean containsUpgradeWebsocket = requestHeader.contains("Upgrade: websocket");
-        return containsUpgradeWebsocket && containsConnectionUpgrade;
+        //boolean containsConnectionUpgrade = requestHeader.contains("Connection: Upgrade");
+        //boolean containsUpgradeWebsocket = requestHeader.contains("Upgrade: websocket");
+        return raw.contains("connection: upgrade") && raw.contains("upgrade: websocket");
     }
 
 }
