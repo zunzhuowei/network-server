@@ -78,4 +78,16 @@ public final class InnerClientSessionManager {
     public static void sendMsg2AllServerByKey(HBSPackage.Builder msgBuilder, Object key) {
         InnerSessionManager.sendMsg2AllServerByKey(msgBuilder, key, () -> clientsMap);
     }
+
+    /**
+     * 根据配置的服务器类型和权重，向特定服务器发送消息。如果未配置权重值，则随机选择一个服务器发送消息。
+     * 注意：【消息不会发送给当前服务器】。
+     *
+     * @param msgBuilder 消息构建器，用于构建待发送的消息包。
+     * @param serverType 服务器类型，用于定位服务器集群。
+     * @throws RuntimeException 如果键值为null，则抛出运行时异常。
+     */
+    public static void sendMsg2ServerByTypeUseWeight(HBSPackage.Builder msgBuilder, String serverType) {
+        InnerSessionManager.sendMsg2ServerByTypeUseWeight(msgBuilder, serverType, () -> clientsMap);
+    }
 }
