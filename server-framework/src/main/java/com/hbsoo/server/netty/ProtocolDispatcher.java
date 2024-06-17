@@ -11,15 +11,18 @@ import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.handler.codec.http.websocketx.extensions.compression.WebSocketServerCompressionHandler;
 import io.netty.handler.timeout.IdleStateHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 
 //@Component
 //@ChannelHandler.Sharable
-public final class ProtocolDispatcher extends SimpleChannelInboundHandler<ByteBuf> {
+public final class ProtocolDispatcher extends SimpleChannelInboundHandler<Object> {
 
     private final ServerMessageHandler handler;
     private final int maxFrameLength;
+    private static final Logger logger = LoggerFactory.getLogger(ProtocolDispatcher.class);
 
     public ProtocolDispatcher(ServerMessageHandler handler, int maxFrameLength) {
         this.maxFrameLength = maxFrameLength;
@@ -27,10 +30,28 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<ByteBu
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
-        //int magicNumber = msg.getUnsignedByte(msg.readerIndex());
-        ProtocolType protocolType = determineProtocolType(msg);
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        super.channelActive(ctx);
         //每隔10秒检查一次链接是否有数据交流。（3 * 10）秒没有数据交流就断开链接
+        ctx.pipeline().addLast("unknownIdleStateHandler", new IdleStateHandler(0, 0, 1));
+        ctx.pipeline().addLast("unknownServerHeartbeatHandler", new ServerHeartbeatHandler());
+        ctx.pipeline().addLast("unknownChannelInactiveHandler", new ChannelInactiveHandler(ProtocolType.UNKNOWN));
+    }
+
+    @Override
+    protected void channelRead0(ChannelHandlerContext ctx, Object obj) throws Exception {
+        if (!(obj instanceof ByteBuf)) {
+            logger.error("unknown protocol obj: {}", obj.toString());
+            return;
+        }
+        ByteBuf msg = (ByteBuf) obj;
+        ProtocolType protocolType = determineProtocolType(msg);
+        if (protocolType == ProtocolType.UNKNOWN) {
+            return;
+        }
+        ctx.pipeline().remove("unknownIdleStateHandler");
+        ctx.pipeline().remove("unknownServerHeartbeatHandler");
+        ctx.pipeline().remove("unknownChannelInactiveHandler");
         ctx.pipeline().addLast(new IdleStateHandler(0, 0, 10));
         ctx.pipeline().addLast(new ServerHeartbeatHandler());
         switch (protocolType) {
@@ -50,7 +71,7 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<ByteBu
                 ctx.fireChannelRead(msg.retain());
                 break;
             }
-            case WEBSOCKET:{
+            case WEBSOCKET: {
                 // 添加HTTP编解码器
                 ctx.pipeline().addLast(new HttpServerCodec());
                 // 可选的压缩支持
@@ -76,7 +97,7 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<ByteBu
                 ctx.fireChannelRead(msg.retain());
                 break;
             }
-            default:{
+            default: {
                 ctx.pipeline().addLast(new UnknownProtocolHandler());
                 ctx.pipeline().remove(this);
                 ctx.fireChannelRead(msg.retain());
@@ -86,7 +107,9 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<ByteBu
     }
 
 
-
+    /**
+     * 确定协议类型
+     */
     private ProtocolType determineProtocolType(ByteBuf msg) {
         int readableBytes = msg.readableBytes();
         if (readableBytes < 4) {
@@ -143,22 +166,22 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<ByteBu
     }
 
     /**
-    GET /ws HTTP/1.1
-    Sec-WebSocket-Version: 13
-    Sec-WebSocket-Key: RAo8tOERCwmCqGOkHAOrww==
-    Connection: Upgrade
-    Upgrade: websocket
-    Sec-WebSocket-Extensions: permessage-deflate; client_max_window_bits
-    Host: 127.0.0.1:5555
-
-    GET /ws HTTP/1.1
-    host: localhost:5555
-    upgrade: websocket
-    connection: upgrade
-    sec-websocket-key: FQ5/lPFU1JlH7G89GSwmaA==
-    origin: http://localhost:5555
-    sec-websocket-version: 13
-   */
+     * GET /ws HTTP/1.1
+     * Sec-WebSocket-Version: 13
+     * Sec-WebSocket-Key: RAo8tOERCwmCqGOkHAOrww==
+     * Connection: Upgrade
+     * Upgrade: websocket
+     * Sec-WebSocket-Extensions: permessage-deflate; client_max_window_bits
+     * Host: 127.0.0.1:5555
+     * <p>
+     * GET /ws HTTP/1.1
+     * host: localhost:5555
+     * upgrade: websocket
+     * connection: upgrade
+     * sec-websocket-key: FQ5/lPFU1JlH7G89GSwmaA==
+     * origin: http://localhost:5555
+     * sec-websocket-version: 13
+     */
     private boolean checkRequestHeaders(String requestHeader) {
         final String raw = requestHeader.toLowerCase();
         //boolean containsSecWebSocketVersion = requestHeader.contains("Sec-WebSocket-Version:");

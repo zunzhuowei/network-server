@@ -29,8 +29,8 @@ public class TcpClient {
                     });
 
             Channel ch = b.connect("localhost", 5555).sync().channel();
-            ByteBuf buf = Unpooled.copiedBuffer("THBSHello, TCP Server!".getBytes());
-            ch.writeAndFlush(buf).sync();
+            //ByteBuf buf = Unpooled.copiedBuffer("THBSHello, TCP Server!".getBytes());
+            //ch.writeAndFlush(buf).sync();
             ch.closeFuture().sync();
         } finally {
             group.shutdownGracefully();

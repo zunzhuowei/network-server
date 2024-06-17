@@ -10,10 +10,7 @@ import io.netty.channel.ChannelOutboundInvoker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -74,7 +71,7 @@ class InnerSessionManager {
     public static void sendMsg2ServerByServerId(HBSPackage.Builder msgBuilder, int serverId, String serverType,
                                                 Supplier<Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>>> clientsMapSupplier) {
         Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = clientsMapSupplier.get();
-        ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>> serverTypeMap = clientsMap.get(serverType);
+        ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>> serverTypeMap = clientsMap.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
         ConcurrentHashMap<Integer, Channel> clients = serverTypeMap.computeIfAbsent(serverId, k -> new ConcurrentHashMap<>());
         if (clients.isEmpty()) {
             logger.error("sendMsg2ServerByServerId error 服务器未登录:{}", serverId);
@@ -105,13 +102,10 @@ class InnerSessionManager {
         }
         Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = clientsMapSupplier.get();
         //判断使用哪个服务器
-        //ServerInfo serverInfo = NowServer.getServerInfo();
-        ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>> serverTypeMap = clientsMap.get(serverType);
-        //int typeSize = serverInfo.getType() == serverType ? serverTypeMap.size() - 1 : serverTypeMap.size();
+        ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>> serverTypeMap = clientsMap.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
         int typeSize = serverTypeMap.size();
         if (typeSize < 1) {
             msgBuilder = null;
-            //throw new RuntimeException("typeSize < 1 : " + serverType.name());
             logger.warn("sendMsg2ServerByTypeAndKey typeSize < 1, serverType:{}", serverType);
             return;
         }
@@ -187,7 +181,7 @@ class InnerSessionManager {
     public static void sendMsg2ServerByTypeUseWeight(HBSPackage.Builder msgBuilder, String serverType,
                                                   Supplier<Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>>> clientsMapSupplier) {
         Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = clientsMapSupplier.get();
-        ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>> serverTypeMap = clientsMap.get(serverType);
+        ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>> serverTypeMap = clientsMap.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
         int typeSize = serverTypeMap.size();
         if (typeSize < 1) {
             msgBuilder = null;
