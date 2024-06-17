@@ -10,6 +10,7 @@ import io.netty.channel.ChannelOutboundInvoker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -45,6 +46,9 @@ class InnerSessionManager {
         clients.remove(serverId);
     }
 
+    /**
+     * 根据channel退出登录
+     */
     public static void innerLogoutWithChannel(Channel channel,
                                               Supplier<Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>>> clientsMapSupplier) {
         Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = clientsMapSupplier.get();
@@ -79,18 +83,7 @@ class InnerSessionManager {
         final Random random = new Random();
         int key = random.nextInt();
         int hash = Integer.hashCode(key);
-        int serverIndex = Math.abs(hash) % clients.size();
-        final Channel channel = clients.get(serverIndex);
-        if (channel != null && channel.isActive()) {
-            try {
-                byte[] msg = msgBuilder.buildPackage();
-                ByteBuf buf = Unpooled.wrappedBuffer(msg);
-                channel.writeAndFlush(buf).sync();
-            } catch (Exception e) {
-                e.printStackTrace();
-                logger.error("sendMsg2ServerByServerId error:{}", e.getMessage());
-            }
-        }
+        selectChannel2Msg(msgBuilder, hash, clients);
     }
 
     /**
@@ -130,6 +123,16 @@ class InnerSessionManager {
         Integer serverId = serverIds.get(serverIndex);
         //根据key的hash值判断使用哪个客户端
         ConcurrentHashMap<Integer, Channel> clients = serverTypeMap.computeIfAbsent(serverId, k -> new ConcurrentHashMap<>());
+        selectChannel2Msg(msgBuilder, hash, clients);
+    }
+
+    /**
+     * 选择一个客户端发送消息
+     * @param msgBuilder 消息
+     * @param hash 分配的hash值
+     * @param clients 链接服务器的所有客户端
+     */
+    private static void selectChannel2Msg(HBSPackage.Builder msgBuilder, int hash, ConcurrentHashMap<Integer, Channel> clients) {
         if (clients.isEmpty()) {
             //throw new RuntimeException("clients.isEmpty()");
             logger.warn("clients.isEmpty()");
@@ -159,7 +162,7 @@ class InnerSessionManager {
      * 此方法遍历服务器类型列表，并使用sendMsg2ServerByTypeAndKey方法发送消息给每个服务器。
      * 注意：【消息不会发送给当前服务器】。
      * @param msgBuilder 消息构建器，用于构建待发送的消息包。
-     * @param key 键值，用于计算消息应该发送到哪个服务器和选择哪个客户端发送
+     * @param key 键值，用于计算消息应该选择哪个客户端发送
      * @throws RuntimeException 如果键值为null，则抛出运行时异常。
      */
     public static void sendMsg2AllServerByKey(HBSPackage.Builder msgBuilder, Object key,
@@ -173,4 +176,59 @@ class InnerSessionManager {
         });
     }
 
+    /**
+     * 根据配置的服务器类型和权重，向特定服务器发送消息。如果未配置权重值，则随机选择一个服务器发送消息。
+     * 注意：【消息不会发送给当前服务器】。
+     *
+     * @param msgBuilder 消息构建器，用于构建待发送的消息包。
+     * @param serverType 服务器类型，用于定位服务器集群。
+     * @throws RuntimeException 如果键值为null，则抛出运行时异常。
+     */
+    public static void sendMsg2ServerByTypeUseWeight(HBSPackage.Builder msgBuilder, String serverType,
+                                                  Supplier<Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>>> clientsMapSupplier) {
+        Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = clientsMapSupplier.get();
+        ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>> serverTypeMap = clientsMap.get(serverType);
+        int typeSize = serverTypeMap.size();
+        if (typeSize < 1) {
+            msgBuilder = null;
+            logger.warn("sendMsg2ServerByTypeAndKey typeSize < 1, serverType:{}", serverType);
+            return;
+        }
+        //当前服务器客户端登录到的其他服务器
+        List<ServerInfo> innerServers = NowServer.getInnerServers().stream()
+                .filter(serverInfo -> serverInfo.getType().equals(serverType))
+                .collect(Collectors.toList());
+        boolean useWeight = innerServers.stream().anyMatch(serverInfo -> serverInfo.getWeight() > 0);
+        if (useWeight) {
+            //根据权重比例随机选择一个服务器
+            innerServers.sort(Comparator.comparingInt(ServerInfo::getWeight));
+            int weightSum = innerServers.stream()
+                    .map(ServerInfo::getWeight)
+                    .mapToInt(Integer::intValue)
+                    .sum();
+            int randomWeight = new Random().nextInt(weightSum);
+            int weightOffset = 0;
+            for (int i = 0; i < innerServers.size(); i++) {
+                ServerInfo serverInfo = innerServers.get(i);
+                int weight = serverInfo.getWeight();
+                if (randomWeight < weight + weightOffset) {
+                    //根据服务器id获取客户端
+                    ConcurrentHashMap<Integer, Channel> serverClients = serverTypeMap.get(serverInfo.getId());
+                    if (serverClients == null || serverClients.isEmpty()) {
+                        logger.warn("sendMsg2ServerByTypeAndKey error 服务器未登录:{}", serverInfo.getId());
+                        return;
+                    }
+                    selectChannel2Msg(msgBuilder, randomWeight, serverClients);
+                    break;
+                }
+                weightOffset += weight;
+            }
+            return;
+        }
+        logger.warn("sendMsg2ServerByTypeUseWeight useWeight=false 当前服务器类型未配置权重值:{}，将随机分配一个服务器", serverType);
+        //如果权重值未配置，再随机选择一个服务器
+        final Random random = new Random();
+        int key = random.nextInt();
+        sendMsg2ServerByTypeAndKey(msgBuilder, serverType, key, clientsMapSupplier);
+    }
 }

@@ -31,6 +31,19 @@ public class ServerInfo {
      */
     private Integer clientAmount;
 
+    /**
+     * 服务器权重
+     */
+    private int weight;
+
+    public int getWeight() {
+        return weight;
+    }
+
+    public void setWeight(int weight) {
+        this.weight = weight;
+    }
+
     public Integer getClientAmount() {
         return clientAmount;
     }

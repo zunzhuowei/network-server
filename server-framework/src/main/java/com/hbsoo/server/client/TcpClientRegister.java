@@ -46,6 +46,7 @@ public final class TcpClientRegister implements ImportBeanDefinitionRegistrar, E
                     String typeKey = "hbsoo.server.innerServers[" + i + "].type";
                     String idKey = "hbsoo.server.innerServers[" + i + "].id";
                     String clientAmountKey = "hbsoo.server.innerServers[" + i + "].clientAmount";
+                    String weightKey = "hbsoo.server.innerServers[" + i + "].weight";
                     ServerInfo serverInfo = new ServerInfo();
                     if (StringUtils.hasText(environment.getProperty(hostKey))) {
                         serverInfo.setHost(environment.getProperty(hostKey));
@@ -61,6 +62,9 @@ public final class TcpClientRegister implements ImportBeanDefinitionRegistrar, E
                     }
                     if (StringUtils.hasText(environment.getProperty(clientAmountKey))) {
                         serverInfo.setClientAmount(Integer.parseInt(environment.getProperty(clientAmountKey)));
+                    }
+                    if (StringUtils.hasText(environment.getProperty(weightKey))) {
+                        serverInfo.setWeight(Integer.parseInt(environment.getProperty(weightKey)));
                     }
                     if (serverInfo.getPort() > 0) {
                         innerServers.add(serverInfo);
@@ -89,6 +93,9 @@ public final class TcpClientRegister implements ImportBeanDefinitionRegistrar, E
             if (toServer.getId().equals(id)) {
                 continue;
             }
+            // 添加到当前服务器集合中
+            NowServer.addInnerServer(toServer);
+
             Integer clientAmount = toServer.getClientAmount();
             //每个服务器使用五个客户端链接
             for (int i = 0; i < (Objects.isNull(clientAmount) ? 3 : clientAmount); i++) {
