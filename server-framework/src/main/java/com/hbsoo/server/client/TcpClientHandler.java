@@ -4,10 +4,15 @@ import com.hbsoo.server.message.client.InnerClientMessageDispatcher;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
 
 public final class TcpClientHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
     private final InnerClientMessageDispatcher dispatcher;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public TcpClientHandler(InnerClientMessageDispatcher dispatcher) {
         this.dispatcher = dispatcher;
@@ -23,7 +28,12 @@ public final class TcpClientHandler extends SimpleChannelInboundHandler<ByteBuf>
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        cause.printStackTrace();
-        ctx.close();
+        //cause.printStackTrace();
+        //ctx.close();
+        if (cause instanceof IOException) {
+            logger.warn("TcpClientHandler exceptionCaught cause:{}", cause.getMessage());
+            return;
+        }
+        logger.warn("TcpClientHandler exceptionCaught cause:{}", cause);
     }
 }

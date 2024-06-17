@@ -7,8 +7,6 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Objects;
-
 public final class TcpServerHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
     private final ServerMessageHandler handler;
@@ -29,20 +27,4 @@ public final class TcpServerHandler extends SimpleChannelInboundHandler<ByteBuf>
         handler.onMessage(ctx, msg);
     }
 
-    @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        super.channelInactive(ctx);
-        logger.debug("TcpServerHandler channelInactive");
-        ctx.close();
-    }
-    @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        super.channelActive(ctx);
-        logger.debug("TcpServerHandler channelActive");
-    }
-    @Override
-    public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
-        super.channelRegistered(ctx);
-        logger.debug("TcpServerHandler channelRegistered");
-    }
 }

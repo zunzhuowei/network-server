@@ -3,8 +3,8 @@ package com.hbsoo.server.action.server;
 import com.hbsoo.server.annotation.InnerServerMessageHandler;
 import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.HBSPackage;
-import com.hbsoo.server.message.HttpPackage;
 import com.hbsoo.server.message.server.ServerMessageDispatcher;
+import com.hbsoo.server.netty.AttributeKeyConstants;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
@@ -27,6 +27,9 @@ public class InnerServerLoginAction extends ServerMessageDispatcher {
         int index = decoder.readInt();
         int id = decoder.readInt();
         String loginServerTypeStr = decoder.readStr();
+        //把id放入属性中
+        ctx.channel().attr(AttributeKeyConstants.idAttr).set((long) serverId);
+        ctx.channel().attr(AttributeKeyConstants.isInnerClientAttr).set(true);
         //InnerServerSessionManager.innerLogin(ServerType.valueOf(serverTypeStr), serverId, ctx.channel(), index);
         //decoder.resetBodyReadOffset();
         byte[] aPackage = HBSPackage.Builder.withDefaultHeader()
@@ -37,7 +40,7 @@ public class InnerServerLoginAction extends ServerMessageDispatcher {
                 .buildPackage();
         ByteBuf buf = Unpooled.wrappedBuffer(aPackage);
         ctx.channel().writeAndFlush(buf);
-        logger.info("接收到内部服务器登录消息：InnerServerLoginAction login success,serverType[{}],id[{}],id[{}]", serverTypeStr, serverId, index);
+        logger.info("接收到内部服务器登录消息：InnerServerLoginAction login success,serverType[{}],id[{}],index[{}]", serverTypeStr, serverId, index);
 
     }
 

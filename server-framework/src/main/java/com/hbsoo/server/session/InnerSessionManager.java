@@ -29,20 +29,20 @@ class InnerSessionManager {
                                   Supplier<Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>>> clientsMapSupplier) {
         Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = clientsMapSupplier.get();
         ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>> serverTypeMap = clientsMap.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
-        ConcurrentHashMap<Integer, Channel> servers = serverTypeMap.computeIfAbsent(serverId, k -> new ConcurrentHashMap<>());
-        if (servers.containsKey(index)) {
-            servers.get(index).close();
-            servers.remove(index);
+        ConcurrentHashMap<Integer, Channel> clients = serverTypeMap.computeIfAbsent(serverId, k -> new ConcurrentHashMap<>());
+        if (clients.containsKey(index)) {
+            clients.get(index).close();
+            clients.remove(index);
         }
-        servers.put(index, channel);
+        clients.put(index, channel);
     }
     public static void innerLogout(String serverType, Integer serverId,
                                    Supplier<Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>>> clientsMapSupplier) {
         Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = clientsMapSupplier.get();
         ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>> serverTypeMap = clientsMap.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
-        ConcurrentHashMap<Integer, Channel> servers = serverTypeMap.computeIfAbsent(serverId, k -> new ConcurrentHashMap<>());
-        servers.values().forEach(ChannelOutboundInvoker::close);
-        servers.remove(serverId);
+        ConcurrentHashMap<Integer, Channel> clients = serverTypeMap.computeIfAbsent(serverId, k -> new ConcurrentHashMap<>());
+        clients.values().forEach(ChannelOutboundInvoker::close);
+        clients.remove(serverId);
     }
 
     public static void innerLogoutWithChannel(Channel channel,

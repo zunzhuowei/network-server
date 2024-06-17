@@ -5,11 +5,17 @@ package com.hbsoo.cache.config;
  */
 public class CaffeineCache {
 
+    //初始化缓存数量
     private int initialCapacity = 10;
+    //最大缓存数量
     private int maximumSize = 100;
+    //写入多久之后过期（秒）
     private int expireAfterWrite = 60;
+    //访问多久之后过期（秒）
     private int expireAfterAccess;
+    //写入之后多久取刷新缓存（秒）
     private int refreshAfterWrite;
+    //是否使用弱引用
     private boolean useWeakKeys = false;
 
 

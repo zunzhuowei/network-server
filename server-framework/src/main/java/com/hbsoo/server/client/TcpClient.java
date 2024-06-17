@@ -49,7 +49,8 @@ public final class TcpClient {
                     @Override
                     protected void initChannel(Channel ch) {
                         ChannelPipeline pipeline = ch.pipeline();
-                        pipeline.addLast(new IdleStateHandler(0, 0, 5, TimeUnit.SECONDS));
+                        // 每隔三秒发送一次心跳
+                        pipeline.addLast(new IdleStateHandler(0, 0, 3, TimeUnit.SECONDS));
                         pipeline.addLast(new HeartbeatHandler(bootstrap, b -> connect(b)));
                         pipeline.addLast(new LengthFieldBasedFrameDecoder
                                 (1024 * 1024, 4, 4, 0, 0));
