@@ -1,14 +1,16 @@
 package com.hbsoo.server;
 
+import com.hbsoo.server.message.HBSPackage;
 import com.hbsoo.server.message.server.ServerMessageHandler;
 import com.hbsoo.server.netty.ProtocolDispatcher;
+import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
 
 /**
  * 网络服务器，可用于内部服务也可以用于外部服务
@@ -22,6 +24,7 @@ public final class NetworkServer {
     private final EventLoopGroup workerGroup;
     private Channel serverChannel;
     private final int maxFrameLength;
+    private final String serverName;
 
     public NetworkServer(String serverName, int port, int maxFrameLength, ServerMessageHandler handler) {
         this.port = port;
@@ -29,6 +32,7 @@ public final class NetworkServer {
         this.maxFrameLength = maxFrameLength;
         int bossThreadCount = 1; // 通常为1
         int workerThreadCount = Runtime.getRuntime().availableProcessors() * 2; // 可以根据实际情况调整
+        this.serverName = serverName;
         bossGroup = new NioEventLoopGroup(bossThreadCount, r -> {
             return new Thread(r, serverName + "-Boss-" + port);
         });
@@ -60,6 +64,7 @@ public final class NetworkServer {
                 .option(ChannelOption.SO_BACKLOG, 128)
                 .childOption(ChannelOption.SO_KEEPALIVE, true);
 
+        enableUdpServer();
         serverChannel = b.bind(port).sync().channel();
         System.out.println("Netty server started on port " + port);
     }
@@ -72,4 +77,54 @@ public final class NetworkServer {
         workerGroup.shutdownGracefully();
     }
 
+    /**
+     * 启动UDP服务
+     */
+    private void enableUdpServer() {
+        //TODO因为使用Bootstrap，所以在异常关闭channel的时候，后续客户端再发来消息就收不到了
+        Thread udpThread = new Thread(() -> {
+            try {
+                Bootstrap udpBootstrap = new Bootstrap();
+                udpBootstrap.group(workerGroup)
+                        // 设置使用NioDatagramChannel作为服务器的通道实现
+                        .channel(NioDatagramChannel.class)
+                        // 设置日志级别
+                        .handler(new LoggingHandler(LogLevel.INFO))
+                        // 使用匿名内部类初始化通道
+                        .handler(new ProtocolDispatcher(handler, maxFrameLength))
+                        //.handler(new LengthFieldBasedFrameDecoder
+                        //        (maxFrameLength, 4, 4, 0, 0))
+                        //.handler(new UdpServerHandler(handler))
+                        .option(ChannelOption.SO_BROADCAST, true)
+                        .option(ChannelOption.SO_RCVBUF, 10 * 1024 * 1024)
+                        .option(ChannelOption.SO_SNDBUF, 5 * 1024 * 1024)
+                        .option(ChannelOption.SO_REUSEADDR, true)
+                        .option(ChannelOption.RCVBUF_ALLOCATOR, new FixedRecvByteBufAllocator(65525))
+                ;
+
+                // 绑定一个端口并且同步，生成了一个ChannelFuture对象
+                ChannelFuture future = udpBootstrap.bind(port).sync();
+                if (future.isSuccess()) {
+                    System.out.println("UDP server started on port " + port);
+                    //防止客户端第一个包丢失问题，自己给自己先发一个
+                    HBSPackage.Builder.withHeader(HBSPackage.UDP_HEADER)
+                            .msgType(0).buildAndSendUdpTo(future.channel(), "127.0.0.1", port);
+                } else {
+                    System.out.println("UDP server failed to start on port " + port);
+                }
+                future.channel().closeFuture().addListener(future1 -> {
+                    if (future1.isSuccess()) {
+                        System.out.println("UDP server closed successfully.");
+                    } else {
+                        System.out.println("UDP server closed with error: " + future1.cause());
+                    }
+                });
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        });
+        udpThread.setDaemon(true);
+        udpThread.setName(serverName + "-UDP-" + port);
+        udpThread.start();
+    }
 }

@@ -14,8 +14,8 @@ singleServerConfig:
   connectionPoolSize: 64
   database: 0
   dnsMonitoringInterval: 5000
-threads: 16
-nettyThreads: 32
+threads: 2
+nettyThreads: 4
 codec: !<org.redisson.codec.Kryo5Codec> {}
 transportMode: "NIO"
 

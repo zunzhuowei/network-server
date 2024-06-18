@@ -45,7 +45,7 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
 
     /**
      * 消息转发到【当前服务器】中的其他消息处理器中，与当前处理器【相同协议】
-     * 注意：不支持http协议类型的处理器调用。
+     * 注意：【不支持http、udp协议类型的处理器调用】。
      */
     public void redirectMessage(ChannelHandlerContext ctx, HBSPackage.Builder builder) {
         redirectMessageOrg(ctx, builder);
@@ -53,20 +53,19 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
 
     /**
      * 消息转发到【当前服务器】中的其他消息处理器中，与当前处理器【相同协议】
-     * 注意：不支持http协议类型的处理器调用。
+     * 注意：【不支持http、udp协议类型的处理器调用】。
      */
-    public void redirectMessage( ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
+    public void redirectMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
         redirectMessageOrg(ctx, decoder);
     }
     /**
      * 消息转发到【当前服务器】中的其他消息处理器中，与当前处理器【相同协议】
-     * 注意：不支持http协议类型的处理器调用。
+     * 注意：【不支持http、udp协议类型的处理器调用】。
      * @param msg 消息, 类型必须为其中一种：
      *            1.tcp:ByteBuf,
      *            2.websocket:WebSocketFrame,
-     *            4.udp:DatagramPacket,
-     *            5.HBSPackage.Decoder,（推荐）
-     *            6.HBSPackage.Builder（推荐）
+     *            3.HBSPackage.Decoder,（推荐）
+     *            4.HBSPackage.Builder（推荐）
      */
     private void redirectMessageOrg(ChannelHandlerContext ctx, Object msg) {
         //final byte[] buildPackage = msgBuilder.buildPackage();
@@ -126,17 +125,11 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
                 case INNER_TCP:
                     innerServerMessageDispatcher.onMessage(ctx, customMsg, Protocol.TCP);
                     break;
-                case INNER_UDP:
-                    innerServerMessageDispatcher.onMessage(ctx, customMsg, Protocol.UDP);
-                    break;
                 case INNER_WEBSOCKET:
                     innerServerMessageDispatcher.onMessage(ctx, customMsg, Protocol.WEBSOCKET);
                     break;
                 case OUTER_TCP:
                     outerServerMessageDispatcher.onMessage(ctx, customMsg, Protocol.TCP);
-                    break;
-                case OUTER_UDP:
-                    outerServerMessageDispatcher.onMessage(ctx, customMsg, Protocol.UDP);
                     break;
                 case OUTER_WEBSOCKET:
                     outerServerMessageDispatcher.onMessage(ctx, customMsg, Protocol.WEBSOCKET);

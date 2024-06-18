@@ -4,6 +4,8 @@ import com.hbsoo.server.message.server.ServerMessageHandler;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.socket.DatagramPacket;
+import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.http.HttpContentCompressor;
 import io.netty.handler.codec.http.HttpObjectAggregator;
@@ -33,6 +35,9 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<Object
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         super.channelActive(ctx);
         //每隔10秒检查一次链接是否有数据交流。（3 * 10）秒没有数据交流就断开链接
+        if (ctx.channel() instanceof NioDatagramChannel) {
+            return;
+        }
         ctx.pipeline().addLast("unknownIdleStateHandler", new IdleStateHandler(0, 0, 1));
         ctx.pipeline().addLast("unknownServerHeartbeatHandler", new ServerHeartbeatHandler());
         ctx.pipeline().addLast("unknownChannelInactiveHandler", new ChannelInactiveHandler(ProtocolType.UNKNOWN));
@@ -40,20 +45,25 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<Object
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Object obj) throws Exception {
-        if (!(obj instanceof ByteBuf)) {
+        if (!(obj instanceof ByteBuf) && !(obj instanceof DatagramPacket)) {
             logger.error("unknown protocol obj: {}", obj.toString());
+            ctx.close();
             return;
         }
-        ByteBuf msg = (ByteBuf) obj;
+        ByteBuf msg = obj instanceof ByteBuf ? (ByteBuf) obj : ((DatagramPacket) obj).content();
         ProtocolType protocolType = determineProtocolType(msg);
         if (protocolType == ProtocolType.UNKNOWN) {
+            logger.error("unknown protocol type: {}", msg.toString(StandardCharsets.UTF_8));
+            ctx.close();
             return;
         }
-        ctx.pipeline().remove("unknownIdleStateHandler");
-        ctx.pipeline().remove("unknownServerHeartbeatHandler");
-        ctx.pipeline().remove("unknownChannelInactiveHandler");
-        ctx.pipeline().addLast(new IdleStateHandler(0, 0, 10));
-        ctx.pipeline().addLast(new ServerHeartbeatHandler());
+        if (protocolType != ProtocolType.UDP) {
+            ctx.pipeline().remove("unknownIdleStateHandler");
+            ctx.pipeline().remove("unknownServerHeartbeatHandler");
+            ctx.pipeline().remove("unknownChannelInactiveHandler");
+            ctx.pipeline().addLast(new IdleStateHandler(0, 0, 10));
+            ctx.pipeline().addLast(new ServerHeartbeatHandler());
+        }
         switch (protocolType) {
             case TCP: {
                 ctx.pipeline().addLast(new LengthFieldBasedFrameDecoder

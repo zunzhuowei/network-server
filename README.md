@@ -22,3 +22,4 @@ This is the network server for the project.Based on netty framework.The target i
 15. 请求限流
 16. 内网消息队列和失败重发机制，~~添加权重转发机制~~
 ~~17. 为避免长时间占用链接，没有登录的链接，服务端添加心跳检测机制，如果超过一定时间没有收到心跳，则主动断开链接~~
+18. 外网支持协议配置化

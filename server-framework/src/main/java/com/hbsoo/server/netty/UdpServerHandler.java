@@ -7,6 +7,8 @@ import io.netty.channel.socket.DatagramPacket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+
 public final class UdpServerHandler extends SimpleChannelInboundHandler<DatagramPacket> {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -29,4 +31,14 @@ public final class UdpServerHandler extends SimpleChannelInboundHandler<Datagram
         handler.onMessage(ctx, packet);
     }
 
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        //super.exceptionCaught(ctx, cause);
+        //ctx.close();
+        if (cause instanceof IOException) {
+            logger.warn("UdpServerHandler exceptionCaught ,cause:{}", cause.getMessage());
+            return;
+        }
+        logger.warn("UdpServerHandler exceptionCaught cause:{}", cause);
+    }
 }

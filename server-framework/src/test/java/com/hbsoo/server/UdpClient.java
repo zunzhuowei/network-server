@@ -1,5 +1,6 @@
 package com.hbsoo.server;
 
+import com.hbsoo.server.message.HBSPackage;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -19,10 +20,15 @@ public class UdpClient {
             b.group(group)
                     .channel(NioDatagramChannel.class)
                     .option(ChannelOption.SO_BROADCAST, true)
-                    .handler(new ChannelInitializer<DatagramChannel>() {
+                    .handler(new ChannelInitializer<Channel>() {
                         @Override
-                        protected void initChannel(DatagramChannel ch) {
+                        protected void initChannel(Channel ch) {
                             ch.pipeline().addLast(new SimpleChannelInboundHandler<DatagramPacket>() {
+                                @Override
+                                public void channelActive(ChannelHandlerContext ctx) throws Exception {
+                                    //super.channelActive(ctx);
+                                }
+
                                 @Override
                                 protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket packet) {
                                     ByteBuf content = packet.content();
@@ -34,10 +40,19 @@ public class UdpClient {
                         }
                     });
 
-            Channel ch = b.bind("localhost", 8080).sync().channel();
-            ByteBuf buf = Unpooled.copiedBuffer("Hello, UDP Server!".getBytes());
-            ch.writeAndFlush(new DatagramPacket(buf, new InetSocketAddress("localhost", 8080))).sync();
-            ch.closeFuture().await(10000); // wait for 10 seconds for responses
+            final ChannelFuture channelFuture = b.bind(0).sync();
+            //ByteBuf buf = Unpooled.copiedBuffer("Hello, UDP Server!".getBytes());
+            //channelFuture.channel().writeAndFlush(new DatagramPacket(buf, new InetSocketAddress("localhost", 5555))).sync();
+            HBSPackage.Builder.withHeader(HBSPackage.UDP_HEADER)
+                    .msgType(1).writeStr("Hello, UDP Server!")
+                    .buildAndSendUdpTo(channelFuture.channel(), "localhost", 5555);
+            HBSPackage.Builder.withHeader(HBSPackage.UDP_HEADER)
+                    .msgType(1).writeStr("Hello, UDP Server2!")
+                    .buildAndSendUdpTo(channelFuture.channel(), "localhost", 5555);
+            HBSPackage.Builder.withHeader(HBSPackage.UDP_HEADER)
+                    .msgType(1).writeStr("Hello, UDP Server3!")
+                    .buildAndSendUdpTo(channelFuture.channel(), "localhost", 5555);
+            channelFuture.channel().closeFuture().await(); // wait for 10 seconds for responses
         } finally {
             group.shutdownGracefully();
         }

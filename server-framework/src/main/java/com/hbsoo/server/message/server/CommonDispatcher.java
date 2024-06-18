@@ -13,6 +13,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.DatagramPacket;
+import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
@@ -23,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import java.lang.annotation.Annotation;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -85,7 +87,7 @@ interface CommonDispatcher {
      */
     default void handleMessage(ChannelHandlerContext ctx, Object msg) {
         if (msg instanceof ByteBuf) {
-            handle(ctx, (ByteBuf) msg, Protocol.TCP);
+            handleTcp(ctx, (ByteBuf) msg);
             return;
         }
         if (msg instanceof WebSocketFrame) {
@@ -93,7 +95,7 @@ interface CommonDispatcher {
             return;
         }
         if (msg instanceof DatagramPacket) {
-            handle(ctx, ((DatagramPacket) msg).content(), Protocol.UDP);
+            handleUdp(ctx, (DatagramPacket) msg);
             return;
         }
         if (msg instanceof FullHttpRequest) {
@@ -105,10 +107,6 @@ interface CommonDispatcher {
 
     /**
      * 消息分发
-     *
-     * @param ctx
-     * @param msg
-     * @param protocol
      */
     default void handleMessage(ChannelHandlerContext ctx, Object msg, Protocol protocol) {
         if (msg instanceof HBSPackage.Builder) {
@@ -131,10 +129,6 @@ interface CommonDispatcher {
 
     /**
      * 消息分发
-     *
-     * @param ctx
-     * @param protocol
-     * @param decoder
      */
     default void dispatcher(ChannelHandlerContext ctx, Protocol protocol, HBSPackage.Decoder decoder) {
         int msgType = decoder.readMsgType();
@@ -142,6 +136,12 @@ interface CommonDispatcher {
         if (Objects.isNull(dispatcher)) {
             final String s = ctx.channel().id().asShortText();
             logger.warn("消息类型未注册：" + msgType + ",channelID:" + s + ",protocol:" + protocol.name());
+            if (protocol == Protocol.UDP) {
+                return;
+            }
+            if (ctx.channel() instanceof NioDatagramChannel) {
+                return;
+            }
             ctx.close();
             return;
         }
@@ -156,24 +156,42 @@ interface CommonDispatcher {
 
     /**
      * 处理消息
-     *
-     * @param ctx
-     * @param msg
-     * @param protocol tcp,udp
      */
-    default void handle(ChannelHandlerContext ctx, ByteBuf msg, Protocol protocol) {
+    default void handleTcp(ChannelHandlerContext ctx, ByteBuf msg) {
         try {
-            Integer bodyLen = getBodyLen(msg, protocol);
+            Integer bodyLen = getBodyLen(msg, Protocol.TCP);
             if (bodyLen == null) return;
             byte[] received = new byte[bodyLen + 8];
             msg.readBytes(received);
-            HBSPackage.Decoder decoder = protocol == Protocol.TCP
-                    ? HBSPackage.Decoder.withDefaultHeader().readPackageBody(received)
-                    : HBSPackage.Decoder.withHeader(new byte[]{'U', 'H', 'B', 'S'}).readPackageBody(received);
-            dispatcher(ctx, protocol, decoder);
+            HBSPackage.Decoder decoder = HBSPackage.Decoder.withDefaultHeader().readPackageBody(received);
+            dispatcher(ctx, Protocol.TCP, decoder);
         } catch (Exception e) {
             e.printStackTrace();
-            ctx.close();
+        }
+    }
+
+    /**
+     * 处理消息
+     */
+    default void handleUdp(ChannelHandlerContext ctx, DatagramPacket datagramPacket) {
+        try {
+            ByteBuf msg = datagramPacket.content();
+            Integer bodyLen = getBodyLen(msg, Protocol.UDP);
+            if (bodyLen == null) return;
+            byte[] received = new byte[bodyLen + 8];
+            msg.readBytes(received);
+            HBSPackage.Decoder decoder = HBSPackage.Decoder.withHeader(HBSPackage.UDP_HEADER).readPackageBody(received);
+            byte[] bodyData = decoder.readAllTheRestBodyData();
+            // 把发送地址包装起来
+            HBSPackage.Decoder wrapper = HBSPackage.Builder.withHeader(HBSPackage.UDP_HEADER)
+                    .msgType(decoder.getMsgType())
+                    .writeStr(datagramPacket.sender().getHostString())
+                    .writeInt(datagramPacket.sender().getPort())
+                    .writeBytes(bodyData)
+                    .toDecoder();
+            dispatcher(ctx, Protocol.UDP, wrapper);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -195,8 +213,8 @@ interface CommonDispatcher {
         byte[] headerBytes = new byte[4];
         msg.getBytes(0, headerBytes);
         boolean matchHeader = protocol == Protocol.TCP
-                ? headerBytes[0] == 'T' && headerBytes[1] == 'H' && headerBytes[2] == 'B' && headerBytes[3] == 'S'
-                : headerBytes[0] == 'U' && headerBytes[1] == 'H' && headerBytes[2] == 'B' && headerBytes[3] == 'S';
+                ? Arrays.equals(HBSPackage.TCP_HEADER, headerBytes)
+                : Arrays.equals(HBSPackage.UDP_HEADER, headerBytes);
         if (!matchHeader) {
             byte[] received = new byte[readableBytes];
             msg.getBytes(0, received);

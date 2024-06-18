@@ -1,7 +1,15 @@
 package com.hbsoo.server.message;
 
 import com.google.gson.Gson;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.Channel;
+import io.netty.channel.socket.DatagramPacket;
+import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.GenericFutureListener;
 
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -17,7 +25,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public final class HBSPackage {
 
-    private static final byte[] header = new byte[]{'T', 'H', 'B', 'S'};
+    public static final byte[] TCP_HEADER = new byte[]{'T', 'H', 'B', 'S'};
+    public static final byte[] UDP_HEADER = new byte[]{'U', 'H', 'B', 'S'};
 
     public static class Builder {
         private final AtomicInteger packageLength = new AtomicInteger(0);
@@ -34,7 +43,7 @@ public final class HBSPackage {
         }
 
         public static Builder withDefaultHeader() {
-            return withHeader(header);
+            return withHeader(TCP_HEADER);
         }
 
         public static Builder withHeader(byte[] header) {
@@ -201,14 +210,54 @@ public final class HBSPackage {
             return ByteBuffer.wrap(msgTypeBytes).order(ByteOrder.BIG_ENDIAN).getInt();
         }
 
-        /*public byte[] buildBody() {
-            int packageLen = packageLength.get();
-            int packageBodyLen = packageLen - headerByteList.size();
-            final ByteBuffer buffer = ByteBuffer.allocate(packageBodyLen);
-            bodyByteList.forEach(buffer::put);
-            return buffer.array();
-        }*/
+        public void buildAndSendBytesTo(Channel channel) {
+            byte[] bytes = buildPackage();
+            channel.writeAndFlush(Unpooled.wrappedBuffer(bytes));
+        }
+        public void buildAndSendBytesTo(Channel channel, GenericFutureListener<? extends Future<? super Void>> var1) {
+            byte[] bytes = buildPackage();
+            channel.writeAndFlush(Unpooled.wrappedBuffer(bytes)).addListener(var1);
+        }
 
+        public void buildAndSendBinWebSocketTo(Channel channel) {
+            byte[] bytes = buildPackage();
+            BinaryWebSocketFrame frame = new BinaryWebSocketFrame(Unpooled.wrappedBuffer(bytes));
+            channel.writeAndFlush(frame);
+        }
+        public void buildAndSendBinWebSocketTo(Channel channel, GenericFutureListener<? extends Future<? super Void>> var1) {
+            byte[] bytes = buildPackage();
+            BinaryWebSocketFrame frame = new BinaryWebSocketFrame(Unpooled.wrappedBuffer(bytes));
+            channel.writeAndFlush(frame).addListener(var1);
+        }
+
+        public void buildAndSendTextWebSocketTo(Channel channel) {
+            byte[] bytes = buildPackage();
+            TextWebSocketFrame frame = new TextWebSocketFrame(Unpooled.wrappedBuffer(bytes));
+            channel.writeAndFlush(frame);
+        }
+        public void buildAndSendTextWebSocketTo(Channel channel, GenericFutureListener<? extends Future<? super Void>> var1) {
+            byte[] bytes = buildPackage();
+            TextWebSocketFrame frame = new TextWebSocketFrame(Unpooled.wrappedBuffer(bytes));
+            channel.writeAndFlush(frame).addListener(var1);
+        }
+
+        public void buildAndSendUdpTo(Channel channel, String host, int port) {
+            byte[] bytes = buildPackage();
+            DatagramPacket packet = new DatagramPacket(Unpooled.copiedBuffer(bytes),
+                    new InetSocketAddress(host, port));
+            channel.writeAndFlush(packet);
+        }
+        public void buildAndSendUdpTo(Channel channel, String host, int port, GenericFutureListener<? extends Future<? super Void>> var1) {
+            byte[] bytes = buildPackage();
+            DatagramPacket packet = new DatagramPacket(Unpooled.copiedBuffer(bytes),
+                    new InetSocketAddress(host, port));
+            channel.writeAndFlush(packet).addListener(var1);
+        }
+
+        public HBSPackage.Decoder toDecoder() {
+            byte[] bytes = buildPackage();
+            return HBSPackage.Decoder.withHeader(getHeader()).readPackageBody(bytes);
+        }
     }
 
     public static class Decoder {
@@ -221,7 +270,7 @@ public final class HBSPackage {
             this.header = header;
         }
         public static Decoder withDefaultHeader() {
-            return withHeader(HBSPackage.header);
+            return withHeader(HBSPackage.TCP_HEADER);
         }
         public static Decoder withHeader(byte[] bytes) {
             return new Decoder(bytes);
@@ -328,7 +377,7 @@ public final class HBSPackage {
         /**
          * 读取所有剩下的数据
          */
-        public byte[] readAllTheRestData() {
+        public byte[] readAllTheRestBodyData() {
             final int offset = readOffset.get();
             int restDataLen = body.length - offset;
             byte[] bytes = new byte[restDataLen];

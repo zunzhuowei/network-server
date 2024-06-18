@@ -8,10 +8,10 @@ public enum ProtocolType {
     //INNER_HTTP,
     INNER_WEBSOCKET,
     INNER_TCP,
-    INNER_UDP,
+    //INNER_UDP,
     //OUTER_HTTP,
     OUTER_WEBSOCKET,
     OUTER_TCP,
-    OUTER_UDP;
+    //OUTER_UDP;
 
 }

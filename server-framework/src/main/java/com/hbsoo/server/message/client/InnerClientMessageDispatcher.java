@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import javax.annotation.PostConstruct;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -134,7 +135,7 @@ public final class InnerClientMessageDispatcher extends ClientMessageDispatcher 
             msg.readBytes(received);
             HBSPackage.Decoder decoder = protocol == Protocol.TCP
                     ? HBSPackage.Decoder.withDefaultHeader().readPackageBody(received)
-                    : HBSPackage.Decoder.withHeader(new byte[]{'U', 'H', 'B', 'S'}).readPackageBody(received);
+                    : HBSPackage.Decoder.withHeader(HBSPackage.UDP_HEADER).readPackageBody(received);
 
             dispatcher(ctx, protocol, decoder);
         } catch (Exception e) {
@@ -154,8 +155,8 @@ public final class InnerClientMessageDispatcher extends ClientMessageDispatcher 
         byte[] headerBytes = new byte[4];
         msg.getBytes(0, headerBytes);
         boolean matchHeader = protocol == Protocol.TCP
-                ? headerBytes[0] == 'T' && headerBytes[1] == 'H' && headerBytes[2] == 'B' && headerBytes[3] == 'S'
-                : headerBytes[0] == 'U' && headerBytes[1] == 'H' && headerBytes[2] == 'B' && headerBytes[3] == 'S';
+                ? Arrays.equals(HBSPackage.TCP_HEADER, headerBytes)
+                : Arrays.equals(HBSPackage.UDP_HEADER, headerBytes);
         if (!matchHeader) {
             byte[] received = new byte[readableBytes];
             msg.getBytes(0, received);

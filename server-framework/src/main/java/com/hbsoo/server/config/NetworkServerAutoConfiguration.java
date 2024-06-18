@@ -114,7 +114,7 @@ public class NetworkServerAutoConfiguration {
     @ConditionalOnProperty(prefix = "hbsoo.server.outerServer", name = "enable", havingValue = "true")
     public ThreadPoolScheduler outerServerThreadPoolScheduler() {
         final Map<String, Object> threadPoolSize = serverInfoProperties.getThreadPoolSize();
-        String poolName = "OuterServer";
+        String poolName = "OuterServer-biz-pool";
         if (threadPoolSize != null) {
             final Object outerServer = threadPoolSize.get("outerServer");
             if (outerServer != null) {
