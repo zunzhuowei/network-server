@@ -33,7 +33,7 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
     /**
      * 消息转发到【其他内网服务器】的消息处理器中，
      * 注意：如果转发的服务器类型属于当前服务器类型，则会转发到兄弟服务器中。
-     *
+     * 内网【TCP】协议
      * @param msgBuilder 消息
      * @param serverType 服务器类型
      * @param key        键值，用于计算消息应该发送到哪个服务器。

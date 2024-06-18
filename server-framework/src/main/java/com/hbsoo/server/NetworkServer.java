@@ -12,6 +12,8 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
+import java.util.Set;
+
 /**
  * 网络服务器，可用于内部服务也可以用于外部服务
  * Created by zun.wei on 2024/5/31.
@@ -25,14 +27,16 @@ public final class NetworkServer {
     private Channel serverChannel;
     private final int maxFrameLength;
     private final String serverName;
+    private final Set<String> protocols;
 
-    public NetworkServer(String serverName, int port, int maxFrameLength, ServerMessageHandler handler) {
+    public NetworkServer(String serverName, int port, int maxFrameLength, ServerMessageHandler handler, Set<String> protocols) {
         this.port = port;
         this.handler = handler;
         this.maxFrameLength = maxFrameLength;
         int bossThreadCount = 1; // 通常为1
         int workerThreadCount = Runtime.getRuntime().availableProcessors() * 2; // 可以根据实际情况调整
         this.serverName = serverName;
+        this.protocols = protocols;
         bossGroup = new NioEventLoopGroup(bossThreadCount, r -> {
             return new Thread(r, serverName + "-Boss-" + port);
         });
@@ -58,13 +62,14 @@ public final class NetworkServer {
                 .childHandler(new ChannelInitializer<Channel>() {
                     @Override
                     public void initChannel(Channel ch) {
-                        ch.pipeline().addLast(new ProtocolDispatcher(handler, maxFrameLength));
+                        ch.pipeline().addLast(new ProtocolDispatcher(handler, maxFrameLength, protocols));
                     }
                 })
                 .option(ChannelOption.SO_BACKLOG, 128)
                 .childOption(ChannelOption.SO_KEEPALIVE, true);
-
-        enableUdpServer();
+        if (protocols.contains("UDP")) {
+            enableUdpServer();
+        }
         serverChannel = b.bind(port).sync().channel();
         System.out.println("Netty server started on port " + port);
     }
@@ -91,7 +96,7 @@ public final class NetworkServer {
                         // 设置日志级别
                         .handler(new LoggingHandler(LogLevel.INFO))
                         // 使用匿名内部类初始化通道
-                        .handler(new ProtocolDispatcher(handler, maxFrameLength))
+                        .handler(new ProtocolDispatcher(handler, maxFrameLength, protocols))
                         //.handler(new LengthFieldBasedFrameDecoder
                         //        (maxFrameLength, 4, 4, 0, 0))
                         //.handler(new UdpServerHandler(handler))

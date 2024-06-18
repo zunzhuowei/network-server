@@ -17,9 +17,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * Created by zun.wei on 2020/4/29.
@@ -53,10 +51,14 @@ public class NetworkServerAutoConfiguration {
     @Bean(initMethod = "start", destroyMethod = "stop")
     @ConditionalOnProperty(prefix = "hbsoo.server.outerServer", name = "enable", havingValue = "true")
     public NetworkServer outerServer() {
-        final Map<String, Object> outerServer = serverInfoProperties.getOuterServer();
-        final Object port = outerServer.get("port");
+        Map<String, Object> outerServer = serverInfoProperties.getOuterServer();
+        Object port = outerServer.get("port");
+        String protocolsStr = Objects.isNull(outerServer.get("protocol"))
+                ? "TCP,UDP,WEBSOCKET,HTTP" : outerServer.get("protocol").toString();
+        HashSet<String> protocols = new HashSet<>(Arrays.asList(protocolsStr.split(",")));
         OuterServerMessageDispatcher handler = SpringBeanFactory.getBean(OuterServerMessageDispatcher.class);
-        return new NetworkServer("outerServer", Integer.parseInt(port.toString()), 1024 * 64, handler);
+        return new NetworkServer("outerServer", Integer.parseInt(port.toString()),
+                1024 * 64, handler, protocols);
     }
 
     /**
@@ -70,7 +72,9 @@ public class NetworkServerAutoConfiguration {
         ServerInfo serverInfo = optional.get();
         int port = serverInfo.getPort();
         InnerServerMessageDispatcher handler = SpringBeanFactory.getBean(InnerServerMessageDispatcher.class);
-        return new NetworkServer("innerServer", port, 1024 * 1024, handler);
+        HashSet<String> protocols = new HashSet<>();
+        protocols.add("TCP");
+        return new NetworkServer("innerServer", port, 1024 * 1024, handler, protocols);
     }
 
     /**

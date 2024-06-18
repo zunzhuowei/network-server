@@ -9,7 +9,7 @@ import java.util.Map;
  * Created by zun.wei on 2024/5/30.
  */
 @ConfigurationProperties(prefix = "hbsoo.server")
-public class ServerInfoProperties {
+public final class ServerInfoProperties {
 
     private List<ServerInfo> innerServers;
     private Map<String, Object> outerServer;

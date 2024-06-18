@@ -13,8 +13,17 @@ import java.util.concurrent.CopyOnWriteArraySet;
  */
 public final class NowServer {
 
+    /**
+     * 当前服务器信息
+     */
     private static ServerInfo SERVER_INFO;
+    /**
+     * 当前服务器链接的所有内网服务器类型
+     */
     private final static Set<String> serverTypes = new CopyOnWriteArraySet<>();
+    /**
+     * 当前服务器链接的所有内网服务器
+     */
     private final static List<ServerInfo> innerServers = new CopyOnWriteArrayList<>();
 
     public static ServerInfo getServerInfo() {

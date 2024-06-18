@@ -4,7 +4,7 @@ package com.hbsoo.server.config;
 /**
  * Created by zun.wei on 2024/5/30.
  */
-public class ServerInfo {
+public final class ServerInfo {
 
     /**
      * 服务器地址

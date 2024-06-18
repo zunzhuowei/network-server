@@ -8,6 +8,7 @@ hbsoo:
     outerServer:
       enable: true
       port: 5555
+      protocol: "TCP,UDP,WEBSOCKET,HTTP"
     innerServers:
       - host: 192.168.1.104
         port: 6000

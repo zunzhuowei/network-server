@@ -68,7 +68,7 @@ public final class TcpClient {
     private void connect(Bootstrap bootstrap) {
         bootstrap.connect(toServerInfo.getHost(), toServerInfo.getPort()).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
-                System.out.println("Connected to server");
+                //System.out.println("Connected to server");
                 final Channel channel = future.channel();
                 // 登录消息
                 byte[] aPackage = HBSPackage.Builder.withDefaultHeader()

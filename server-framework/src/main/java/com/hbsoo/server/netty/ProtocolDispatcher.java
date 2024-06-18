@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Set;
 
 //@Component
 //@ChannelHandler.Sharable
@@ -24,9 +25,11 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<Object
 
     private final ServerMessageHandler handler;
     private final int maxFrameLength;
+    private final Set<String> protocols;
     private static final Logger logger = LoggerFactory.getLogger(ProtocolDispatcher.class);
 
-    public ProtocolDispatcher(ServerMessageHandler handler, int maxFrameLength) {
+    public ProtocolDispatcher(ServerMessageHandler handler, int maxFrameLength, Set<String> protocols) {
+        this.protocols = protocols;
         this.maxFrameLength = maxFrameLength;
         this.handler = handler;
     }
@@ -63,6 +66,11 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<Object
             ctx.pipeline().remove("unknownChannelInactiveHandler");
             ctx.pipeline().addLast(new IdleStateHandler(0, 0, 10));
             ctx.pipeline().addLast(new ServerHeartbeatHandler());
+        }
+        if (!protocols.contains(protocolType.name())) {
+            logger.error("protocol was disable, type: {}", protocolType.name());
+            ctx.close();
+            return;
         }
         switch (protocolType) {
             case TCP: {
