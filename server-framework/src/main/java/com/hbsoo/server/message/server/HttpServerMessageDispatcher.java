@@ -1,6 +1,7 @@
 package com.hbsoo.server.message.server;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.hbsoo.server.message.entity.HBSPackage;
 import com.hbsoo.server.message.entity.HttpPackage;
 import io.netty.channel.ChannelHandlerContext;
@@ -32,7 +33,7 @@ public abstract class HttpServerMessageDispatcher extends ServerMessageDispatche
     public void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) { }
 
     public void responseJson(ChannelHandlerContext ctx, Object obj, Consumer<DefaultFullHttpResponse> consumer) {
-        Gson gson = new Gson();
+        Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
         String jsonStr = gson.toJson(obj);
         response(ctx, jsonStr.getBytes(CharsetUtil.UTF_8), "application/json; charset=UTF-8", consumer);
     }
