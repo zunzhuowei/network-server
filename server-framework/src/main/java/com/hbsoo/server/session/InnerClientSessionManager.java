@@ -32,6 +32,7 @@ public final class InnerClientSessionManager {
     public static void innerLogin(String serverType, Integer serverId, Channel channel, int index) {
         InnerSessionManager.innerLogin(serverType, serverId, channel, index, () -> clientsMap);
     }
+
     public static void innerLogout(String serverType, Integer serverId) {
         InnerSessionManager.innerLogout(serverType, serverId, () -> clientsMap);
     }
@@ -46,36 +47,53 @@ public final class InnerClientSessionManager {
      * 如果无法找到对应的服务器连接或发送消息失败，将打印错误信息。
      *
      * @param msgBuilder 消息包的构建器，用于构建待发送的消息包。
-     * @param serverId 目标服务器的ID，用于在服务器列表中定位目标服务器。
+     * @param serverId   目标服务器的ID，用于在服务器列表中定位目标服务器。
      * @param serverType 目标服务器的类型，用于获取相应类型服务器的连接列表。
      */
-    public static void sendMsg2ServerByServerId(HBSPackage.Builder msgBuilder, int serverId, String serverType) {
-        InnerSessionManager.sendMsg2ServerByServerId(msgBuilder, serverId, serverType, () -> clientsMap);
+    public static void sendMsg2ServerByServerTypeAndId(HBSPackage.Builder msgBuilder, int serverId, String serverType) {
+        Channel channel = InnerSessionManager.getChannelByServerTypeAndId(serverId, serverType, () -> clientsMap);
+        if (channel != null) {
+            msgBuilder.buildAndSendBytesTo(channel);
+        }
     }
 
     /**
      * 根据消息类型和键值向特定服务器发送消息。
      * 使用Builder模式构建消息包，根据服务器类型和键值选择目标服务器，然后将消息发送到该服务器。
      * 注意：【消息不会发送给当前服务器】。
+     *
      * @param msgBuilder 消息包的Builder对象，用于构建消息包。
      * @param serverType 服务器类型，用于确定目标服务器群组。
      *                   注意：如果与当前服务器类型相同，则发送到当前服务器之外的服务器。
-     * @param key 根据键值进行服务器选择的键，用于计算哈希值以选择具体服务器。
-     * 抛出异常：如果key为null，则抛出RuntimeException。
+     * @param key        根据键值进行服务器选择的键，用于计算哈希值以选择具体服务器。
+     *                   抛出异常：如果key为null，则抛出RuntimeException。
      */
     public static void sendMsg2ServerByTypeAndKey(HBSPackage.Builder msgBuilder, String serverType, Object key) {
-        InnerSessionManager.sendMsg2ServerByTypeAndKey(msgBuilder, serverType, key, () -> clientsMap);
+        Channel channel = InnerSessionManager.getChannelByTypeAndKey(serverType, key, () -> clientsMap);
+        if (channel != null) {
+            msgBuilder.buildAndSendBytesTo(channel);
+        }
     }
+
     /**
      * 根据键值向所有服务器发送消息。
      * 使用Builder模式构建消息包，遍历所有服务器，将消息发送到每个服务器。
      * 注意：【消息不会发送给当前服务器】。
+     *
      * @param msgBuilder 消息包的Builder对象，用于构建消息包。
-     * @param key 根据键值进行服务器选择的键，用于计算哈希值以选择具体服务器。
-     * 抛出异常：如果key为null，则抛出RuntimeException。
+     * @param key        根据键值进行服务器选择的键，用于计算哈希值以选择具体服务器。
+     *                   抛出异常：如果key为null，则抛出RuntimeException。
      */
     public static void sendMsg2AllServerByKey(HBSPackage.Builder msgBuilder, Object key) {
-        InnerSessionManager.sendMsg2AllServerByKey(msgBuilder, key, () -> clientsMap);
+        if (key == null) {
+            throw new RuntimeException("key is null");
+        }
+        clientsMap.forEach((serverType, serverTypeMap) -> {
+            Channel channel = InnerSessionManager.getChannelByTypeAndKey(serverType, key, () -> clientsMap);
+            if (channel != null) {
+                msgBuilder.buildAndSendBytesTo(channel);
+            }
+        });
     }
 
     /**
@@ -87,6 +105,20 @@ public final class InnerClientSessionManager {
      * @throws RuntimeException 如果键值为null，则抛出运行时异常。
      */
     public static void sendMsg2ServerByTypeUseWeight(HBSPackage.Builder msgBuilder, String serverType) {
-        InnerSessionManager.sendMsg2ServerByTypeUseWeight(msgBuilder, serverType, () -> clientsMap);
+        Channel channel = InnerSessionManager.getChannelByTypeUseWeight(serverType, () -> clientsMap);
+        if (channel != null) {
+            msgBuilder.buildAndSendBytesTo(channel);
+        }
     }
+
+    /**
+     * 根据服务器类型和键值获取对应的服务器连接通道。
+     * @param serverType 服务器类型
+     * @param forwardKey 根据键值进行服务器选择的键，用于计算哈希值以选择具体服务器。
+     * @return 服务器连接通道
+     */
+    public static Channel getChannelByTypeAndKey(String serverType, Object forwardKey) {
+        return InnerSessionManager.getChannelByTypeAndKey(serverType, forwardKey, () -> clientsMap);
+    }
+
 }

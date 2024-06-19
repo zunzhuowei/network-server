@@ -143,7 +143,7 @@ public final class OuterSessionManager {
                             .writeLong(id)//用户id
                             .writeStr(protocol.name())//用户协议类型
                             .writeBytes(innerPackage);//转发的消息
-                    InnerClientSessionManager.sendMsg2ServerByServerId(redirectPackage,
+                    InnerClientSessionManager.sendMsg2ServerByServerTypeAndId(redirectPackage,
                             userSession.getBelongServer().getId(),
                             userSession.getBelongServer().getType());
                     continue;

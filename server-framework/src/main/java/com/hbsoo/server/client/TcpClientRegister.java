@@ -3,7 +3,7 @@ package com.hbsoo.server.client;
 import com.hbsoo.server.NowServer;
 import com.hbsoo.server.config.ServerInfo;
 import com.hbsoo.server.session.InnerClientSessionManager;
-import com.hbsoo.server.session.InnerServerSessionManager;
+//import com.hbsoo.server.session.InnerServerSessionManager;
 import org.springframework.beans.factory.config.ConstructorArgumentValues;
 import org.springframework.beans.factory.support.AbstractBeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
@@ -84,7 +84,7 @@ public final class TcpClientRegister implements ImportBeanDefinitionRegistrar, E
         // 初始化数据
         for (String serverType : NowServer.getServerTypes()) {
             InnerClientSessionManager.clientsMap.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
-            InnerServerSessionManager.clientsMap.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
+            //InnerServerSessionManager.clientsMap.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
         }
 
         // 注册内网客户端
