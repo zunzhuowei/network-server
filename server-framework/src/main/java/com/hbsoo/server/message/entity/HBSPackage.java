@@ -1,4 +1,4 @@
-package com.hbsoo.server.message;
+package com.hbsoo.server.message.entity;
 
 import com.google.gson.Gson;
 import io.netty.buffer.Unpooled;

@@ -1,11 +1,7 @@
 package com.hbsoo.server.message.client;
 
-import com.hbsoo.server.message.HBSPackage;
-import com.hbsoo.server.message.HttpPackage;
-import com.hbsoo.server.message.server.ServerMessageHandler;
+import com.hbsoo.server.message.entity.HBSPackage;
 import com.hbsoo.server.utils.SpringBeanFactory;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.util.ReferenceCountUtil;
 

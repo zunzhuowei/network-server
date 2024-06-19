@@ -3,16 +3,13 @@ package com.hbsoo.server.actiontest;
 import com.google.gson.Gson;
 import com.hbsoo.server.NowServer;
 import com.hbsoo.server.annotation.OuterServerMessageHandler;
-import com.hbsoo.server.config.ServerInfo;
 import com.hbsoo.server.message.HBSMessageType;
-import com.hbsoo.server.message.HBSPackage;
-import com.hbsoo.server.message.HttpPackage;
-import com.hbsoo.server.message.TextWebSocketPackage;
+import com.hbsoo.server.message.entity.HBSPackage;
+import com.hbsoo.server.message.entity.TextWebSocketPackage;
 import com.hbsoo.server.message.server.ServerMessageDispatcher;
 import com.hbsoo.server.session.OuterSessionManager;
 import com.hbsoo.server.session.UserSession;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.util.AttributeKey;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.Map;

@@ -1,6 +1,6 @@
 package com.hbsoo.server.message.server;
 
-import com.hbsoo.server.message.HBSPackage;
+import com.hbsoo.server.message.entity.HBSPackage;
 import io.netty.channel.ChannelHandlerContext;
 
 /**

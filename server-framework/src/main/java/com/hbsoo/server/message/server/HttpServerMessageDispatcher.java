@@ -1,8 +1,8 @@
 package com.hbsoo.server.message.server;
 
 import com.google.gson.Gson;
-import com.hbsoo.server.message.HBSPackage;
-import com.hbsoo.server.message.HttpPackage;
+import com.hbsoo.server.message.entity.HBSPackage;
+import com.hbsoo.server.message.entity.HttpPackage;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaderNames;

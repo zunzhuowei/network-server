@@ -2,7 +2,7 @@ package com.hbsoo.server.action.client;
 
 import com.hbsoo.server.annotation.InnerClientMessageHandler;
 import com.hbsoo.server.message.HBSMessageType;
-import com.hbsoo.server.message.HBSPackage;
+import com.hbsoo.server.message.entity.HBSPackage;
 import com.hbsoo.server.message.client.ClientMessageDispatcher;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;

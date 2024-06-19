@@ -1,7 +1,7 @@
 package com.hbsoo.hall;
 
 import com.hbsoo.server.annotation.InnerServerMessageHandler;
-import com.hbsoo.server.message.HBSPackage;
+import com.hbsoo.server.message.entity.HBSPackage;
 import com.hbsoo.server.message.server.ServerMessageDispatcher;
 import io.netty.channel.ChannelHandlerContext;
 

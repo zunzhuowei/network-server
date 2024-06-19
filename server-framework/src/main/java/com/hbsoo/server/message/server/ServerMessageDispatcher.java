@@ -3,7 +3,7 @@ package com.hbsoo.server.message.server;
 import com.hbsoo.server.annotation.InnerServerMessageHandler;
 import com.hbsoo.server.annotation.OuterServerMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
-import com.hbsoo.server.message.HBSPackage;
+import com.hbsoo.server.message.entity.HBSPackage;
 import com.hbsoo.server.message.ProtocolType;
 import com.hbsoo.server.session.InnerClientSessionManager;
 import com.hbsoo.server.utils.DelayThreadPoolScheduler;

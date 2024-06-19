@@ -2,10 +2,9 @@ package com.hbsoo.server.actiontest;
 
 import com.hbsoo.server.annotation.OuterServerMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
-import com.hbsoo.server.message.HBSPackage;
-import com.hbsoo.server.message.HttpPackage;
+import com.hbsoo.server.message.entity.HBSPackage;
+import com.hbsoo.server.message.entity.HttpPackage;
 import com.hbsoo.server.message.server.HttpServerMessageDispatcher;
-import com.hbsoo.server.message.server.ServerMessageDispatcher;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;

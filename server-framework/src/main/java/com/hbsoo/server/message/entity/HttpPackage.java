@@ -1,4 +1,4 @@
-package com.hbsoo.server.message;
+package com.hbsoo.server.message.entity;
 
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpHeaders;

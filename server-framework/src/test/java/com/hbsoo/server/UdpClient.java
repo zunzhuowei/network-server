@@ -1,16 +1,12 @@
 package com.hbsoo.server;
 
-import com.hbsoo.server.message.HBSPackage;
+import com.hbsoo.server.message.entity.HBSPackage;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.DatagramPacket;
-
-import java.net.InetSocketAddress;
 
 public class UdpClient {
     public static void main(String[] args) throws Exception {

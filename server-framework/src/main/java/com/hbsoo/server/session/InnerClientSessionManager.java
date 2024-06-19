@@ -1,7 +1,6 @@
 package com.hbsoo.server.session;
 
-import com.hbsoo.server.NowServer;
-import com.hbsoo.server.message.HBSPackage;
+import com.hbsoo.server.message.entity.HBSPackage;
 import io.netty.channel.Channel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

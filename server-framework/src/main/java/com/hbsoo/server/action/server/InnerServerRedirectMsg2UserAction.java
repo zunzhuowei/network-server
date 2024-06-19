@@ -2,8 +2,7 @@ package com.hbsoo.server.action.server;
 
 import com.hbsoo.server.annotation.InnerServerMessageHandler;
 import com.hbsoo.server.message.HBSMessageType;
-import com.hbsoo.server.message.HBSPackage;
-import com.hbsoo.server.message.HttpPackage;
+import com.hbsoo.server.message.entity.HBSPackage;
 import com.hbsoo.server.message.server.ServerMessageDispatcher;
 import com.hbsoo.server.session.OuterSessionManager;
 import com.hbsoo.server.session.UserSessionProtocol;

@@ -1,0 +1,7 @@
+@startuml
+(BusinessServer\nNo.1) as (BS1)
+(BusinessServer\nNo.2) as (BS2)
+(BusinessServer\nNo.3) as (BS3)
+(BusinessServer\nNo.4) as (BS4)
+(BusinessServer\nNo.5) as (BS5)
+@endum

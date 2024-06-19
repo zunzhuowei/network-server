@@ -2,7 +2,7 @@ package com.hbsoo.server.session;
 
 import com.hbsoo.server.config.ServerInfo;
 import com.hbsoo.server.message.HBSMessageType;
-import com.hbsoo.server.message.HBSPackage;
+import com.hbsoo.server.message.entity.HBSPackage;
 import com.hbsoo.server.netty.AttributeKeyConstants;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;

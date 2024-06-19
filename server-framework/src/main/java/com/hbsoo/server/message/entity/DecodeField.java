@@ -1,4 +1,4 @@
-package com.hbsoo.server.message;
+package com.hbsoo.server.message.entity;
 
 import java.util.function.Consumer;
 

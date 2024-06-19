@@ -1,17 +1,12 @@
 package com.hbsoo.server.session;
 
-import com.hbsoo.server.message.HBSPackage;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
+import com.hbsoo.server.message.entity.HBSPackage;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelOutboundInvoker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /**
  * 保存了别的服务器的客户端登录进来的channel;

@@ -1,6 +1,6 @@
 package com.hbsoo.server;
 
-import com.hbsoo.server.message.HBSPackage;
+import com.hbsoo.server.message.entity.HBSPackage;
 import com.hbsoo.server.message.server.ServerMessageHandler;
 import com.hbsoo.server.netty.ProtocolDispatcher;
 import io.netty.bootstrap.Bootstrap;

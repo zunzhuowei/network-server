@@ -2,8 +2,8 @@ package com.hbsoo.server.message.client;
 
 import com.google.gson.Gson;
 import com.hbsoo.server.annotation.Protocol;
-import com.hbsoo.server.message.HBSPackage;
-import com.hbsoo.server.message.TextWebSocketPackage;
+import com.hbsoo.server.message.entity.HBSPackage;
+import com.hbsoo.server.message.entity.TextWebSocketPackage;
 import com.hbsoo.server.utils.DelayThreadPoolScheduler;
 import com.hbsoo.server.utils.SpringBeanFactory;
 import com.hbsoo.server.utils.ThreadPoolScheduler;

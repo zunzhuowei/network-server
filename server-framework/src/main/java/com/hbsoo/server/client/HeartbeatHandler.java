@@ -1,7 +1,7 @@
 package com.hbsoo.server.client;
 
 import com.hbsoo.server.message.HBSMessageType;
-import com.hbsoo.server.message.HBSPackage;
+import com.hbsoo.server.message.entity.HBSPackage;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;

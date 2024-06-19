@@ -1,0 +1,20 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+autonumber
+
+collections User
+collections GatewayServer
+collections BusinessServer_1
+collections BusinessServer_2
+collections BusinessServer_3
+collections BusinessServer_4
+
+User -> GatewayServer: Request
+GatewayServer -> BusinessServer_1: Forward Request
+group Transaction
+BusinessServer_1 --> BusinessServer_2: Take Transaction Request to BusinessServer_2
+BusinessServer_1 --> BusinessServer_3: Take Transaction Request to BusinessServer_3
+BusinessServer_1 --> BusinessServer_4: Take Transaction Request to BusinessServer_4
+BusinessServer_4 --> BusinessServer_3: Maybe Take Transaction Request to BusinessServer_3
+end
+@enduml
