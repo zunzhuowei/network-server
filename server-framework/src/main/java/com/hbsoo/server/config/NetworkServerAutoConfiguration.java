@@ -3,13 +3,17 @@ package com.hbsoo.server.config;
 import com.hbsoo.server.NetworkServer;
 import com.hbsoo.server.client.TcpClientRegister;
 import com.hbsoo.server.message.client.InnerClientMessageDispatcher;
+import com.hbsoo.server.message.queue.DefaultForwardMessageSender;
+import com.hbsoo.server.message.queue.ForwardMessageSender;
 import com.hbsoo.server.message.server.InnerServerMessageDispatcher;
 import com.hbsoo.server.message.server.OuterServerMessageDispatcher;
 import com.hbsoo.server.session.OuterSessionManager;
 import com.hbsoo.server.utils.DelayThreadPoolScheduler;
+import com.hbsoo.server.utils.SnowflakeIdGenerator;
 import com.hbsoo.server.utils.SpringBeanFactory;
 import com.hbsoo.server.utils.ThreadPoolScheduler;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -23,7 +27,7 @@ import java.util.*;
  * Created by zun.wei on 2020/4/29.
  */
 @ComponentScan(basePackages = {
-        //"com.hbsoo.server.actiontest",
+        "com.hbsoo.server.actiontest",
         "com.hbsoo.server.action.client",
         "com.hbsoo.server.action.server",
 })
@@ -158,4 +162,15 @@ public class NetworkServerAutoConfiguration {
         return new OuterSessionManager(serverInfo);
     }
 
+    @Bean(initMethod = "forwardFormDb")
+    @ConditionalOnMissingBean(ForwardMessageSender.class)
+    public ForwardMessageSender forwardMessageSender() {
+        return new DefaultForwardMessageSender();
+    }
+
+    @Bean
+    public SnowflakeIdGenerator snowflakeIdGenerator() {
+        Integer serverId = serverInfoProperties.getId();
+        return new SnowflakeIdGenerator(1, serverId);
+    }
 }

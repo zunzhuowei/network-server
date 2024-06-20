@@ -1,6 +1,10 @@
 package com.hbsoo.server.session;
 
+import com.hbsoo.server.message.entity.ForwardMessage;
 import com.hbsoo.server.message.entity.HBSPackage;
+import com.hbsoo.server.message.queue.ForwardMessageSender;
+import com.hbsoo.server.utils.SnowflakeIdGenerator;
+import com.hbsoo.server.utils.SpringBeanFactory;
 import io.netty.channel.Channel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,11 +54,20 @@ public final class InnerClientSessionManager {
      * @param serverId   目标服务器的ID，用于在服务器列表中定位目标服务器。
      * @param serverType 目标服务器的类型，用于获取相应类型服务器的连接列表。
      */
-    public static void sendMsg2ServerByServerTypeAndId(HBSPackage.Builder msgBuilder, int serverId, String serverType) {
+    public static void forwardMsg2ServerByTypeAndId(HBSPackage.Builder msgBuilder, int serverId, String serverType) {
         Channel channel = InnerSessionManager.getChannelByServerTypeAndId(serverId, serverType, () -> clientsMap);
         if (channel != null) {
             msgBuilder.buildAndSendBytesTo(channel);
         }
+    }
+    public static void forwardMsg2ServerByTypeAndIdUseSender(HBSPackage.Builder msgBuilder, int serverId, String serverType) {
+        ForwardMessageSender sender = SpringBeanFactory.getBean(ForwardMessageSender.class);
+        SnowflakeIdGenerator snowflakeIdGenerator = SpringBeanFactory.getBean(SnowflakeIdGenerator.class);
+        long msgId = snowflakeIdGenerator.generateId();
+        ForwardMessage forwardMessage = new ForwardMessage(msgId, msgBuilder, -1, -1,
+                serverType, null);
+        forwardMessage.setToServerId(serverId);
+        sender.send(forwardMessage);
     }
 
     /**
@@ -68,13 +81,20 @@ public final class InnerClientSessionManager {
      * @param key        根据键值进行服务器选择的键，用于计算哈希值以选择具体服务器。
      *                   抛出异常：如果key为null，则抛出RuntimeException。
      */
-    public static void sendMsg2ServerByTypeAndKey(HBSPackage.Builder msgBuilder, String serverType, Object key) {
+    public static void forwardMsg2ServerByTypeAndKey(HBSPackage.Builder msgBuilder, String serverType, Object key) {
         Channel channel = InnerSessionManager.getChannelByTypeAndKey(serverType, key, () -> clientsMap);
         if (channel != null) {
             msgBuilder.buildAndSendBytesTo(channel);
         }
     }
-
+    public static void forwardMsg2ServerByTypeAndKeyUseSender(HBSPackage.Builder msgBuilder, String serverType, Object key) {
+        ForwardMessageSender sender = SpringBeanFactory.getBean(ForwardMessageSender.class);
+        SnowflakeIdGenerator snowflakeIdGenerator = SpringBeanFactory.getBean(SnowflakeIdGenerator.class);
+        long msgId = snowflakeIdGenerator.generateId();
+        ForwardMessage forwardMessage = new ForwardMessage(msgId, msgBuilder, -1, -1,
+                serverType, key);
+        sender.send(forwardMessage);
+    }
     /**
      * 根据键值向所有服务器发送消息。
      * 使用Builder模式构建消息包，遍历所有服务器，将消息发送到每个服务器。
@@ -84,7 +104,7 @@ public final class InnerClientSessionManager {
      * @param key        根据键值进行服务器选择的键，用于计算哈希值以选择具体服务器。
      *                   抛出异常：如果key为null，则抛出RuntimeException。
      */
-    public static void sendMsg2AllServerByKey(HBSPackage.Builder msgBuilder, Object key) {
+    public static void forwardMsg2AllServerByKey(HBSPackage.Builder msgBuilder, Object key) {
         if (key == null) {
             throw new RuntimeException("key is null");
         }
@@ -95,7 +115,19 @@ public final class InnerClientSessionManager {
             }
         });
     }
-
+    public static void forwardMsg2AllServerByKeyUseSender(HBSPackage.Builder msgBuilder, Object key) {
+        if (key == null) {
+            throw new RuntimeException("key is null");
+        }
+        ForwardMessageSender sender = SpringBeanFactory.getBean(ForwardMessageSender.class);
+        SnowflakeIdGenerator snowflakeIdGenerator = SpringBeanFactory.getBean(SnowflakeIdGenerator.class);
+        clientsMap.forEach((serverType, serverTypeMap) -> {
+            long msgId = snowflakeIdGenerator.generateId();
+            ForwardMessage forwardMessage = new ForwardMessage(msgId, msgBuilder, -1, -1,
+                    serverType, key);
+            sender.send(forwardMessage);
+        });
+    }
     /**
      * 根据配置的服务器类型和权重，向特定服务器发送消息。如果未配置权重值，则随机选择一个服务器发送消息。
      * 注意：【消息不会发送给当前服务器】。
@@ -104,7 +136,7 @@ public final class InnerClientSessionManager {
      * @param serverType 服务器类型，用于定位服务器集群。
      * @throws RuntimeException 如果键值为null，则抛出运行时异常。
      */
-    public static void sendMsg2ServerByTypeUseWeight(HBSPackage.Builder msgBuilder, String serverType) {
+    public static void forwardMsg2ServerByTypeUseWeight(HBSPackage.Builder msgBuilder, String serverType) {
         Channel channel = InnerSessionManager.getChannelByTypeUseWeight(serverType, () -> clientsMap);
         if (channel != null) {
             msgBuilder.buildAndSendBytesTo(channel);
@@ -121,4 +153,14 @@ public final class InnerClientSessionManager {
         return InnerSessionManager.getChannelByTypeAndKey(serverType, forwardKey, () -> clientsMap);
     }
 
+    /**
+     * 根据服务器ID和类型获取对应的服务器连接通道。
+     * 注意：获取的channel是随机选取的，不保证每次获取的channel都是同一个。
+     * @param serverId 服务器ID
+     * @param serverType 服务器类型
+     * @return 服务器连接通道
+     */
+    public static Channel getChannelByServerTypeAndId(int serverId, String serverType) {
+        return InnerSessionManager.getChannelByServerTypeAndId(serverId, serverType, () -> clientsMap);
+    }
 }

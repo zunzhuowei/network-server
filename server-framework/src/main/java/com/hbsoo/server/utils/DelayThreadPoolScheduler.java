@@ -1,9 +1,9 @@
 package com.hbsoo.server.utils;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -12,17 +12,19 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class DelayThreadPoolScheduler {
 
+    private static final Logger logger = LoggerFactory.getLogger(DelayThreadPoolScheduler.class);
     private static final AtomicInteger instanceCounter = new AtomicInteger(0);
     final ScheduledExecutorService threadPool;
-    private final String uniquePoolName;
 
     public DelayThreadPoolScheduler(String poolName, int poolSize) {
         if(poolSize <= 0) {
             throw new IllegalArgumentException("线程池大小必须大于0");
         }
         // 为避免线程名冲突，添加一个唯一的标识符
-        uniquePoolName = poolName + "-" + instanceCounter.incrementAndGet();
-        threadPool = Executors.newScheduledThreadPool(poolSize, r -> new Thread(r, uniquePoolName));
+        threadPool = Executors.newScheduledThreadPool(poolSize, r -> {
+            String uniquePoolName = poolName + "-" + instanceCounter.incrementAndGet();
+            return new Thread(r, uniquePoolName);
+        });
     }
 
     /**

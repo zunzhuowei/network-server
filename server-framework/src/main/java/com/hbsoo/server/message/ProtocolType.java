@@ -5,13 +5,9 @@ package com.hbsoo.server.message;
  */
 public enum ProtocolType {
 
-    //INNER_HTTP,
     INNER_WEBSOCKET,
     INNER_TCP,
-    //INNER_UDP,
-    //OUTER_HTTP,
     OUTER_WEBSOCKET,
     OUTER_TCP,
-    //OUTER_UDP;
 
 }

@@ -34,11 +34,11 @@ public class IndexAction extends HttpServerMessageDispatcher {
             }
         }).responseJson(ctx, genealogies, response -> {});
 
-        redirect2InnerServer(
+        forward2InnerServerUseSender(
                 HBSPackage.Builder.withDefaultHeader()
                         .msgType(100).writeStr(genealogies.toString()),
                 "hall",
-                "");
+                "",3);
     }
 
     @Override

@@ -2,16 +2,21 @@ package com.hbsoo.server.session;
 
 import com.hbsoo.server.config.ServerInfo;
 import com.hbsoo.server.message.HBSMessageType;
+import com.hbsoo.server.message.entity.ForwardMessage;
 import com.hbsoo.server.message.entity.HBSPackage;
+import com.hbsoo.server.message.queue.ForwardMessageSender;
 import com.hbsoo.server.netty.AttributeKeyConstants;
+import com.hbsoo.server.utils.SnowflakeIdGenerator;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,7 +28,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class OuterSessionManager {
 
     private static final Logger logger = LoggerFactory.getLogger(OuterSessionManager.class);
-
+    @Autowired
+    private ForwardMessageSender forwardMessageSender;
+    @Autowired
+    private SnowflakeIdGenerator snowflakeIdGenerator;
     //用户session
     static Map<Long, UserSession> clients = new ConcurrentHashMap<>();
     private final ServerInfo nowServerInfo;
@@ -66,7 +74,7 @@ public final class OuterSessionManager {
                 .writeStr(userSession.getBelongServer().getHost())
                 .writeInt(userSession.getBelongServer().getPort())
                 .writeStr(userSession.getBelongServer().getType());
-        InnerClientSessionManager.sendMsg2AllServerByKey(builder, id);
+        InnerClientSessionManager.forwardMsg2AllServerByKeyUseSender(builder, id);
     }
 
     /**
@@ -85,7 +93,7 @@ public final class OuterSessionManager {
      */
     public void logoutAndSyncAllServer(Long id) {
         logout(id);
-        InnerClientSessionManager.sendMsg2AllServerByKey(
+        InnerClientSessionManager.forwardMsg2AllServerByKeyUseSender(
                 HBSPackage.Builder.withDefaultHeader()
                         .msgType(HBSMessageType.InnerMessageType.LOGOUT_SYNC)
                         .writeLong(id),
@@ -143,9 +151,18 @@ public final class OuterSessionManager {
                             .writeLong(id)//用户id
                             .writeStr(protocol.name())//用户协议类型
                             .writeBytes(innerPackage);//转发的消息
-                    InnerClientSessionManager.sendMsg2ServerByServerTypeAndId(redirectPackage,
-                            userSession.getBelongServer().getId(),
-                            userSession.getBelongServer().getType());
+
+                    //重试三次
+                    long msgId = snowflakeIdGenerator.generateId();
+                    ForwardMessage forwardMessage = new ForwardMessage(msgId, redirectPackage,
+                            new Date(System.currentTimeMillis() + 1000 * 10), -1,
+                            userSession.getBelongServer().getType(), null);
+                    forwardMessage.setToServerId(userSession.getBelongServer().getId());
+                    forwardMessageSender.send(forwardMessage);
+
+                    //InnerClientSessionManager.sendMsg2ServerByServerTypeAndId(redirectPackage,
+                    //        userSession.getBelongServer().getId(),
+                    //        userSession.getBelongServer().getType());
                     continue;
                 }
                 if (!channel.isActive()) {

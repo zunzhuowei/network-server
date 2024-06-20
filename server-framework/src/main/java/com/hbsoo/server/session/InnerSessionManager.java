@@ -68,16 +68,27 @@ class InnerSessionManager {
      */
     public static Channel getChannelByServerTypeAndId(int serverId, String serverType,
                                                       Supplier<Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>>> clientsMapSupplier) {
+        final Random random = new Random();
+        int key = random.nextInt();
+        return getChannelByTypeAndIdKey(serverId, serverType, key, clientsMapSupplier);
+    }
+
+    /**
+     * 根据serverId、ServerType、key获取channel
+     * @param serverId 服务器id
+     * @param serverType 服务器类型
+     * @param key  根据键值进行客户端选择的键，用于计算哈希值以选择具体客户端。
+     */
+    public static Channel getChannelByTypeAndIdKey(int serverId, String serverType, Object key,
+                                                      Supplier<Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>>> clientsMapSupplier) {
         Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = clientsMapSupplier.get();
         ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>> serverTypeMap = clientsMap.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
         ConcurrentHashMap<Integer, Channel> clients = serverTypeMap.computeIfAbsent(serverId, k -> new ConcurrentHashMap<>());
         if (clients.isEmpty()) {
-            logger.error("getChannelByServerId error 服务器未登录:{}", serverId);
+            logger.error("getChannelByTypeAndIdKey error 服务器未登录:{}", serverId);
             return null;
         }
-        final Random random = new Random();
-        int key = random.nextInt();
-        int hash = Integer.hashCode(key);
+        int hash = key.hashCode();
         return selectChannelByHashKey(hash, clients);
     }
 
@@ -96,7 +107,7 @@ class InnerSessionManager {
         ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>> serverTypeMap = clientsMap.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
         int typeSize = serverTypeMap.size();
         if (typeSize < 1) {
-            logger.warn("getChannelByTypeAndKey typeSize < 1, serverType:{}", serverType);
+            logger.info("getChannelByTypeAndKey typeSize < 1, serverType:{}", serverType);
             return null;
         }
         int hash = key.hashCode();
@@ -142,7 +153,7 @@ class InnerSessionManager {
         ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>> serverTypeMap = clientsMap.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
         int typeSize = serverTypeMap.size();
         if (typeSize < 1) {
-            logger.warn("sendMsg2ServerByTypeAndKey typeSize < 1, serverType:{}", serverType);
+            logger.info("sendMsg2ServerByTypeAndKey typeSize < 1, serverType:{}", serverType);
             return null;
         }
         //当前服务器客户端登录到的其他服务器

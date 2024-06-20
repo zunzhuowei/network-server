@@ -192,6 +192,8 @@ public final class HBSPackage {
             }
             final boolean empty = msgTypeList.isEmpty();
             if (empty) {
+                final String name = Thread.currentThread().getName();
+                System.out.println("name = " + name);
                 throw new RuntimeException("msgType not set");
             }
             int packageLen = packageLength.get();
@@ -315,9 +317,21 @@ public final class HBSPackage {
 
         public Builder toBuilder() {
             // header +(int) bodyLen + body
-            return Builder.withHeader(this.header)
-                    .writeInt(this.body.length)
-                    .writeBytes(this.body);
+            Builder builder = Builder.withHeader(this.header);
+            byte intBytes = 4;
+            for (byte b : this.body) {
+                if (intBytes > 0) {
+                    builder.msgTypeList.add(b);
+                } else {
+                    builder.writeByte(b);
+                }
+                //防止溢出
+                if (intBytes > 0) {
+                    intBytes--;
+                }
+            }
+
+            return builder;
         }
 
         /**
