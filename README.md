@@ -25,4 +25,5 @@ This is the network server for the project.Based on netty framework.The target i
 18. ~~外网支持协议配置化~~
 19. ~~内网消息重组~~，~~支持延迟消息~~，~~可靠消息（保证送达与幂等性）~~
 20. 分布式事务？
-21. 内网服务器登录，将已登录的session同步给登录服务器
+21. ~~内网服务器登录，将已登录的session同步给登录服务器~~
+22. ~~内网服务登出，同步消息给登录服务器~~

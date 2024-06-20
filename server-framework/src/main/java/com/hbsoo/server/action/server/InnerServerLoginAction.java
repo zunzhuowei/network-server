@@ -5,11 +5,14 @@ import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.entity.HBSPackage;
 import com.hbsoo.server.message.server.ServerMessageDispatcher;
 import com.hbsoo.server.netty.AttributeKeyConstants;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
+import com.hbsoo.server.session.OuterSessionManager;
+import com.hbsoo.server.session.UserSession;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.Map;
 
 /**
  * 内部服务器登录接口
@@ -19,6 +22,8 @@ import org.slf4j.LoggerFactory;
 public class InnerServerLoginAction extends ServerMessageDispatcher {
 
     private static final Logger logger = LoggerFactory.getLogger(InnerServerLoginAction.class);
+    @Autowired
+    private OuterSessionManager outerSessionManager;
 
     @Override
     public void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
@@ -31,17 +36,31 @@ public class InnerServerLoginAction extends ServerMessageDispatcher {
         ctx.channel().attr(AttributeKeyConstants.idAttr).set((long) serverId);
         ctx.channel().attr(AttributeKeyConstants.isInnerClientAttr).set(true);
         //InnerServerSessionManager.innerLogin(ServerType.valueOf(serverTypeStr), serverId, ctx.channel(), index);
-        //decoder.resetBodyReadOffset();
-        byte[] aPackage = HBSPackage.Builder.withDefaultHeader()
+        HBSPackage.Builder.withDefaultHeader()
                 .msgType(HBSMessageType.InnerMessageType.LOGIN)
                 .writeInt(id)
                 .writeStr(loginServerTypeStr)
                 .writeInt(index)//客户端编号
-                .buildPackage();
-        ByteBuf buf = Unpooled.wrappedBuffer(aPackage);
-        ctx.channel().writeAndFlush(buf);
+                .buildAndSendBytesTo(ctx.channel());
         logger.info("接收到内部服务器登录消息：InnerServerLoginAction login success,serverType[{}],id[{}],index[{}]", serverTypeStr, serverId, index);
 
+        // 内网服务器登录，将已登录的用户session同步给登录服务器
+        if (index == 0) {
+            Map<Long, UserSession> clients = outerSessionManager.getClients();
+            clients.forEach((userId, userSession) -> {
+                // 登录服务器
+                HBSPackage.Builder builder = HBSPackage.Builder.withDefaultHeader()
+                        .msgType(HBSMessageType.InnerMessageType.LOGIN_SYNC)
+                        .writeLong(userId)//登录用户id
+                        .writeStr(userSession.getName())
+                        .writeStr(userSession.getToken())
+                        .writeInt(userSession.getBelongServer().getId()) //登录所属服务器id
+                        .writeStr(userSession.getBelongServer().getHost())
+                        .writeInt(userSession.getBelongServer().getPort())
+                        .writeStr(userSession.getBelongServer().getType());
+                forward2InnerServer(builder, serverTypeStr, serverId);
+            });
+        }
     }
 
     @Override

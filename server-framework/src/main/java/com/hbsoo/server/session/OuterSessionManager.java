@@ -17,9 +17,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * 管理外部用户session
@@ -56,6 +58,20 @@ public final class OuterSessionManager {
     }
 
     /**
+     * 获取在该服务器登录的用户session
+     */
+    public Map<Long, UserSession> getClients() {
+        // 返回UserSession中Channel不为空的Map
+        Map<Long, UserSession> result = new ConcurrentHashMap<>();
+        clients.forEach((id, userSession) -> {
+            if (Objects.nonNull(userSession.getChannel())) {
+                result.put(id, userSession);
+            }
+        });
+        return result;
+    }
+
+    /**
      * 登录到服务器，登录成功后，通知其他服务器
      *
      * @param id          用户id
@@ -79,7 +95,8 @@ public final class OuterSessionManager {
 
     /**
      * 同步登录
-     * @param id 用户id
+     *
+     * @param id          用户id
      * @param userSession 用户session
      */
     public void login(Long id, UserSession userSession) {
@@ -103,6 +120,7 @@ public final class OuterSessionManager {
 
     /**
      * 同步登出
+     *
      * @param id 用户id
      */
     public void logout(Long id) {
@@ -110,11 +128,26 @@ public final class OuterSessionManager {
     }
 
     /**
+     * 退出所有指定服务器的用户session
+     * @param serverType 服务器类型
+     * @param serverId 服务器id
+     */
+    public void logoutWithBelongServer(String serverType, Integer serverId) {
+        List<Long> ids = clients.values().stream()
+                .filter(userSession ->
+                        userSession.getBelongServer().getType().equals(serverType) &&
+                        userSession.getBelongServer().getId().equals(serverId))
+                .map(UserSession::getId).collect(Collectors.toList());
+        ids.forEach(this::logout);
+        logger.debug("退出所有指定服务器的用户session, serverType:{}, serverId:{}", serverType, serverId);
+    }
+
+    /**
      * 根据协议类型发送消息到用户
      *
-     * @param protocol 用户协议类型
+     * @param protocol   用户协议类型
      * @param msgBuilder 消息
-     * @param ids 用户id
+     * @param ids        用户id
      */
     public void sendMsg2User(UserSessionProtocol protocol, HBSPackage.Builder msgBuilder, Long... ids) {
         sendMsg2User(protocol, msgBuilder.buildPackage(), ids);
@@ -127,9 +160,9 @@ public final class OuterSessionManager {
     /**
      * 发送消息到用户
      *
-     * @param protocol 用户协议类型
+     * @param protocol     用户协议类型
      * @param innerPackage 消息, HBSPackage.Builder#buildPackage()
-     * @param ids 用户id
+     * @param ids          用户id
      */
     public void sendMsg2User(UserSessionProtocol protocol, byte[] innerPackage, Long... ids) {
         if (Objects.isNull(innerPackage) || Objects.isNull(protocol)) {

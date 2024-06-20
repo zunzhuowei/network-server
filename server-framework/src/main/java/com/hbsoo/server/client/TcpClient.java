@@ -4,6 +4,8 @@ import com.hbsoo.server.config.ServerInfo;
 import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.entity.HBSPackage;
 import com.hbsoo.server.message.client.InnerClientMessageDispatcher;
+import com.hbsoo.server.session.OuterSessionManager;
+import com.hbsoo.server.session.UserSession;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -14,6 +16,7 @@ import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.timeout.IdleStateHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -24,6 +27,9 @@ public final class TcpClient {
 
     @Autowired
     private InnerClientMessageDispatcher innerClientMessageDispatcher;
+    @Autowired
+    private OuterSessionManager outerSessionManager;
+
     private final int reconnectInterval;
     private final ServerInfo fromServerInfo;
     private final ServerInfo toServerInfo;
@@ -88,6 +94,10 @@ public final class TcpClient {
                         + ", trying to reconnect in " + reconnectInterval + " seconds");
                 // 延迟重连
                 future.channel().eventLoop().schedule(() -> connect(bootstrap), reconnectInterval, TimeUnit.SECONDS);
+                // 清除登陆在断线的服务器中的所有用户
+                if (index == 0) {
+                    outerSessionManager.logoutWithBelongServer(toServerInfo.getType(), toServerInfo.getId());
+                }
             }
         });
     }

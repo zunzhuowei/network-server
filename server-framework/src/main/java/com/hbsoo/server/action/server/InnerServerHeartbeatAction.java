@@ -23,21 +23,9 @@ public class InnerServerHeartbeatAction extends ServerMessageDispatcher {
         final String remoteAddr = ctx.channel().remoteAddress().toString();
         logger.trace("InnerHeartbeatAction 心跳包：remoteAddr {}", remoteAddr);
         // 发送心跳包
-        byte[] msg = HBSPackage.Builder.withDefaultHeader()
-                .msgType(HBSMessageType.InnerMessageType.HEARTBEAT).buildPackage();
-        ByteBuf buf = Unpooled.wrappedBuffer(msg);
-        ctx.writeAndFlush(buf);
-
-        /*redirectAndSwitchProtocol(ctx,
-                ProtocolType.INNER_WEBSOCKET,
-                HBSPackage.Builder.withDefaultHeader()
-                        .msgType(HBSMessageType.InnerMessageType.LOGOUT)
-        );*/
-
-        /*HBSPackage.Builder builder = HBSPackage.Builder.withDefaultHeader()
+        HBSPackage.Builder.withDefaultHeader()
                 .msgType(HBSMessageType.InnerMessageType.HEARTBEAT)
-                .writeInt(1);
-        redirectMessage(ctx, builder);*/
+                .buildAndSendBytesTo(ctx.channel());
     }
 
     @Override
