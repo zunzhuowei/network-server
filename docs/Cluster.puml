@@ -1,0 +1,36 @@
+@startuml
+actor User
+card [Cluster architecture diagram]
+package "Gateway Group" {
+    node "Gateway..."{
+        portin GPort0
+        portin GPort1
+        portin GPort2
+        portout GPorts
+    }
+ }
+package "Hall Server Group" {
+ node "Hall Server..."{
+     portin HPorts
+ }
+}
+package "Room Server Group" {
+  node "Room Server..."{
+      portin RPorts
+  }
+}
+package "Other Server Group" {
+  node "Other Server..."{
+      portin OPorts
+  }
+}
+User --[dashed]--> GPort0
+User --[dashed]--> GPort1 : Request\n(websocket、http、tcp、udp)
+User --[dashed]--> GPort2
+GPorts <--> HPorts : Communicate\n(TCP)
+GPorts <--> RPorts : Communicate\n(TCP)
+HPorts <---> RPorts : Communicate\n(TCP)
+GPorts <---> OPorts : Communicate\n(TCP)
+HPorts <---> OPorts : Communicate\n(TCP)
+RPorts <---> OPorts : Communicate\n(TCP)
+@enduml

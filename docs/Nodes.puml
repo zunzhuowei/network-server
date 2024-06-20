@@ -1,0 +1,61 @@
+@startuml
+actor User
+card [Node architecture diagram]
+node Gateway1 {
+    Port Port1
+    Port Port2
+    component outer\nServer1{
+
+    }
+    component Inner\nServer1{
+    }
+    component Clients1{
+    }
+}
+node Gateway2 {
+    Port Port3
+    Port Port4
+    component outer\nServer2{
+    }
+    component Inner\nServer2{
+
+    }
+    component Clients2{
+    }
+}
+node Gateway3 {
+    Port Port5
+    Port Port6
+    component outer\nServer3{
+   }
+   component Inner\nServer3{
+
+   }
+   component Clients3{
+   }
+}
+[User]  --[dashed]-> [Port1] : Request\n(websocket、http、tcp、udp)
+[User]  --[dashed]-> [Port3] : Request\n(websocket、http、tcp、udp)
+[User]  --[dashed]-> [Port5] : Request\n(websocket、http、tcp、udp)
+[Port1] ==> [outer\nServer1]
+[Port2] ==> [Inner\nServer1]
+[Port3] ==> [outer\nServer2]
+[Port4] ==> [Inner\nServer2]
+[Port5] ==> [outer\nServer3]
+[Port6] ==> [Inner\nServer3]
+[Clients1] -[#green,dotted,thickness=2]-> [Port4] : (TCP)
+[Clients1] -[#green,dotted,thickness=2]-> [Port6] : (TCP)
+[Clients2] -[#red,dotted,thickness=2]-> [Port2] : (TCP)
+[Clients2] -[#red,dotted,thickness=2]-> [Port6] : (TCP)
+[Clients3] -[#blue,dotted,thickness=2]-> [Port2] : (TCP)
+[Clients3] -[#blue,dotted,thickness=2]-> [Port4] : (TCP)
+[Inner\nServer1] <=[#blue]=> [outer\nServer1] : Redirect Request
+[Inner\nServer2] <=[#blue]=> [outer\nServer2] : Redirect Request
+[Inner\nServer3] <=[#blue]=> [outer\nServer3] : Redirect Request
+[Clients1] --> [Inner\nServer1] : Forward Request
+[Clients1] --> [outer\nServer1] : Forward Request
+[Clients2] --> [Inner\nServer2] : Forward Request
+[Clients2] --> [outer\nServer2] : Forward Request
+[Clients3] --> [Inner\nServer3] : Forward Request
+[Clients3] --> [outer\nServer3] : Forward Request
+@enduml
