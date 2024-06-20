@@ -27,19 +27,19 @@ public class InnerServerLoginAction extends ServerMessageDispatcher {
 
     @Override
     public void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
-        int serverId = decoder.readInt();
-        String serverTypeStr = decoder.readStr();
-        int index = decoder.readInt();
-        int id = decoder.readInt();
-        String loginServerTypeStr = decoder.readStr();
+        int serverId = decoder.readInt();//登录进来的服务器id
+        String serverTypeStr = decoder.readStr();//登录进来的服务器类型
+        int index = decoder.readInt();//客户端编号
+        int id = decoder.readInt();//当前服务器id
+        String loginServerTypeStr = decoder.readStr();//当前服务器类型
         //把id放入属性中
         ctx.channel().attr(AttributeKeyConstants.idAttr).set((long) serverId);
         ctx.channel().attr(AttributeKeyConstants.isInnerClientAttr).set(true);
         //InnerServerSessionManager.innerLogin(ServerType.valueOf(serverTypeStr), serverId, ctx.channel(), index);
         HBSPackage.Builder.withDefaultHeader()
                 .msgType(HBSMessageType.InnerMessageType.LOGIN)
-                .writeInt(id)
-                .writeStr(loginServerTypeStr)
+                .writeInt(id)//当前服务器id
+                .writeStr(loginServerTypeStr)//当前服务器类型
                 .writeInt(index)//客户端编号
                 .buildAndSendBytesTo(ctx.channel());
         logger.info("接收到内部服务器登录消息：InnerServerLoginAction login success,serverType[{}],id[{}],index[{}]", serverTypeStr, serverId, index);
@@ -68,8 +68,8 @@ public class InnerServerLoginAction extends ServerMessageDispatcher {
         //服务器id + 客户端编号
         return decoder.skipGetInt(HBSPackage.DecodeSkip.INT) +
                 decoder.skipGetInt(
-                HBSPackage.DecodeSkip.INT,
-                HBSPackage.DecodeSkip.INT,
-                HBSPackage.DecodeSkip.STRING);
+                        HBSPackage.DecodeSkip.INT,
+                        HBSPackage.DecodeSkip.INT,
+                        HBSPackage.DecodeSkip.STRING);
     }
 }
