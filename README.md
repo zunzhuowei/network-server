@@ -18,6 +18,73 @@
 [comment]: <> (2. 支持多节点集群，支持节点动态加入、退出)
 3. Supports message forwarding between internal and external networks
 
+### Modules introduction
+1. `server-framework`: The core module of the framework, 
+   which provides the basic configuration of the framework, 
+   and the configuration of the network protocol,
+   the message forwarding, and the message processing.
+   
+
+2. `server-database`: The database module of the framework, 
+   use `Mybatis` and `MySQL` to implement the database operation.
+   If you need to use a MySQL database, you can use it.`that is optional`.
+   
+
+3. `server-cache`: The cache module of the framework, 
+   use `Redisson` to implement the `Redis` cache operation,
+   and use `Caffeine` to implement the local cache operation.
+   If you need to use a caching module, you can use it.`that is optional`.
+
+4. `gateway-server`、`hall-server`、`room-server`: These are three sample nodes of the cluster, and you can refer to their configurations to get your own cluster
+
+### How to use
+1. You must had installed JDK 1.8+ and Maven 3.x
+2. Switch to the project directory and run `mvn clean install`
+3. Add the `server-framework` dependency in your project
+```xml
+<dependency>
+   <groupId>com.hbsoo</groupId>
+   <artifactId>server-framework</artifactId>
+   <version>1.0.0</version>
+</dependency>
+```
+4. Add the `server-framework` Configuration to your Springboot project `application.yml` file.
+```yaml
+hbsoo:
+  server:
+    id: 1000 #Current node id
+    threadPoolSize:
+      innerClient: 5 #Inner client side business thread pool size
+      innerServer: 5 #Inner server side business thread pool size
+      outerServer: 5 #outer server side business thread pool size
+    outerServer:
+      enable: true #Whether to enable the outer server
+      port: 5555 #Outer server port
+      protocol: "TCP,UDP,WEBSOCKET,HTTP" #Outer server protocol,Which protocols to use.
+    innerServers:
+      - host: 192.168.1.104
+        port: 6000
+        type: gateway #Inner server type,that's namespace customized
+        clientAmount: 1 #Connect to inner server client amount
+        weight: 10 #Inner server weight
+        id: 1000 #Inner server id; At least one id in the list of innerServers is associated with the current node id
+      - host: 192.168.1.104
+        port: 6003
+        type: hall
+        clientAmount: 1
+        id: 2000
+      - host: 192.168.1.104
+        port: 6006
+        type: room
+        clientAmount: 1
+        id: 3000
+```
+### How to develop
+1. You must had installed JDK 1.8+ and Maven 3.x
+2. Clone the project and import it into your IDE
+3. Run the project
+
+
 ### NOTE
 调试资源泄露，启动时添加：-Xms12m -Xmx12m -Dio.netty.leakDetection.level=paranoid
 
