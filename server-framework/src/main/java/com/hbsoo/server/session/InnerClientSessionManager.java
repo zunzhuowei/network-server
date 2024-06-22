@@ -60,6 +60,11 @@ public final class InnerClientSessionManager {
             msgBuilder.buildAndSendBytesTo(channel);
         }
     }
+
+    /**
+     * 使用sender发送，保证发送失败时候重发消息；
+     * {@link InnerClientSessionManager#forwardMsg2ServerByTypeAndId}
+     */
     public static void forwardMsg2ServerByTypeAndIdUseSender(HBSPackage.Builder msgBuilder, int serverId, String serverType) {
         ForwardMessageSender sender = SpringBeanFactory.getBean(ForwardMessageSender.class);
         SnowflakeIdGenerator snowflakeIdGenerator = SpringBeanFactory.getBean(SnowflakeIdGenerator.class);
@@ -87,6 +92,10 @@ public final class InnerClientSessionManager {
             msgBuilder.buildAndSendBytesTo(channel);
         }
     }
+    /**
+     * 使用sender发送，保证发送失败时候重发消息；
+     * {@link InnerClientSessionManager#forwardMsg2ServerByTypeAndKey}
+     */
     public static void forwardMsg2ServerByTypeAndKeyUseSender(HBSPackage.Builder msgBuilder, String serverType, Object key) {
         ForwardMessageSender sender = SpringBeanFactory.getBean(ForwardMessageSender.class);
         SnowflakeIdGenerator snowflakeIdGenerator = SpringBeanFactory.getBean(SnowflakeIdGenerator.class);
@@ -95,6 +104,31 @@ public final class InnerClientSessionManager {
                 serverType, key);
         sender.send(forwardMessage);
     }
+
+    /**
+     * 根据消息类型和键值向指定类型的可用的服务器发送消息.
+     */
+    public static void forwardMsg2AvailableServerByTypeAndKey(HBSPackage.Builder msgBuilder, String serverType, Object key) {
+        Channel channel = InnerSessionManager.getAvailableChannelByTypeAndKey(serverType, key, () -> clientsMap);
+        if (channel != null) {
+            msgBuilder.buildAndSendBytesTo(channel);
+        }
+    }
+
+    /**
+     * 使用sender发送，保证发送失败时候重发消息；
+     * {@link InnerClientSessionManager#forwardMsg2AvailableServerByTypeAndKey}
+     */
+    public static void forwardMsg2AvailableServerByTypeAndKeyUseSender(HBSPackage.Builder msgBuilder, String serverType, Object key) {
+        ForwardMessageSender sender = SpringBeanFactory.getBean(ForwardMessageSender.class);
+        SnowflakeIdGenerator snowflakeIdGenerator = SpringBeanFactory.getBean(SnowflakeIdGenerator.class);
+        long msgId = snowflakeIdGenerator.generateId();
+        ForwardMessage forwardMessage = new ForwardMessage(msgId, msgBuilder, -1, -1,
+                serverType, key);
+        forwardMessage.setUseAvailableServer(true);
+        sender.send(forwardMessage);
+    }
+
     /**
      * 根据键值向所有服务器发送消息。
      * 使用Builder模式构建消息包，遍历所有服务器，将消息发送到每个服务器。
@@ -115,6 +149,10 @@ public final class InnerClientSessionManager {
             }
         });
     }
+    /**
+     * 使用sender发送，保证发送失败时候重发消息；
+     * {@link InnerClientSessionManager#forwardMsg2AllServerByKey}
+     */
     public static void forwardMsg2AllServerByKeyUseSender(HBSPackage.Builder msgBuilder, Object key) {
         if (key == null) {
             throw new RuntimeException("key is null");
@@ -151,6 +189,17 @@ public final class InnerClientSessionManager {
      */
     public static Channel getChannelByTypeAndKey(String serverType, Object forwardKey) {
         return InnerSessionManager.getChannelByTypeAndKey(serverType, forwardKey, () -> clientsMap);
+    }
+
+    /**
+     * 根据服务器类型和键值获取对应的服务器连接通道。
+     * key计算出的服务器不可用时，重新选举相同类型的可用服务器链接作为备选；
+     * @param serverType 服务器类型
+     * @param forwardKey 根据键值进行服务器选择的键，用于计算哈希值以选择具体服务器。
+     * @return 服务器连接通道
+     */
+    public static Channel getAvailableChannelByTypeAndKey(String serverType, Object forwardKey) {
+        return InnerSessionManager.getAvailableChannelByTypeAndKey(serverType, forwardKey, () -> clientsMap);
     }
 
     /**

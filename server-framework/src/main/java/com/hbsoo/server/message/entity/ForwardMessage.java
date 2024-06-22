@@ -21,11 +21,11 @@ public final class ForwardMessage {
     /**
      * 消息过期时间,默认永久生效
      */
-    private long expireTime = -1L;
+    private Long expireTime = -1L;
     /**
      * 转发时间,默认立即转发
      */
-    private long forwardTime = -1L;
+    private Long forwardTime = -1L;
     /**
      * 转发的目标服务器类型
      */
@@ -42,6 +42,10 @@ public final class ForwardMessage {
      * 消息所属服务器id
      */
     private Integer belongServerId;
+    /**
+     * 是否使用可用服务器模式
+     */
+    private Boolean useAvailableServer = false;
 
     public ForwardMessage(Long id, HBSPackage.Builder builder, Date expireDate, Date forwardDate,
                           String toServerType, Object forwardKey) {
@@ -123,7 +127,7 @@ public final class ForwardMessage {
         this.originMessage = originMessage;
     }
 
-    public long getExpireTime() {
+    public Long getExpireTime() {
         return expireTime;
     }
 
@@ -131,7 +135,7 @@ public final class ForwardMessage {
         this.expireTime = expireTime.getTime();
     }
 
-    public long getForwardTime() {
+    public Long getForwardTime() {
         return forwardTime;
     }
 
@@ -147,11 +151,11 @@ public final class ForwardMessage {
         this.toServerType = toServerType;
     }
 
-    public void setExpireTime(long expireTime) {
+    public void setExpireTime(Long expireTime) {
         this.expireTime = expireTime;
     }
 
-    public void setForwardTime(long forwardTime) {
+    public void setForwardTime(Long forwardTime) {
         this.forwardTime = forwardTime;
     }
 
@@ -163,5 +167,11 @@ public final class ForwardMessage {
         this.forwardKey = forwardKey;
     }
 
+    public Boolean getUseAvailableServer() {
+        return useAvailableServer;
+    }
 
+    public void setUseAvailableServer(Boolean useAvailableServer) {
+        this.useAvailableServer = useAvailableServer;
+    }
 }

@@ -11,11 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.net.SocketAddress;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -52,6 +49,7 @@ public abstract class AbstractForwardMessageSender implements ForwardMessageSend
         String toServerType = message.getToServerType();
         Object forwardKey = message.getForwardKey();
         Integer toServerId = message.getToServerId();
+        Boolean useAvailableServer = message.getUseAvailableServer();
         byte[] originMessage = message.getOriginMessage();
         if ((now > expireTime) && expireTime != -1) {
             removeFromDb(id);
@@ -59,8 +57,13 @@ public abstract class AbstractForwardMessageSender implements ForwardMessageSend
         }
         delayThreadPoolScheduler.schedule(() -> {
             Channel channel = toServerId > 0 ?
+                    //指定服务器类型和id
                     InnerClientSessionManager.getChannelByServerTypeAndId(toServerId, toServerType) :
-                    InnerClientSessionManager.getChannelByTypeAndKey(toServerType, forwardKey);
+                    !useAvailableServer ?
+                            // 指定服务器类型和key计算出来的服务器
+                            InnerClientSessionManager.getChannelByTypeAndKey(toServerType, forwardKey) :
+                            // 指定服务器类型和key计算出来的服务器，如遇不可用服务器，尝试获取可用服务器
+                            InnerClientSessionManager.getAvailableChannelByTypeAndKey(toServerType, forwardKey);
             if (channel != null) {
                 HBSPackage.Decoder decoder = HBSPackage.Decoder
                         .withHeader(HBSPackage.TCP_HEADER)

@@ -7,10 +7,7 @@ import io.netty.channel.ChannelOutboundInvoker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -106,6 +103,39 @@ class InnerSessionManager {
         //判断使用哪个服务器
         ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>> serverTypeMap = clientsMap.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
         int typeSize = serverTypeMap.size();
+        return tryGetAvailableChannel(serverType, key, typeSize, null, false, serverTypeMap);
+    }
+
+    /**
+     * 获取可用的channel,如果没有可用的channel，则返回null;
+     * key计算出的服务器不可用时，重新选举相同类型的可用服务器链接作为备选；
+     * @param serverType 服务器类型
+     * @param key 根据键值进行服务器选择的键，用于计算哈希值以选择具体服务器。
+     */
+    public static Channel getAvailableChannelByTypeAndKey(String serverType, Object key,
+                                                 Supplier<Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>>> clientsMapSupplier) {
+        if (key == null) {
+            throw new RuntimeException("key is null");
+        }
+        Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = clientsMapSupplier.get();
+        //判断使用哪个服务器
+        ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>> serverTypeMap = clientsMap.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
+        int typeSize = serverTypeMap.size();
+        return tryGetAvailableChannel(serverType, key, typeSize, new ArrayList<>(), true, serverTypeMap);
+    }
+    /**
+     * 根据服务器类型和key获取channel,
+     * 如果选取的服务器不可用，则重新选举相同类型的服务器
+     * @param serverType 服务器类型
+     * @param key  根据键值进行服务器选择的键，用于计算哈希值以选择具体服务器。
+     * @param typeSize 服务器类型数量
+     * @param excludedServerIds 排除的服务器id
+     * @param serverTypeMap 服务器类型map
+     * @return channel
+     */
+    private static Channel tryGetAvailableChannel(String serverType, Object key, int typeSize, List<Integer> excludedServerIds,
+                                      boolean isRetry,
+                                      ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>> serverTypeMap) {
         if (typeSize < 1) {
             logger.info("getChannelByTypeAndKey typeSize < 1, serverType:{}", serverType);
             return null;
@@ -113,12 +143,17 @@ class InnerSessionManager {
         int hash = key.hashCode();
         int serverIndex = Math.abs(hash) % typeSize;
         final List<Integer> serverIds = serverTypeMap.keySet().stream()
-                //.filter(k -> !k.equals(serverInfo.getId()))//排除当前服务器
+                .filter(k -> Objects.isNull(excludedServerIds) || !excludedServerIds.contains(k))//排除
                 .sorted().collect(Collectors.toList());
         Integer serverId = serverIds.get(serverIndex);
         //根据key的hash值判断使用哪个客户端
         ConcurrentHashMap<Integer, Channel> clients = serverTypeMap.computeIfAbsent(serverId, k -> new ConcurrentHashMap<>());
-        return selectChannelByHashKey(hash, clients);
+        final Channel channel = selectChannelByHashKey(hash, clients);
+        if (channel == null && isRetry) {
+            excludedServerIds.add(serverId);
+            return tryGetAvailableChannel(serverType, key, --typeSize, excludedServerIds, true, serverTypeMap);
+        }
+        return channel;
     }
 
     /**
@@ -138,6 +173,10 @@ class InnerSessionManager {
         final Channel channel = clients.get(clientId);
         if (channel == null) {
             logger.warn("channel is null");
+            return null;
+        }
+        if (!channel.isActive()) {
+            logger.warn("channel is isActive");
             return null;
         }
         return channel;
