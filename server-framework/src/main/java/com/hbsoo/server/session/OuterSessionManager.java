@@ -1,5 +1,9 @@
 package com.hbsoo.server.session;
 
+import com.hbsoo.server.client.outer.HttpOuterUserLoginAuthenticator;
+import com.hbsoo.server.client.outer.TcpOuterUserLoginAuthenticator;
+import com.hbsoo.server.client.outer.UdpOuterUserLoginAuthenticator;
+import com.hbsoo.server.client.outer.WebsocketOuterUserLoginAuthenticator;
 import com.hbsoo.server.config.ServerInfo;
 import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.entity.ForwardMessage;
@@ -7,14 +11,17 @@ import com.hbsoo.server.message.entity.HBSPackage;
 import com.hbsoo.server.message.queue.ForwardMessageSender;
 import com.hbsoo.server.netty.AttributeKeyConstants;
 import com.hbsoo.server.utils.SnowflakeIdGenerator;
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
+import io.netty.channel.socket.DatagramPacket;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
@@ -34,6 +41,14 @@ public final class OuterSessionManager {
     private ForwardMessageSender forwardMessageSender;
     @Autowired
     private SnowflakeIdGenerator snowflakeIdGenerator;
+    @Autowired(required = false)
+    private HttpOuterUserLoginAuthenticator httpOuterUserLoginAuthenticator;
+    @Autowired(required = false)
+    private TcpOuterUserLoginAuthenticator tcpOuterUserLoginAuthenticator;
+    @Autowired(required = false)
+    private UdpOuterUserLoginAuthenticator udpOuterUserLoginAuthenticator;
+    @Autowired(required = false)
+    private WebsocketOuterUserLoginAuthenticator websocketOuterUserLoginAuthenticator;
     //用户session
     static Map<Long, UserSession> clients = new ConcurrentHashMap<>();
     private final ServerInfo nowServerInfo;
@@ -84,8 +99,6 @@ public final class OuterSessionManager {
         HBSPackage.Builder builder = HBSPackage.Builder.withDefaultHeader()
                 .msgType(HBSMessageType.InnerMessageType.LOGIN_SYNC)
                 .writeLong(id)//登录用户id
-                .writeStr(userSession.getName())
-                .writeStr(userSession.getToken())
                 .writeInt(userSession.getBelongServer().getId()) //登录所属服务器id
                 .writeStr(userSession.getBelongServer().getHost())
                 .writeInt(userSession.getBelongServer().getPort())
@@ -125,6 +138,34 @@ public final class OuterSessionManager {
      */
     public void logout(Long id) {
         clients.remove(id);
+        if (httpOuterUserLoginAuthenticator != null) {
+            try {
+                httpOuterUserLoginAuthenticator.logoutCallback(id);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        if (tcpOuterUserLoginAuthenticator != null) {
+            try {
+                tcpOuterUserLoginAuthenticator.logoutCallback(id);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        if (udpOuterUserLoginAuthenticator != null) {
+            try {
+                udpOuterUserLoginAuthenticator.logoutCallback(id);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        if (websocketOuterUserLoginAuthenticator != null) {
+            try {
+                websocketOuterUserLoginAuthenticator.logoutCallback(id);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     /**
@@ -201,6 +242,7 @@ public final class OuterSessionManager {
                 if (!channel.isActive()) {
                     continue;
                 }
+                // 用他登录的服务器管道发送消息
                 switch (protocol) {
                     case binary_websocket: {
                         BinaryWebSocketFrame socketFrame = new BinaryWebSocketFrame(Unpooled.wrappedBuffer(innerPackage));
@@ -217,7 +259,12 @@ public final class OuterSessionManager {
                         break;
                     }
                     case udp:
-                        channel.writeAndFlush(Unpooled.wrappedBuffer(innerPackage));
+                        DatagramPacket packet = new DatagramPacket(
+                                Unpooled.wrappedBuffer(innerPackage),
+                                new InetSocketAddress(userSession.getUdpHost(),
+                                        userSession.getUdpPort())
+                        );
+                        channel.writeAndFlush(packet);
                         break;
                     default:
                         break;

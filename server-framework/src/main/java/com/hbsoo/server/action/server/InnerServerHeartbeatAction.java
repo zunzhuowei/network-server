@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * 内部服务接收内部客户端心跳包
  * Created by zun.wei on 2024/6/10.
  */
 @InnerServerMessageHandler(HBSMessageType.InnerMessageType.HEARTBEAT)
@@ -21,7 +22,7 @@ public class InnerServerHeartbeatAction extends ServerMessageDispatcher {
     @Override
     public void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
         final String remoteAddr = ctx.channel().remoteAddress().toString();
-        logger.trace("InnerHeartbeatAction 心跳包：remoteAddr {}", remoteAddr);
+        logger.trace("InnerServerHeartbeatAction 心跳包：remoteAddr {}", remoteAddr);
         // 发送心跳包
         HBSPackage.Builder.withDefaultHeader()
                 .msgType(HBSMessageType.InnerMessageType.HEARTBEAT)

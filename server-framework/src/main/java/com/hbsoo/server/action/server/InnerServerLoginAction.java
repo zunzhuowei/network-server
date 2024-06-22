@@ -52,8 +52,8 @@ public class InnerServerLoginAction extends ServerMessageDispatcher {
                 HBSPackage.Builder builder = HBSPackage.Builder.withDefaultHeader()
                         .msgType(HBSMessageType.InnerMessageType.LOGIN_SYNC)
                         .writeLong(userId)//登录用户id
-                        .writeStr(userSession.getName())
-                        .writeStr(userSession.getToken())
+                        //.writeStr(userSession.getName())
+                        //.writeStr(userSession.getToken())
                         .writeInt(userSession.getBelongServer().getId()) //登录所属服务器id
                         .writeStr(userSession.getBelongServer().getHost())
                         .writeInt(userSession.getBelongServer().getPort())

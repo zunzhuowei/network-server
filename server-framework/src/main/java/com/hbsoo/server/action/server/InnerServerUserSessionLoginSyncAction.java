@@ -26,18 +26,18 @@ public class InnerServerUserSessionLoginSyncAction extends ServerMessageDispatch
     @Override
     public void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
         long id = decoder.readLong();
-        String username = decoder.readStr();
-        String token = decoder.readStr();
+        //String username = decoder.readStr();
+        //String token = decoder.readStr();
         final int belongServerId = decoder.readInt();
         String belongServerHost = decoder.readStr();
         final int belongServerPort = decoder.readInt();
         final String belongServerType = decoder.readStr();
-        logger.debug("InnerServerUserSessionLoginSyncAction id:{} username:{} token:{} belongServerId:{} belongServerHost:{} belongServerPort:{} belongServerType:{}",
-                id, username, token, belongServerId, belongServerHost, belongServerPort, belongServerType);
+        logger.debug("InnerServerUserSessionLoginSyncAction id:{} belongServerId:{} belongServerHost:{} belongServerPort:{} belongServerType:{}",
+                id, belongServerId, belongServerHost, belongServerPort, belongServerType);
         UserSession userSession = new UserSession();
         userSession.setId(id);
-        userSession.setName(username);
-        userSession.setToken(token);
+        //userSession.setName(username);
+        //userSession.setToken(token);
         //userSession.setChannel(ctx.channel());
         final ServerInfo belongServer = new ServerInfo();
         belongServer.setId(belongServerId);

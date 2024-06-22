@@ -8,9 +8,13 @@ import io.netty.channel.Channel;
  */
 public class UserSession {
 
+    /**
+     * 用户id
+     */
     private Long id;
-    private String name;
-    private String token;
+    /**
+     * 用户所登录的服务器
+     */
     private ServerInfo belongServer;
     /**
      * 登录的channel；如果由内网登录同步得session，则为空
@@ -52,21 +56,6 @@ public class UserSession {
         this.id = id;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getToken() {
-        return token;
-    }
-
-    public void setToken(String token) {
-        this.token = token;
-    }
 
     public ServerInfo getBelongServer() {
         return belongServer;
@@ -88,10 +77,11 @@ public class UserSession {
     public String toString() {
         return "UserSession{" +
                 "id=" + id +
-                ", name='" + name + '\'' +
-                ", token='" + token + '\'' +
                 ", belongServer=" + belongServer +
                 ", channel=" + channel +
+                ", udpHost='" + udpHost + '\'' +
+                ", udpPort=" + udpPort +
+                ", isUdp=" + isUdp +
                 '}';
     }
 }
