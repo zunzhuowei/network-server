@@ -64,6 +64,11 @@ public final class HBSPackage {
             packageLength.incrementAndGet();
             return this;
         }
+        public Builder writeBoolean(boolean b) {
+            bodyByteList.add((byte) (b ? 1 : 0));
+            packageLength.incrementAndGet();
+            return this;
+        }
 
         public Builder writeBytes(byte[] bytes) {
             final ByteBuffer buffer = ByteBuffer.allocate(4);
@@ -80,8 +85,8 @@ public final class HBSPackage {
             return this;
         }
 
-        public Builder writeShort(short... ints) {
-            for (short aInt : ints) {
+        public Builder writeShort(short... shorts) {
+            for (short aInt : shorts) {
                 final ByteBuffer buffer = ByteBuffer.allocate(2);
                 buffer.putShort(aInt);
                 final byte[] array = buffer.array();
@@ -118,10 +123,36 @@ public final class HBSPackage {
             return this;
         }
 
-        public Builder writeLong(long... ints) {
-            for (long aInt : ints) {
+        public Builder writeFloat(float... floats) {
+            for (float aInt : floats) {
+                final ByteBuffer buffer = ByteBuffer.allocate(4);
+                buffer.putFloat(aInt);
+                final byte[] array = buffer.array();
+                for (byte b : array) {
+                    bodyByteList.add(b);
+                }
+                packageLength.getAndAdd(4);
+            }
+            return this;
+        }
+
+        public Builder writeLong(long... longs) {
+            for (long aInt : longs) {
                 final ByteBuffer buffer = ByteBuffer.allocate(8);
                 buffer.putLong(aInt);
+                final byte[] array = buffer.array();
+                for (byte b : array) {
+                    bodyByteList.add(b);
+                }
+                packageLength.getAndAdd(8);
+            }
+            return this;
+        }
+
+        public Builder writeDouble(double... doubles) {
+            for (double aInt : doubles) {
+                final ByteBuffer buffer = ByteBuffer.allocate(8);
+                buffer.putDouble(aInt);
                 final byte[] array = buffer.array();
                 for (byte b : array) {
                     bodyByteList.add(b);
@@ -402,6 +433,10 @@ public final class HBSPackage {
             return bytes[0];
         }
 
+        public boolean readBoolean() {
+            return readByte() == 1;
+        }
+
         public byte[] readBytes() {
             final int len = readInt();
             byte[] bytes = new byte[len];
@@ -419,6 +454,11 @@ public final class HBSPackage {
             byte[] bytes = new byte[4];
             System.arraycopy(body, readOffset.getAndAdd(4), bytes, 0, bytes.length);
             return ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN).getInt();
+        }
+        public float readFloat() {
+            byte[] bytes = new byte[4];
+            System.arraycopy(body, readOffset.getAndAdd(4), bytes, 0, bytes.length);
+            return ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN).getFloat();
         }
 
         /**
@@ -441,12 +481,18 @@ public final class HBSPackage {
             return ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN).getLong();
         }
 
+        public double readDouble() {
+            byte[] bytes = new byte[8];
+            System.arraycopy(body, readOffset.getAndAdd(8), bytes, 0, bytes.length);
+            return ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN).getDouble();
+        }
+
         public String readStr() {
             final byte[] bytes = readBytes();
             return new String(bytes, StandardCharsets.UTF_8);
         }
 
-        public <T> T readObj(Class<T> tClass) {
+        public <T> T readObjFromJson(Class<T> tClass) {
             String json = readStr();
             Gson gson = new Gson();
             return gson.fromJson(json, tClass);
@@ -467,6 +513,9 @@ public final class HBSPackage {
             byte[] bytes = skipGet(new byte[1], skips);
             return bytes[0];
         }
+        public boolean skipGetBoolean(DecodeSkip... skips) {
+            return skipGetByte(skips) == 1;
+        }
         public short skipGetShort(DecodeSkip... skips) {
             byte[] bytes = skipGet(new byte[2], skips);
             return ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN).getShort();
@@ -475,9 +524,17 @@ public final class HBSPackage {
             byte[] bytes = skipGet(new byte[4], skips);
             return ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN).getInt();
         }
+        public float skipGetFloat(DecodeSkip... skips) {
+            byte[] bytes = skipGet(new byte[4], skips);
+            return ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN).getFloat();
+        }
         public long skipGetLong(DecodeSkip... skips) {
             byte[] bytes = skipGet(new byte[8], skips);
             return ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN).getLong();
+        }
+        public double skipGetDouble(DecodeSkip... skips) {
+            byte[] bytes = skipGet(new byte[8], skips);
+            return ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN).getDouble();
         }
         public byte[] skipGetBytes(DecodeSkip... skips) {
             final int dataLen = skipGetInt(skips);
