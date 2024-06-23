@@ -1,6 +1,5 @@
 package com.hbsoo.server.message.entity;
 
-import com.google.gson.Gson;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.socket.DatagramPacket;
@@ -16,10 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
-import java.util.function.Function;
 
 /**
  * 消息包
@@ -184,36 +180,8 @@ public final class HBSPackage {
             return this;
         }
 
-        public Builder writeObj(Object... objects) {
-            for (Object object : objects) {
-                if (object instanceof Byte) {
-                    writeByte((byte) object);
-                    continue;
-                }
-                if (object instanceof byte[]) {
-                    writeBytes((byte[]) object);
-                    continue;
-                }
-                if (object instanceof Short) {
-                    writeShort((short) object);
-                    continue;
-                }
-                if (object instanceof Integer) {
-                    writeInt((int) object);
-                    continue;
-                }
-                if (object instanceof Long) {
-                    writeLong((long) object);
-                    continue;
-                }
-                if (object instanceof String) {
-                    writeStr((String) object);
-                    continue;
-                }
-                Gson gson = new Gson();
-                final String json = gson.toJson(object);
-                writeStr(json);
-            }
+        public <T extends HBSEntity<T>> Builder writeObj(T t) {
+            t.serializable(this, t);
             return this;
         }
 
@@ -366,57 +334,12 @@ public final class HBSPackage {
         }
 
         /**
-         * 将解码出来的数据转换成对象
+         * 利用尚未读取的数据转换成对象
          * @param t 要转换的对象
-         * @param objSetters 对象的setter方法
          * @param <T> 对象类型
-         * @return 对象
          */
-        public <T> T decode2Obj(T t, Function<T, DecodeField<?>>... objSetters) {
-            if (Objects.nonNull(objSetters)) {
-                for (Function<T, DecodeField<?>> objSetter : objSetters) {
-                    DecodeField<?> decodeField = objSetter.apply(t);
-                    Consumer setter = decodeField.getSetter();
-                    Class<?> aClass = decodeField.gettClass();
-                    if (aClass == String.class) {
-                        setter.accept(this.readStr());
-                    }
-                    if (aClass == Integer.class) {
-                        setter.accept(this.readInt());
-                    }
-                    if (aClass == int.class) {
-                        setter.accept(this.readInt());
-                    }
-                    if (aClass == Long.class) {
-                        setter.accept(this.readLong());
-                    }
-                    if (aClass == long.class) {
-                        setter.accept(this.readLong());
-                    }
-                    if (aClass == Short.class) {
-                        setter.accept(this.readShort());
-                    }
-                    if (aClass == short.class) {
-                        setter.accept(this.readShort());
-                    }
-                    if (aClass == Byte.class) {
-                        setter.accept(this.readByte());
-                    }
-                    if (aClass == byte.class) {
-                        setter.accept(this.readByte());
-                    }
-                    if (aClass == Boolean.class) {
-                        setter.accept(this.readByte() == 1);
-                    }
-                    if (aClass == boolean.class) {
-                        setter.accept(this.readByte() == 1);
-                    }
-                    if (aClass == byte[].class) {
-                        setter.accept(this.readBytes());
-                    }
-                }
-            }
-            return t;
+        public <T extends HBSEntity<T>> T decode2Obj(T t) {
+            return t.deserialize(this);
         }
 
         /**
@@ -490,12 +413,6 @@ public final class HBSPackage {
         public String readStr() {
             final byte[] bytes = readBytes();
             return new String(bytes, StandardCharsets.UTF_8);
-        }
-
-        public <T> T readObjFromJson(Class<T> tClass) {
-            String json = readStr();
-            Gson gson = new Gson();
-            return gson.fromJson(json, tClass);
         }
 
         /**
