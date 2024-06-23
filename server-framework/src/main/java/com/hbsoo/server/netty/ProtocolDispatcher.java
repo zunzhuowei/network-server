@@ -12,11 +12,15 @@ import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.handler.codec.http.websocketx.extensions.compression.WebSocketServerCompressionHandler;
+import io.netty.handler.codec.mqtt.MqttDecoder;
+import io.netty.handler.codec.mqtt.MqttEncoder;
+import io.netty.handler.codec.mqtt.MqttMessageType;
 import io.netty.handler.timeout.IdleStateHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 import java.util.Set;
 
 //@Component
@@ -64,8 +68,8 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<Object
             ctx.pipeline().remove("unknownIdleStateHandler");
             ctx.pipeline().remove("unknownServerHeartbeatHandler");
             ctx.pipeline().remove("unknownChannelInactiveHandler");
-            ctx.pipeline().addLast(new IdleStateHandler(0, 0, 10));
-            ctx.pipeline().addLast(new ServerHeartbeatHandler());
+            ctx.pipeline().addLast("idleStateHandler", new IdleStateHandler(0, 0, 10));
+            ctx.pipeline().addLast("serverHeartbeatHandler", new ServerHeartbeatHandler());
         }
         if (!protocols.contains(protocolType.name())) {
             logger.error("protocol was disable, type: {}", protocolType.name());
@@ -115,6 +119,16 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<Object
                 ctx.fireChannelRead(msg.retain());
                 break;
             }
+            case MQTT: {
+                ctx.pipeline().remove("idleStateHandler");
+                ctx.pipeline().remove("serverHeartbeatHandler");
+                ctx.pipeline().addLast(MqttEncoder.INSTANCE);
+                ctx.pipeline().addLast(new MqttDecoder());
+                ctx.pipeline().addLast(new MqttServerHandler(handler));
+                ctx.pipeline().remove(this);
+                ctx.fireChannelRead(msg.retain());
+                break;
+            }
             default: {
                 ctx.pipeline().addLast(new UnknownProtocolHandler());
                 ctx.pipeline().remove(this);
@@ -129,6 +143,10 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<Object
      * 确定协议类型
      */
     private ProtocolType determineProtocolType(ByteBuf msg) {
+        boolean readable = msg.isReadable();
+        if (!readable) {
+            return ProtocolType.UNKNOWN;
+        }
         int readableBytes = msg.readableBytes();
         if (readableBytes < 4) {
             return ProtocolType.UNKNOWN;
@@ -172,6 +190,18 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<Object
         }
         // 其他协议先不处理,PATCH,HEAD,OPTIONS,CONNECT,TRACE,PURGE,LINK,UNLINK,COPY,MOVE,PROPFIND,PROPPATCH,MKCOL,LOCK,
         // UNLOCK,SEARCH,M-SEARCH,NOTIFY,SUBSCRIBE,UNSUBSCRIBE,PATCH,MKCALENDAR,VERSION-CONTROL,REPORT,CHECKIN,CHECKOUT
+        // 读取第一个字节
+        short firstByte = msg.getUnsignedByte(0);
+        try {
+            // 尝试将消息类型转换为MqttMessageType枚举
+            // 根据MQTT规范，高四位标识消息类型
+            MqttMessageType mqttMessageType = MqttMessageType.valueOf(firstByte >> 4);
+            if (Objects.nonNull(mqttMessageType)) {
+                return ProtocolType.MQTT;
+            }
+        } catch (IllegalArgumentException e) {
+            return ProtocolType.UNKNOWN;
+        }
         return ProtocolType.UNKNOWN;
     }
 
@@ -180,6 +210,7 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<Object
         WEBSOCKET,
         TCP,
         UDP,
+        MQTT,
         UNKNOWN
     }
 
