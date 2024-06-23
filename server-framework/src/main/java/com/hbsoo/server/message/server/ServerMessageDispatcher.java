@@ -51,17 +51,33 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
     public void forward2InnerServer(HBSPackage.Builder msgBuilder, String serverType, Object key) {
         InnerClientSessionManager.forwardMsg2ServerByTypeAndKey(msgBuilder, serverType, key);
     }
+
+    /**
+     * 延迟转发到【其他内网服务器】的消息处理器中，
+     * @param delaySecond 延迟时间（秒）
+     */
     public void forward2InnerServer(HBSPackage.Builder msgBuilder, String serverType, Object key, int delaySecond) {
         delayThreadPoolScheduler.schedule(() ->
                 InnerClientSessionManager.forwardMsg2ServerByTypeAndKey(msgBuilder, serverType, key),
                 delaySecond, TimeUnit.SECONDS
         );
     }
+
+    /**
+     * 消息转发到【其他内网服务器】的消息处理器中，
+     * 使用sender发送，保证发送失败时候重发消息；
+     * {@link ServerMessageDispatcher#forward2InnerServer}
+     */
     public void forward2InnerServerUseSender(HBSPackage.Builder msgBuilder, String serverType, Object key) {
         long id = snowflakeIdGenerator.generateId();
         ForwardMessage forwardMessage = new ForwardMessage(id, msgBuilder, -1, -1, serverType, key);
         forwardMessageSender.send(forwardMessage);
     }
+    /**
+     * 消息转发到【其他内网服务器】的消息处理器中，
+     * 使用sender发送，保证发送失败时候重发消息；
+     * {@link ServerMessageDispatcher#forward2InnerServer}
+     */
     public void forward2InnerServerUseSender(HBSPackage.Builder msgBuilder, String serverType, Object key, int delaySecond) {
         long id = snowflakeIdGenerator.generateId();
         ForwardMessage forwardMessage = new ForwardMessage(id, msgBuilder, delaySecond, serverType, key);

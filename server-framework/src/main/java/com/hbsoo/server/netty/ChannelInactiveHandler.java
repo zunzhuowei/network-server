@@ -15,7 +15,7 @@ import java.util.Objects;
  * 处理失效的链接
  * Created by zun.wei on 2024/6/17.
  */
-public class ChannelInactiveHandler extends ChannelInboundHandlerAdapter {
+public final class ChannelInactiveHandler extends ChannelInboundHandlerAdapter {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ProtocolDispatcher.ProtocolType protocolType;
