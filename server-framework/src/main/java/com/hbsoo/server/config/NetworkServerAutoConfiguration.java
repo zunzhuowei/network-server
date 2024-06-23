@@ -1,7 +1,6 @@
 package com.hbsoo.server.config;
 
 import com.hbsoo.server.NetworkServer;
-import com.hbsoo.server.client.TcpClientRegister;
 import com.hbsoo.server.message.client.InnerClientMessageDispatcher;
 import com.hbsoo.server.message.queue.DefaultForwardMessageSender;
 import com.hbsoo.server.message.queue.ForwardMessageSender;
@@ -32,7 +31,7 @@ import java.util.*;
         "com.hbsoo.server.action.server",
 })
 @Import({
-        TcpClientRegister.class,
+        SpringBeanDefinitionRegistrar.class,
         InnerClientMessageDispatcher.class,
         InnerServerMessageDispatcher.class,
         OuterServerMessageDispatcher.class

@@ -1,9 +1,9 @@
-package com.hbsoo.server.client;
+package com.hbsoo.server.config;
 
 import com.hbsoo.server.NowServer;
-import com.hbsoo.server.config.ServerInfo;
+import com.hbsoo.server.client.TcpClient;
+import com.hbsoo.server.message.entity.HBSPackage;
 import com.hbsoo.server.session.InnerClientSessionManager;
-//import com.hbsoo.server.session.InnerServerSessionManager;
 import org.springframework.beans.factory.config.ConstructorArgumentValues;
 import org.springframework.beans.factory.support.AbstractBeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
@@ -14,6 +14,7 @@ import org.springframework.core.env.*;
 import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.util.StringUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -22,7 +23,7 @@ import java.util.stream.Collectors;
  * 将内部服务链接用的客户端 注册到spring容器中
  * Created by zun.wei on 2024/6/9.
  */
-public final class TcpClientRegister implements ImportBeanDefinitionRegistrar, EnvironmentAware {
+public final class SpringBeanDefinitionRegistrar implements ImportBeanDefinitionRegistrar, EnvironmentAware {
 
     private Environment environment;
 
@@ -74,7 +75,7 @@ public final class TcpClientRegister implements ImportBeanDefinitionRegistrar, E
             }
         }
         // 获取当前服务器id
-        final String serverIdStr = environment.getProperty("hbsoo.server.id");
+        String serverIdStr = environment.getProperty("hbsoo.server.id");
         Integer id = Integer.parseInt(serverIdStr);//当前服务器id
         Optional<ServerInfo> optional = innerServers.stream().filter(e -> e.getId().equals(id)).findFirst();
         ServerInfo fromServerInfo = optional.get();//当前服务器信息
@@ -85,6 +86,23 @@ public final class TcpClientRegister implements ImportBeanDefinitionRegistrar, E
         for (String serverType : NowServer.getServerTypes()) {
             InnerClientSessionManager.clientsMap.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
             //InnerServerSessionManager.clientsMap.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
+        }
+
+        // 初始化消息头
+        String tcpHeader = environment.getProperty("hbsoo.server.tcpHeader");
+        if (StringUtils.hasText(tcpHeader)) {
+            if (!(tcpHeader.getBytes(StandardCharsets.UTF_8).length % 2 == 0)) {
+                throw new RuntimeException("tcp header.length % 2 must equal 0");
+            }
+            HBSPackage.setTcpHeader(tcpHeader.getBytes(StandardCharsets.UTF_8));
+        }
+        String udpHeader = environment.getProperty("hbsoo.server.udpHeader");
+        if (StringUtils.hasText(udpHeader)) {
+            if (!(udpHeader.getBytes(StandardCharsets.UTF_8).length % 2 == 0)) {
+                System.exit(-1);
+                throw new RuntimeException("udp header.length % 2 must equal 0");
+            }
+            HBSPackage.setUdpHeader(udpHeader.getBytes(StandardCharsets.UTF_8));
         }
 
         // 注册内网客户端

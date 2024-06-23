@@ -1,11 +1,13 @@
 package com.hbsoo.server.netty;
 
+import com.hbsoo.server.message.entity.HBSPackage;
 import com.hbsoo.server.message.server.ServerMessageHandler;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.socket.DatagramPacket;
 import io.netty.channel.socket.nio.NioDatagramChannel;
+import io.netty.handler.codec.DecoderException;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.http.HttpContentCompressor;
 import io.netty.handler.codec.http.HttpObjectAggregator;
@@ -20,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Objects;
+import java.util.Arrays;
 import java.util.Set;
 
 //@Component
@@ -79,7 +81,7 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<Object
         switch (protocolType) {
             case TCP: {
                 ctx.pipeline().addLast(new LengthFieldBasedFrameDecoder
-                        (maxFrameLength, 4, 4, 0, 0));
+                        (maxFrameLength, HBSPackage.TCP_HEADER.length, 4, 0, 0));
                 ctx.pipeline().addLast(new TcpServerHandler(handler));
                 ctx.pipeline().remove(this);
                 ctx.fireChannelRead(msg.retain());
@@ -87,7 +89,7 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<Object
             }
             case UDP: {
                 ctx.pipeline().addLast(new LengthFieldBasedFrameDecoder
-                        (maxFrameLength, 4, 4, 0, 0));
+                        (maxFrameLength, HBSPackage.UDP_HEADER.length, 4, 0, 0));
                 ctx.pipeline().addLast(new UdpServerHandler(handler));
                 ctx.pipeline().remove(this);
                 ctx.fireChannelRead(msg.retain());
@@ -148,20 +150,26 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<Object
             return ProtocolType.UNKNOWN;
         }
         int readableBytes = msg.readableBytes();
+        if (readableBytes >= HBSPackage.TCP_HEADER.length) {
+            byte[] tcpHeader = new byte[HBSPackage.TCP_HEADER.length];
+            msg.getBytes(0, tcpHeader);
+            if (Arrays.equals(tcpHeader, HBSPackage.TCP_HEADER)) {
+                return ProtocolType.TCP;
+            }
+        }
+        if (readableBytes >= HBSPackage.UDP_HEADER.length) {
+            byte[] udpHeader = new byte[HBSPackage.UDP_HEADER.length];
+            msg.getBytes(0, udpHeader);
+            if (Arrays.equals(udpHeader, HBSPackage.UDP_HEADER)) {
+                return ProtocolType.UDP;
+            }
+        }
         if (readableBytes < 4) {
             return ProtocolType.UNKNOWN;
         }
         byte[] tempBytes = new byte[4];
-        msg.getBytes(msg.readerIndex(), tempBytes);
+        msg.getBytes(0, tempBytes);
         String tag = new String(tempBytes);
-        if (tempBytes[0] == 'T' || tempBytes[0] == 'U') {
-            if ("THBS".equals(tag)) {
-                return ProtocolType.TCP;
-            }
-            if ("UHBS".equals(tag)) {
-                return ProtocolType.UDP;
-            }
-        }
         if (tag.startsWith("GET")) {
             if (readableBytes > 7) {
                 byte[] firstLine = new byte[7];
@@ -190,16 +198,12 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<Object
         }
         // 其他协议先不处理,PATCH,HEAD,OPTIONS,CONNECT,TRACE,PURGE,LINK,UNLINK,COPY,MOVE,PROPFIND,PROPPATCH,MKCOL,LOCK,
         // UNLOCK,SEARCH,M-SEARCH,NOTIFY,SUBSCRIBE,UNSUBSCRIBE,PATCH,MKCALENDAR,VERSION-CONTROL,REPORT,CHECKIN,CHECKOUT
-        // 读取第一个字节
-        short firstByte = msg.getUnsignedByte(0);
         try {
-            // 尝试将消息类型转换为MqttMessageType枚举
-            // 根据MQTT规范，高四位标识消息类型
-            MqttMessageType mqttMessageType = MqttMessageType.valueOf(firstByte >> 4);
-            if (Objects.nonNull(mqttMessageType)) {
+            boolean mqttFixedHeader = isMqttFixedHeader(msg);
+            if (mqttFixedHeader) {
                 return ProtocolType.MQTT;
             }
-        } catch (IllegalArgumentException e) {
+        } catch (Exception e) {
             return ProtocolType.UNKNOWN;
         }
         return ProtocolType.UNKNOWN;
@@ -238,6 +242,86 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<Object
         //boolean containsConnectionUpgrade = requestHeader.contains("Connection: Upgrade");
         //boolean containsUpgradeWebsocket = requestHeader.contains("Upgrade: websocket");
         return raw.contains("connection: upgrade") && raw.contains("upgrade: websocket");
+    }
+
+    /**
+     * 是否为MQTT协议
+     */
+    private static boolean isMqttFixedHeader(ByteBuf buffer) {
+        try {
+            short b1 = buffer.readUnsignedByte();
+            MqttMessageType messageType = MqttMessageType.valueOf(b1 >> 4);
+            boolean dupFlag = (b1 & 8) == 8;
+            int qosLevel = (b1 & 6) >> 1;
+            boolean retain = (b1 & 1) != 0;
+            switch(messageType) {
+                case PUBLISH:
+                    if (qosLevel == 3) {
+                        throw new DecoderException("Illegal QOS Level in fixed header of PUBLISH message (" + qosLevel + ')');
+                    }
+                    break;
+                case PUBREL:
+                case SUBSCRIBE:
+                case UNSUBSCRIBE:
+                    if (dupFlag) {
+                        throw new DecoderException("Illegal BIT 3 in fixed header of " + messageType + " message, must be 0, found 1");
+                    }
+
+                    if (qosLevel != 1) {
+                        throw new DecoderException("Illegal QOS Level in fixed header of " + messageType + " message, must be 1, found " + qosLevel);
+                    }
+
+                    if (retain) {
+                        throw new DecoderException("Illegal BIT 0 in fixed header of " + messageType + " message, must be 0, found 1");
+                    }
+                    break;
+                case AUTH:
+                case CONNACK:
+                case CONNECT:
+                case DISCONNECT:
+                case PINGREQ:
+                case PINGRESP:
+                case PUBACK:
+                case PUBCOMP:
+                case PUBREC:
+                case SUBACK:
+                case UNSUBACK:
+                    if (dupFlag) {
+                        throw new DecoderException("Illegal BIT 3 in fixed header of " + messageType + " message, must be 0, found 1");
+                    }
+
+                    if (qosLevel != 0) {
+                        throw new DecoderException("Illegal BIT 2 or 1 in fixed header of " + messageType + " message, must be 0, found " + qosLevel);
+                    }
+
+                    if (retain) {
+                        throw new DecoderException("Illegal BIT 0 in fixed header of " + messageType + " message, must be 0, found 1");
+                    }
+                    break;
+                default:
+                    throw new DecoderException("Unknown message type, do not know how to validate fixed header");
+            }
+
+            int remainingLength = 0;
+            int multiplier = 1;
+            int loops = 0;
+
+            short digit;
+            do {
+                digit = buffer.readUnsignedByte();
+                remainingLength += (digit & 127) * multiplier;
+                multiplier *= 128;
+                ++loops;
+            } while((digit & 128) != 0 && loops < 4);
+
+            if (loops == 4 && (digit & 128) != 0) {
+                throw new DecoderException("remaining length exceeds 4 digits (" + messageType + ')');
+            } else {
+                return true;
+            }
+        } finally {
+            buffer.resetReaderIndex();
+        }
     }
 
 }

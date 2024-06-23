@@ -6,7 +6,7 @@ import java.util.Map;
 /**
  * Created by zun.wei on 2024/6/8.
  */
-public class TextWebSocketPackage implements Serializable {
+public final class TextWebSocketPackage implements Serializable {
 
     private int msgType;
 

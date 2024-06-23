@@ -24,8 +24,14 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public final class HBSPackage {
 
-    public static final byte[] TCP_HEADER = new byte[]{'T', 'H', 'B', 'S'};
-    public static final byte[] UDP_HEADER = new byte[]{'U', 'H', 'B', 'S'};
+    public static byte[] TCP_HEADER = new byte[]{'T', 'H', 'B', 'S'};
+    public static byte[] UDP_HEADER = new byte[]{'U', 'H', 'B', 'S'};
+    public static void setTcpHeader(byte[] header) {
+        TCP_HEADER = header;
+    }
+    public static void setUdpHeader(byte[] header) {
+        UDP_HEADER = header;
+    }
 
     public static class Builder {
         private final AtomicInteger packageLength = new AtomicInteger(0);
@@ -34,7 +40,9 @@ public final class HBSPackage {
         private final List<Byte> msgTypeList = new ArrayList<>();
 
         private Builder(byte[] header) {
-            assert header.length % 2 == 0;
+            if (!(header.length % 2 == 0)) {
+                throw new RuntimeException("header.length % 2 must equal 0");
+            }
             for (byte aByte : header) {
                 this.headerByteList.add(aByte);
             }
@@ -247,13 +255,13 @@ public final class HBSPackage {
 
         public void buildAndSendUdpTo(Channel channel, String host, int port) {
             byte[] bytes = buildPackage();
-            DatagramPacket packet = new DatagramPacket(Unpooled.copiedBuffer(bytes),
+            DatagramPacket packet = new DatagramPacket(Unpooled.wrappedBuffer(bytes),
                     new InetSocketAddress(host, port));
             channel.writeAndFlush(packet);
         }
         public void buildAndSendUdpTo(Channel channel, String host, int port, GenericFutureListener<? extends Future<? super Void>> futureListener) {
             byte[] bytes = buildPackage();
-            DatagramPacket packet = new DatagramPacket(Unpooled.copiedBuffer(bytes),
+            DatagramPacket packet = new DatagramPacket(Unpooled.wrappedBuffer(bytes),
                     new InetSocketAddress(host, port));
             channel.writeAndFlush(packet).addListener(futureListener);
         }

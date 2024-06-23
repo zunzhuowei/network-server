@@ -1,6 +1,8 @@
 hbsoo:
   server:
     id: 2000
+    tcpHeader: THBS
+    udpHeader: UHBS
     threadPoolSize:
       innerClient: 5
       innerServer: 5
