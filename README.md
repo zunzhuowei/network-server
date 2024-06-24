@@ -1,5 +1,5 @@
 <h1 align="center" style="margin: 30px 0 30px; font-weight: bold;">Network-Server</h1>
-<h4 align="center">Simplifying the construction of network cluster services</h4>
+<h3 align="center">Simplifying the construction of network cluster services</h3>
 
 ### Introduction
 > Based on Netty network framework and Springboot framework.
@@ -62,6 +62,8 @@
 ```yaml
 hbsoo:
   server:
+    tcpHeader: THBS # TCP header
+    udpHeader: UHBS # UDP header
     id: 1000 #Current node id
     threadPoolSize:
       innerClient: 5 #Inner client side business thread pool size
@@ -88,6 +90,65 @@ hbsoo:
         type: room
         clientAmount: 1
         id: 3000
+```
+5. Define the HTTP message handler as follows
+```java
+@OuterServerMessageHandler(value = 0, uri = "/index", protocol = Protocol.HTTP)
+public class IndexAction extends HttpServerMessageDispatcher {
+
+    @Autowired
+    private IGenealogyService genealogyService;
+
+    @Override
+    public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) {
+        final List<Genealogy> genealogies = genealogyService.listAll();
+        addResponseListener(future -> {
+            if (future.isSuccess()) {
+                System.out.println("writeAndFlush success");
+            } else {
+                System.out.println("writeAndFlush fail");
+            }
+        }).responseJson(ctx, genealogies, response -> {});
+
+        forward2InnerServerUseSender(
+                HBSPackage.Builder.withDefaultHeader()
+                        .msgType(100).writeStr(genealogies.toString()),
+                "hall",
+                "",3);
+    }
+
+    @Override
+    public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
+        return null;
+    }
+}
+```
+6. Define the WEBSOCKET message handler as follows
+```java
+@OuterServerMessageHandler(HBSMessageType.Outer.LOGIN)
+public class UserLoginActionTest extends ServerMessageDispatcher {
+
+    @Autowired
+    private OuterSessionManager outerSessionManager;
+
+    @Override
+    public void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
+        final String dataJson = decoder.readStr();
+        System.out.println("UserLoginActionTest dataJson = " + dataJson);
+        Gson gson = new Gson();
+        TextWebSocketPackage textWebSocketPackage = gson.fromJson(dataJson, TextWebSocketPackage.class);
+        Map<String, Object> data = textWebSocketPackage.getData();
+        UserSession userSession = gson.fromJson(gson.toJson(data), UserSession.class);
+        userSession.setBelongServer(NowServer.getServerInfo());
+        userSession.setChannel(ctx.channel());
+        outerSessionManager.loginAndSyncAllServer(userSession.getId(), userSession);
+    }
+
+    @Override
+    public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
+        return null;
+    }
+}
 ```
 ### How to develop
 1. You must had installed JDK 1.8+ and Maven 3.x
