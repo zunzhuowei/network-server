@@ -16,7 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * 接收外部服务器登录后，同步用户会话信息到本服务器保存
  * Created by zun.wei on 2024/6/6.
  */
-@InnerServerMessageHandler(HBSMessageType.InnerMessageType.LOGIN_SYNC)
+@InnerServerMessageHandler(HBSMessageType.Inner.LOGIN_SYNC)
 public class InnerServerUserSessionLoginSyncAction extends ServerMessageDispatcher {
 
     private static final Logger logger = LoggerFactory.getLogger(InnerServerUserSessionLoginSyncAction.class);

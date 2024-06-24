@@ -1,7 +1,6 @@
 package com.hbsoo.server.action.client.outer;
 
 import com.hbsoo.server.NowServer;
-import com.hbsoo.server.action.server.InnerServerHeartbeatAction;
 import com.hbsoo.server.annotation.OuterServerMessageHandler;
 import com.hbsoo.server.client.outer.WebsocketOuterUserLoginAuthenticator;
 import com.hbsoo.server.message.HBSMessageType;
@@ -20,7 +19,7 @@ import java.util.Objects;
 /**
  * Created by zun.wei on 2024/6/12.
  */
-@OuterServerMessageHandler(HBSMessageType.OuterMessageType.LOGIN)
+@OuterServerMessageHandler(value = HBSMessageType.Outer.LOGIN, permission = {})
 public class OuterWebsocketUserLoginAction extends ServerMessageDispatcher {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 

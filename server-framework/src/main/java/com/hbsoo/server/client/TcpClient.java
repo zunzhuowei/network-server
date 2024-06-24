@@ -5,7 +5,6 @@ import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.entity.HBSPackage;
 import com.hbsoo.server.message.client.InnerClientMessageDispatcher;
 import com.hbsoo.server.session.OuterSessionManager;
-import com.hbsoo.server.session.UserSession;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -16,7 +15,6 @@ import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.timeout.IdleStateHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -78,7 +76,7 @@ public final class TcpClient {
                 final Channel channel = future.channel();
                 // 登录消息
                 byte[] aPackage = HBSPackage.Builder.withDefaultHeader()
-                        .msgType(HBSMessageType.InnerMessageType.LOGIN)
+                        .msgType(HBSMessageType.Inner.LOGIN)
                         .writeInt(fromServerInfo.getId())//当前服务器的ID
                         .writeStr(fromServerInfo.getType())//当前服务器的类型
                         .writeInt(index)//客户端编号

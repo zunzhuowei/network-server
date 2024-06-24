@@ -17,7 +17,7 @@ import java.util.Map;
 /**
  * Created by zun.wei on 2024/6/12.
  */
-@OuterServerMessageHandler(HBSMessageType.OuterMessageType.LOGOUT)
+@OuterServerMessageHandler(HBSMessageType.Outer.LOGOUT)
 public class UserLogoutActionTest extends ServerMessageDispatcher {
 
     @Autowired

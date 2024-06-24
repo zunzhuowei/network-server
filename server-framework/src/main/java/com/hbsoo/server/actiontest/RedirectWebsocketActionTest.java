@@ -10,7 +10,7 @@ import io.netty.channel.ChannelHandlerContext;
 /**
  * Created by zun.wei on 2024/6/11.
  */
-@InnerServerMessageHandler(value = HBSMessageType.InnerMessageType.LOGOUT,
+@InnerServerMessageHandler(value = HBSMessageType.Inner.LOGOUT,
         protocol = Protocol.WEBSOCKET)
 public class RedirectWebsocketActionTest extends ServerMessageDispatcher {
 

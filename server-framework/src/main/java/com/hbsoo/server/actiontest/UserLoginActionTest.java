@@ -17,7 +17,7 @@ import java.util.Map;
 /**
  * Created by zun.wei on 2024/6/12.
  */
-@OuterServerMessageHandler(HBSMessageType.OuterMessageType.LOGIN)
+@OuterServerMessageHandler(HBSMessageType.Outer.LOGIN)
 public class UserLoginActionTest extends ServerMessageDispatcher {
 
     @Autowired

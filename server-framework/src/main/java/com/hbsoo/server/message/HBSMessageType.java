@@ -5,7 +5,7 @@ package com.hbsoo.server.message;
  */
 public interface HBSMessageType {
 
-    interface InnerMessageType {
+    interface Inner {
         int LOGIN = 1;
         int LOGOUT = 2;
         int HEARTBEAT = 3;
@@ -20,7 +20,7 @@ public interface HBSMessageType {
         int LOGOUT_SYNC = 12;
     }
 
-    interface OuterMessageType {
+    interface Outer {
         int LOGIN = 1;
         int LOGOUT = 2;
         int HEARTBEAT = 3;
@@ -32,5 +32,6 @@ public interface HBSMessageType {
         int REDIRECT_TO_ALL_CLIENT = 9;
         int REDIRECT_TO_ALL_SERVER =10;
         int LOGIN_SYNC = 11;
+        int PERMISSION_DENIED = 403;
     }
 }

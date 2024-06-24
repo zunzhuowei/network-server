@@ -3,7 +3,6 @@ package com.hbsoo.server.action.client.outer;
 import com.hbsoo.server.NowServer;
 import com.hbsoo.server.annotation.OuterServerMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
-import com.hbsoo.server.client.outer.TcpOuterUserLoginAuthenticator;
 import com.hbsoo.server.client.outer.UdpOuterUserLoginAuthenticator;
 import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.entity.HBSPackage;
@@ -22,8 +21,9 @@ import java.util.Objects;
  * Created by zun.wei on 2024/6/12.
  */
 @OuterServerMessageHandler(
-        value = HBSMessageType.OuterMessageType.LOGIN,
-        protocol = Protocol.UDP)
+        value = HBSMessageType.Outer.LOGIN,
+        protocol = Protocol.UDP,
+        permission = {})
 public class OuterUdpUserLoginAction extends ServerMessageDispatcher {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 

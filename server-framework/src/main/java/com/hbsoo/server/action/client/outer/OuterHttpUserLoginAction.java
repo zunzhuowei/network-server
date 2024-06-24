@@ -4,12 +4,10 @@ import com.hbsoo.server.NowServer;
 import com.hbsoo.server.annotation.OuterServerMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
 import com.hbsoo.server.client.outer.HttpOuterUserLoginAuthenticator;
-import com.hbsoo.server.client.outer.WebsocketOuterUserLoginAuthenticator;
 import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.entity.HBSPackage;
 import com.hbsoo.server.message.entity.HttpPackage;
 import com.hbsoo.server.message.server.HttpServerMessageDispatcher;
-import com.hbsoo.server.message.server.ServerMessageDispatcher;
 import com.hbsoo.server.session.OuterSessionManager;
 import com.hbsoo.server.session.UserSession;
 import io.netty.channel.ChannelHandlerContext;
@@ -24,9 +22,10 @@ import java.util.Objects;
  * Created by zun.wei on 2024/6/12.
  */
 @OuterServerMessageHandler(
-        value = HBSMessageType.OuterMessageType.LOGIN,
+        value = HBSMessageType.Outer.LOGIN,
         uri = "/login",
-        protocol = Protocol.HTTP)
+        protocol = Protocol.HTTP,
+        permission = {})
 public class OuterHttpUserLoginAction extends HttpServerMessageDispatcher {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 

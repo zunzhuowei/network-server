@@ -10,6 +10,7 @@
 ---
 ![images](docs/pngs/Nodes.png)
 ### Existing features
+
 1. Supports multiple network protocols, including TCP, UDP, HTTP, and WEBSOCKET; Multiple protocols can be configured on the same port.
 
 [comment]: <> (1. 多网络协议支持，支持TCP、UDP、HTTP、WEBSOCKET协议;同端口支持多种协议（可配置）)
@@ -35,7 +36,16 @@
    and use `Caffeine` to implement the local cache operation.
    If you need to use a caching module, you can use it.`that is optional`.
 
-4. `gateway-server`、`hall-server`、`room-server`: These are three sample nodes of the cluster, and you can refer to their configurations to get your own cluster
+
+4. `server-permission`: The permission module of the framework,
+   Use Spring AOP and annotations to control interface permissions. 
+   The HTTP protocol uses the request header entrainment JWT method,
+   the UDP protocol uses the JWT string as the first field, 
+   and the AttributeKey:permission field in the channel is used for TCP and WebSocket
+   If you need to use a permission module, you can use it.`that is optional`.
+   
+
+5. `gateway-server`、`hall-server`、`room-server`: These are three `sample nodes` of the cluster, and you can refer to their configurations to get your own cluster
 
 ### How to use
 1. You must had installed JDK 1.8+ and Maven 3.x
@@ -117,4 +127,4 @@ hbsoo:
 26. MQTT协议支持？
 27. ~~协议头配置化~~？
 28. 注册接口？
-29. 接口权限控制？
+29. ~~接口权限控制？~~

@@ -18,7 +18,7 @@ import java.util.Map;
  * 内部服务器登录接口
  * Created by zun.wei on 2024/6/6.
  */
-@InnerServerMessageHandler(HBSMessageType.InnerMessageType.LOGIN)
+@InnerServerMessageHandler(HBSMessageType.Inner.LOGIN)
 public class InnerServerLoginAction extends ServerMessageDispatcher {
 
     private static final Logger logger = LoggerFactory.getLogger(InnerServerLoginAction.class);
@@ -37,7 +37,7 @@ public class InnerServerLoginAction extends ServerMessageDispatcher {
         ctx.channel().attr(AttributeKeyConstants.isInnerClientAttr).set(true);
         //InnerServerSessionManager.innerLogin(ServerType.valueOf(serverTypeStr), serverId, ctx.channel(), index);
         HBSPackage.Builder.withDefaultHeader()
-                .msgType(HBSMessageType.InnerMessageType.LOGIN)
+                .msgType(HBSMessageType.Inner.LOGIN)
                 .writeInt(id)//当前服务器id
                 .writeStr(loginServerTypeStr)//当前服务器类型
                 .writeInt(index)//客户端编号
@@ -50,7 +50,7 @@ public class InnerServerLoginAction extends ServerMessageDispatcher {
             clients.forEach((userId, userSession) -> {
                 // 登录服务器
                 HBSPackage.Builder builder = HBSPackage.Builder.withDefaultHeader()
-                        .msgType(HBSMessageType.InnerMessageType.LOGIN_SYNC)
+                        .msgType(HBSMessageType.Inner.LOGIN_SYNC)
                         .writeLong(userId)//登录用户id
                         //.writeStr(userSession.getName())
                         //.writeStr(userSession.getToken())

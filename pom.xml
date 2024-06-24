@@ -16,6 +16,7 @@
         <module>room-server</module>
         <module>server-database</module>
         <module>server-cache</module>
+        <module>server-permission</module>
     </modules>
 
     <properties>

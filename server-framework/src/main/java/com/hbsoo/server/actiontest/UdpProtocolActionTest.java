@@ -13,7 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 /**
  * Created by zun.wei on 2024/6/12.
  */
-@OuterServerMessageHandler(value = HBSMessageType.OuterMessageType.LOGIN, protocol = Protocol.UDP)
+@OuterServerMessageHandler(value = HBSMessageType.Outer.LOGIN, protocol = Protocol.UDP)
 public class UdpProtocolActionTest extends ServerMessageDispatcher {
 
     @Autowired
@@ -31,7 +31,7 @@ public class UdpProtocolActionTest extends ServerMessageDispatcher {
         redirectAndSwitchProtocol(ctx,
                 ProtocolType.INNER_WEBSOCKET,
                 HBSPackage.Builder.withHeader(HBSPackage.TCP_HEADER)
-                .msgType(HBSMessageType.InnerMessageType.LOGOUT)
+                .msgType(HBSMessageType.Inner.LOGOUT)
                 .writeStr("hahahaha").toDecoder()
         );
         /*System.out.println("UserLoginActionTest dataJson = " + dataJson);

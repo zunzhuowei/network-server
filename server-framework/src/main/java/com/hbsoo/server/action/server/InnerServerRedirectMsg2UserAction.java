@@ -15,7 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * 接收内部服务器的消息，转发给登录的外部客户
  * Created by zun.wei on 2024/6/6.
  */
-@InnerServerMessageHandler(HBSMessageType.InnerMessageType.REDIRECT)
+@InnerServerMessageHandler(HBSMessageType.Inner.REDIRECT)
 public class InnerServerRedirectMsg2UserAction extends ServerMessageDispatcher {
 
     private static final Logger logger = LoggerFactory.getLogger(InnerServerRedirectMsg2UserAction.class);

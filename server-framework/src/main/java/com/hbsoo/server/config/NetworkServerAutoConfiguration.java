@@ -7,10 +7,7 @@ import com.hbsoo.server.message.queue.ForwardMessageSender;
 import com.hbsoo.server.message.server.InnerServerMessageDispatcher;
 import com.hbsoo.server.message.server.OuterServerMessageDispatcher;
 import com.hbsoo.server.session.OuterSessionManager;
-import com.hbsoo.server.utils.DelayThreadPoolScheduler;
-import com.hbsoo.server.utils.SnowflakeIdGenerator;
-import com.hbsoo.server.utils.SpringBeanFactory;
-import com.hbsoo.server.utils.ThreadPoolScheduler;
+import com.hbsoo.server.utils.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -34,7 +31,7 @@ import java.util.*;
         SpringBeanDefinitionRegistrar.class,
         InnerClientMessageDispatcher.class,
         InnerServerMessageDispatcher.class,
-        OuterServerMessageDispatcher.class
+        OuterServerMessageDispatcher.class,
 })
 @Configuration
 @EnableConfigurationProperties(ServerInfoProperties.class)

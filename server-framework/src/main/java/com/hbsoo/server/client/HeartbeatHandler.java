@@ -31,7 +31,7 @@ public final class HeartbeatHandler extends ChannelInboundHandlerAdapter {
             if (event.state() == IdleState.ALL_IDLE) {
                 // 发送心跳包
                 byte[] msg = HBSPackage.Builder.withDefaultHeader()
-                        .msgType(HBSMessageType.InnerMessageType.HEARTBEAT).buildPackage();
+                        .msgType(HBSMessageType.Inner.HEARTBEAT).buildPackage();
                 ByteBuf buf = Unpooled.wrappedBuffer(msg);
                 ctx.writeAndFlush(buf).sync();
                 //System.out.println("Sent heartbeat to server");

@@ -244,12 +244,12 @@ public final class HBSPackage {
 
         public void buildAndSendTextWebSocketTo(Channel channel) {
             byte[] bytes = buildPackage();
-            TextWebSocketFrame frame = new TextWebSocketFrame(Unpooled.wrappedBuffer(bytes));
+            TextWebSocketFrame frame = new TextWebSocketFrame(new String(bytes, StandardCharsets.UTF_8));
             channel.writeAndFlush(frame);
         }
         public void buildAndSendTextWebSocketTo(Channel channel, GenericFutureListener<? extends Future<? super Void>> futureListener) {
             byte[] bytes = buildPackage();
-            TextWebSocketFrame frame = new TextWebSocketFrame(Unpooled.wrappedBuffer(bytes));
+            TextWebSocketFrame frame = new TextWebSocketFrame(new String(bytes, StandardCharsets.UTF_8));
             channel.writeAndFlush(frame).addListener(futureListener);
         }
 

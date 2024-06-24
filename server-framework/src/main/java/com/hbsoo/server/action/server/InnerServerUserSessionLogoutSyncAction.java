@@ -14,7 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * 接收外部服务器登出后，同步删除本服会话信息
  * Created by zun.wei on 2024/6/6.
  */
-@InnerServerMessageHandler(HBSMessageType.InnerMessageType.LOGOUT_SYNC)
+@InnerServerMessageHandler(HBSMessageType.Inner.LOGOUT_SYNC)
 public class InnerServerUserSessionLogoutSyncAction extends ServerMessageDispatcher {
 
     private static final Logger logger = LoggerFactory.getLogger(InnerServerUserSessionLogoutSyncAction.class);

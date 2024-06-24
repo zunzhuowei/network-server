@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
  * 接收服务端返回的心跳消息
  * Created by zun.wei on 2024/6/6.
  */
-@InnerClientMessageHandler(HBSMessageType.InnerMessageType.HEARTBEAT)
+@InnerClientMessageHandler(HBSMessageType.Inner.HEARTBEAT)
 public class InnerClientHeartbeatAction extends ClientMessageDispatcher {
 
     private static final Logger logger = LoggerFactory.getLogger(InnerClientHeartbeatAction.class);

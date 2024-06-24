@@ -11,7 +11,6 @@ import com.hbsoo.server.message.entity.HBSPackage;
 import com.hbsoo.server.message.queue.ForwardMessageSender;
 import com.hbsoo.server.netty.AttributeKeyConstants;
 import com.hbsoo.server.utils.SnowflakeIdGenerator;
-import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.socket.DatagramPacket;
@@ -97,7 +96,7 @@ public final class OuterSessionManager {
         // 保存id,断线的时候踢出登录
         userSession.getChannel().attr(AttributeKeyConstants.idAttr).set(userSession.getId());
         HBSPackage.Builder builder = HBSPackage.Builder.withDefaultHeader()
-                .msgType(HBSMessageType.InnerMessageType.LOGIN_SYNC)
+                .msgType(HBSMessageType.Inner.LOGIN_SYNC)
                 .writeLong(id)//登录用户id
                 .writeInt(userSession.getBelongServer().getId()) //登录所属服务器id
                 .writeStr(userSession.getBelongServer().getHost())
@@ -125,7 +124,7 @@ public final class OuterSessionManager {
         logout(id);
         InnerClientSessionManager.forwardMsg2AllServerByKeyUseSender(
                 HBSPackage.Builder.withDefaultHeader()
-                        .msgType(HBSMessageType.InnerMessageType.LOGOUT_SYNC)
+                        .msgType(HBSMessageType.Inner.LOGOUT_SYNC)
                         .writeLong(id),
                 id
         );
@@ -221,7 +220,7 @@ public final class OuterSessionManager {
                     //转发到他登录的服务器中，再由登录服务器转发给用户
                     HBSPackage.Builder redirectPackage = HBSPackage.Builder
                             .withDefaultHeader()
-                            .msgType(HBSMessageType.InnerMessageType.REDIRECT)
+                            .msgType(HBSMessageType.Inner.REDIRECT)
                             .writeLong(id)//用户id
                             .writeStr(protocol.name())//用户协议类型
                             .writeBytes(innerPackage);//转发的消息

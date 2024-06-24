@@ -20,6 +20,7 @@ import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.annotation.AnnotationUtils;
 
 import java.lang.annotation.Annotation;
 import java.nio.ByteBuffer;
@@ -57,7 +58,14 @@ interface CommonDispatcher {
                 .filter(handler -> handler instanceof ServerMessageDispatcher)
                 .map(handler -> (ServerMessageDispatcher) handler)
                 .forEach(handler -> {
-                    T annotation = handler.getClass().getAnnotation(serverMessageHandler);
+                    T annotation = AnnotationUtils.findAnnotation(handler.getClass(), serverMessageHandler);
+                    //1.获取目标类上的目标注解（可判断目标类是否存在该注解）
+                    //HasPermission annotationInClass = AnnotationUtils.findAnnotation(handler.getBeanType(), serverMessageHandler);
+                    //2.获取目标方法上的目标注解（可判断目标方法是否存在该注解）
+                    //HasPermission annotationInMethod = AnnotationUtils.findAnnotation(handler.getMethod(), serverMessageHandler);
+                    if (annotation == null) {
+                        return;
+                    }
                     boolean inner = annotation instanceof InnerServerMessageHandler;
                     //boolean outer = annotation instanceof OuterServerMessageHandler;
                     Protocol protocol = inner ? ((InnerServerMessageHandler) annotation).protocol() : ((OuterServerMessageHandler) annotation).protocol();

@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
  * 内部服务器-客户端登录后，对服务器返回值处理
  * Created by zun.wei on 2024/6/6.
  */
-@InnerClientMessageHandler(HBSMessageType.InnerMessageType.LOGIN)
+@InnerClientMessageHandler(HBSMessageType.Inner.LOGIN)
 public class InnerClientLoginAction extends ClientMessageDispatcher {
 
     private static final Logger logger = LoggerFactory.getLogger(InnerClientLoginAction.class);
