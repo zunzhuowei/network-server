@@ -20,32 +20,39 @@
 3. Supports message forwarding between internal and external networks
 
 ### Modules introduction
-1. `server-framework`: The core module of the framework, 
+1. `server-framework`: The `core module` of the framework, 
    which provides the basic configuration of the framework, 
    and the configuration of the network protocol,
    the message forwarding, and the message processing.
    
 
-2. `server-database`: The database module of the framework, 
+2. `server-database`: The `database` module of the framework, 
    use `Mybatis` and `MySQL` to implement the database operation.
    If you need to use a MySQL database, you can use it.`that is optional`.
    
 
-3. `server-cache`: The cache module of the framework, 
+3. `server-cache`: The `cache` module of the framework, 
    use `Redisson` to implement the `Redis` cache operation,
    and use `Caffeine` to implement the local cache operation.
    If you need to use a caching module, you can use it.`that is optional`.
 
 
-4. `server-permission`: The permission module of the framework,
-   Use Spring AOP and annotations to control interface permissions. 
+4. `server-permission`: The `permission` module of the framework,
+   Use `Spring AOP` and annotations to control interface permissions. 
    The HTTP protocol uses the request header entrainment JWT method,
    the UDP protocol uses the JWT string as the first field, 
-   and the AttributeKey:permission field in the channel is used for TCP and WebSocket
+   and the AttributeKey:permission field in the channel is used for TCP and WebSocket.
    If you need to use a permission module, you can use it.`that is optional`.
-   
 
-5. `gateway-server`、`hall-server`、`room-server`: These are three `sample nodes` of the cluster, and you can refer to their configurations to get your own cluster
+
+5. `server-access-control`: The `access control` module of the framework,
+   Use `Spring AOP` and annotations and `Guava library` to limit the rate of the interface.
+   You can limit the rate of interfaces uniformly or based on user granularity, and configure IP blacklists and whitelists.
+   If you need to use a permission module, you can use it.`that is optional`.   
+
+
+6. `gateway-server`、`hall-server`、`room-server`: These are three `sample nodes` of the cluster,
+   and you can refer to their configurations to get your own cluster
 
 ### How to use
 1. You must had installed JDK 1.8+ and Maven 3.x
@@ -171,10 +178,10 @@ public class UserLoginActionTest extends ServerMessageDispatcher {
 9. ~~服务端、客户端消息转发待测试~~
 10. ~~延迟线程池装配，任务执行完之后，处理逻辑~~
 11. ~~http协议抽离~~
-12. 完善readme
+12. ~~完善readme~~
 13. ~~mysql~~、~~mybatis~~、~~redis~~、mq等配置
 14. ~~本地缓存~~~~，缓存失效时间，缓存失效时，重新查询数据库~~
-15. 请求限流
+15. ~~请求限流~~
 16. ~~内网消息队列和失败重发机制~~，~~添加权重转发机制~~
 17. ~~为避免长时间占用链接，没有登录的链接，服务端添加心跳检测机制，如果超过一定时间没有收到心跳，则主动断开链接~~
 18. ~~外网支持协议配置化~~

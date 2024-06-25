@@ -33,5 +33,6 @@ public interface HBSMessageType {
         int REDIRECT_TO_ALL_SERVER =10;
         int LOGIN_SYNC = 11;
         int PERMISSION_DENIED = 403;
+        int TOO_MANY_REQUESTS = 429;
     }
 }

@@ -16,9 +16,9 @@ import java.util.List;
 /**
  * Created by zun.wei on 2024/6/15.
  */
-@AccessLimit(userRateSize = 1, globalRateSize = 2)
-@OuterServerMessageHandler(value = 0, uri = "/index", protocol = Protocol.HTTP)
-public class IndexAction extends HttpServerMessageDispatcher {
+@AccessLimit
+@OuterServerMessageHandler(value = 0, uri = "/index2", protocol = Protocol.HTTP)
+public class IndexAction2 extends HttpServerMessageDispatcher {
 
 
     @Autowired
@@ -27,7 +27,7 @@ public class IndexAction extends HttpServerMessageDispatcher {
     @Override
     public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) {
         final List<Genealogy> genealogies = genealogyService.listAll();
-        System.out.println("genealogies = " + genealogies);
+        System.out.println("genealogies2 = " + genealogies);
         addResponseListener(future -> {
             if (future.isSuccess()) {
                 System.out.println("writeAndFlush success");
