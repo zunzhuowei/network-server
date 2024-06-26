@@ -19,7 +19,7 @@ import java.util.Objects;
 /**
  * Created by zun.wei on 2024/6/12.
  */
-@OuterServerMessageHandler(value = HBSMessageType.Outer.LOGIN, permission = {})
+@OuterServerMessageHandler(value = HBSMessageType.Outer.LOGIN)
 public class OuterWebsocketUserLoginAction extends ServerMessageDispatcher {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 

@@ -22,8 +22,7 @@ import java.util.Objects;
  */
 @OuterServerMessageHandler(
         value = HBSMessageType.Outer.LOGIN,
-        protocol = Protocol.UDP,
-        permission = {})
+        protocol = Protocol.UDP)
 public class OuterUdpUserLoginAction extends ServerMessageDispatcher {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 

@@ -55,17 +55,22 @@ public class PermissionAspect {
         if (!"handle".equals(methodName)) {
             return point.proceed();
         }
-        final Object[] args = point.getArgs();
         OuterServerMessageHandler outerServerMessageHandler = getOuterServerMessageHandler(point);
-        if (Objects.nonNull(outerServerMessageHandler)) {
-            String[] permissionStr = outerServerMessageHandler.permissionStr();
-            Permission[] permission = outerServerMessageHandler.permission();
-            Protocol protocol = outerServerMessageHandler.protocol();
-            if (checkPermission(point, args, permissionStr, permission, protocol)) {
-                return point.proceed();
-            } else {
-                logger.debug("权限不足");
-            }
+        if (Objects.isNull(outerServerMessageHandler)) {
+            return point.proceed();
+        }
+        PermissionAuth permissionAuth = getPermissionAuth(point);
+        if (Objects.isNull(permissionAuth)) {
+            return point.proceed();
+        }
+        Object[] args = point.getArgs();
+        String[] permissionStr = permissionAuth.permissionStr();
+        Permission[] permission = permissionAuth.permission();
+        Protocol protocol = outerServerMessageHandler.protocol();
+        if (checkPermission(point, args, permissionStr, permission, protocol)) {
+            return point.proceed();
+        } else {
+            logger.debug("权限不足");
         }
         return null;
     }
@@ -185,6 +190,16 @@ public class PermissionAspect {
             return dataSource;
         }
         return AnnotationUtils.findAnnotation(signature.getDeclaringType(), OuterServerMessageHandler.class);
+    }
+
+
+    public PermissionAuth getPermissionAuth(ProceedingJoinPoint point) {
+        MethodSignature signature = (MethodSignature) point.getSignature();
+        PermissionAuth dataSource = AnnotationUtils.findAnnotation(signature.getMethod(), PermissionAuth.class);
+        if (Objects.nonNull(dataSource)) {
+            return dataSource;
+        }
+        return AnnotationUtils.findAnnotation(signature.getDeclaringType(), PermissionAuth.class);
     }
 
 }

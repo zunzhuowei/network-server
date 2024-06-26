@@ -3,6 +3,7 @@ package com.hbsoo.gateway.action;
 import com.hbsoo.access.control.AccessLimit;
 import com.hbsoo.gateway.entity.Genealogy;
 import com.hbsoo.gateway.service.IGenealogyService;
+import com.hbsoo.permisson.PermissionAuth;
 import com.hbsoo.server.annotation.OuterServerMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
 import com.hbsoo.server.message.entity.HBSPackage;
@@ -16,6 +17,7 @@ import java.util.List;
 /**
  * Created by zun.wei on 2024/6/15.
  */
+@PermissionAuth
 @AccessLimit(userRateSize = 1, globalRateSize = 2)
 @OuterServerMessageHandler(value = 0, uri = "/index", protocol = Protocol.HTTP)
 public class IndexAction extends HttpServerMessageDispatcher {

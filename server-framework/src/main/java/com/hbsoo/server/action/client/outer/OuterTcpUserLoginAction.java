@@ -22,8 +22,7 @@ import java.util.Objects;
  */
 @OuterServerMessageHandler(
         value = HBSMessageType.Outer.LOGIN,
-        protocol = Protocol.TCP,
-        permission = {})
+        protocol = Protocol.TCP)
 public class OuterTcpUserLoginAction extends ServerMessageDispatcher {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
