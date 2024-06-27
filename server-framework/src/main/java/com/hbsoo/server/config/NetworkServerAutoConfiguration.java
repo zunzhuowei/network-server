@@ -1,6 +1,7 @@
 package com.hbsoo.server.config;
 
 import com.hbsoo.server.NetworkServer;
+import com.hbsoo.server.client.DefaultInnerTcpClientConnectListener;
 import com.hbsoo.server.message.client.InnerClientMessageDispatcher;
 import com.hbsoo.server.message.queue.DefaultForwardMessageSender;
 import com.hbsoo.server.message.queue.ForwardMessageSender;
@@ -32,6 +33,7 @@ import java.util.*;
         InnerClientMessageDispatcher.class,
         InnerServerMessageDispatcher.class,
         OuterServerMessageDispatcher.class,
+        DefaultInnerTcpClientConnectListener.class,
 })
 @Configuration
 @EnableConfigurationProperties(ServerInfoProperties.class)

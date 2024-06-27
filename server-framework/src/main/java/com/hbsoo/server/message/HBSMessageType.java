@@ -6,6 +6,9 @@ package com.hbsoo.server.message;
 public interface HBSMessageType {
 
     interface Inner {
+        int PUBLISH_PUSH = -2;
+        int PUBLISH = -1;
+        int SUBSCRIBE = 0;
         int LOGIN = 1;
         int LOGOUT = 2;
         int HEARTBEAT = 3;

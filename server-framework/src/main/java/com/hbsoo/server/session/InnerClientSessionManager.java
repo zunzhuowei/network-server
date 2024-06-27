@@ -166,6 +166,38 @@ public final class InnerClientSessionManager {
             sender.send(forwardMessage);
         });
     }
+
+    /**
+     * 根据服务器类型发送给该类型的所有服务器
+     */
+    public static void forwardMsg2ServerByTypeAll(HBSPackage.Builder msgBuilder, String serverType) {
+        ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>> map = clientsMap.get(serverType);
+        for (ConcurrentHashMap<Integer, Channel> value : map.values()) {
+            Channel channel = value.get(0);
+            if (channel != null) {
+                msgBuilder.buildAndSendBytesTo(channel);
+            }
+        }
+    }
+
+    /**
+     * 根据服务器类型发送给该类型的所有服务器
+     * 使用sender发送，保证发送失败时候重发消息；
+     * {@link InnerClientSessionManager#forwardMsg2ServerByTypeAll}
+     */
+    public static void forwardMsg2ServerByTypeAllUseSender(HBSPackage.Builder msgBuilder, String serverType) {
+        ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>> map = clientsMap.get(serverType);
+        for (Integer serverId : map.keySet()) {
+            ForwardMessageSender sender = SpringBeanFactory.getBean(ForwardMessageSender.class);
+            SnowflakeIdGenerator snowflakeIdGenerator = SpringBeanFactory.getBean(SnowflakeIdGenerator.class);
+            long msgId = snowflakeIdGenerator.generateId();
+            ForwardMessage forwardMessage = new ForwardMessage(msgId, msgBuilder, -1, -1,
+                    serverType, null);
+            forwardMessage.setToServerId(serverId);
+            sender.send(forwardMessage);
+        }
+    }
+
     /**
      * 根据配置的服务器类型和权重，向特定服务器发送消息。如果未配置权重值，则随机选择一个服务器发送消息。
      * 注意：【消息不会发送给当前服务器】。

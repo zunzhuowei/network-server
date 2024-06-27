@@ -42,16 +42,21 @@
    The HTTP protocol uses the request header entrainment JWT method,
    the UDP protocol uses the JWT string as the first field, 
    and the AttributeKey:permission field in the channel is used for TCP and WebSocket.
-   If you need to use a permission module, you can use it.`that is optional`.
+   If you need to use a `permission` module, you can use it.`that is optional`.
 
 
 5. `server-access-control`: The `access control` module of the framework,
    Use `Spring AOP` and annotations and `Guava library` to limit the rate of the interface.
    You can limit the rate of interfaces uniformly or based on user granularity, and configure IP blacklists and whitelists.
-   If you need to use a permission module, you can use it.`that is optional`.   
+   If you need to use a `access control` module, you can use it.`that is optional`.   
 
 
-6. `gateway-server`、`hall-server`、`room-server`: These are three `sample nodes` of the cluster,
+6. `server-message-queue`: The `message queue` module of the framework,
+   Use the `server-framework` module to develop a message queue module that supports message subscription and message push.
+   If you need to use a `message queue` module, you can use it.`that is optional`.
+
+
+7. `gateway-server`、`hall-server`、`room-server`: These are three `sample nodes` of the cluster,
    and you can refer to their configurations to get your own cluster
 
 ### How to use

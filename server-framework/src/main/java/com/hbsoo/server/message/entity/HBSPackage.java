@@ -103,14 +103,20 @@ public final class HBSPackage {
         }
 
         public Builder msgType(int msgType) {
-            msgTypeList.clear();
+            boolean isFirst = true;
+            if (!msgTypeList.isEmpty()) {
+                isFirst = false;
+                msgTypeList.clear();
+            }
             final ByteBuffer buffer = ByteBuffer.allocate(4);
             buffer.putInt(msgType);
             final byte[] array = buffer.array();
             for (byte b : array) {
                 msgTypeList.add(b);
             }
-            packageLength.getAndAdd(4);
+            if (isFirst) {
+                packageLength.getAndAdd(4);
+            }
             return this;
         }
 
@@ -197,7 +203,7 @@ public final class HBSPackage {
             if (headerByteList.isEmpty()) {
                 throw new RuntimeException("package header not set");
             }
-            final boolean empty = msgTypeList.isEmpty();
+            boolean empty = msgTypeList.isEmpty();
             if (empty) {
                 final String name = Thread.currentThread().getName();
                 System.out.println("name = " + name);
@@ -329,6 +335,7 @@ public final class HBSPackage {
             for (byte b : this.body) {
                 if (intBytes > 0) {
                     builder.msgTypeList.add(b);
+                    builder.packageLength.getAndAdd(1);
                 } else {
                     builder.writeByte(b);
                 }

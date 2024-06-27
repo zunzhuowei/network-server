@@ -1,13 +1,10 @@
 package com.hbsoo.server.client;
 
 import com.hbsoo.server.config.ServerInfo;
-import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.entity.HBSPackage;
 import com.hbsoo.server.message.client.InnerClientMessageDispatcher;
-import com.hbsoo.server.session.OuterSessionManager;
+import com.hbsoo.server.utils.SpringBeanFactory;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
@@ -15,6 +12,7 @@ import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.timeout.IdleStateHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -25,8 +23,6 @@ public final class TcpClient {
 
     @Autowired
     private InnerClientMessageDispatcher innerClientMessageDispatcher;
-    @Autowired
-    private OuterSessionManager outerSessionManager;
 
     private final int reconnectInterval;
     private final ServerInfo fromServerInfo;
@@ -57,7 +53,7 @@ public final class TcpClient {
                         pipeline.addLast(new IdleStateHandler(0, 0, 3, TimeUnit.SECONDS));
                         pipeline.addLast(new HeartbeatHandler(bootstrap, b -> connect(b)));
                         pipeline.addLast(new LengthFieldBasedFrameDecoder
-                                (1024 * 1024, 4, 4, 0, 0));
+                                (1024 * 1024, HBSPackage.TCP_HEADER.length, 4, 0, 0));
                         pipeline.addLast(new TcpClientHandler(innerClientMessageDispatcher));
                     }
                 });
@@ -71,20 +67,9 @@ public final class TcpClient {
 
     private void connect(Bootstrap bootstrap) {
         bootstrap.connect(toServerInfo.getHost(), toServerInfo.getPort()).addListener((ChannelFutureListener) future -> {
+            Map<String, InnerTcpClientConnectListener> beans = SpringBeanFactory.getBeansOfType(InnerTcpClientConnectListener.class);
             if (future.isSuccess()) {
-                //System.out.println("Connected to server");
-                final Channel channel = future.channel();
-                // 登录消息
-                byte[] aPackage = HBSPackage.Builder.withDefaultHeader()
-                        .msgType(HBSMessageType.Inner.LOGIN)
-                        .writeInt(fromServerInfo.getId())//当前服务器的ID
-                        .writeStr(fromServerInfo.getType())//当前服务器的类型
-                        .writeInt(index)//客户端编号
-                        .writeInt(toServerInfo.getId())//登录服务器的ID
-                        .writeStr(toServerInfo.getType())//登录服务器的类型
-                        .buildPackage();
-                ByteBuf buf = Unpooled.wrappedBuffer(aPackage);
-                channel.writeAndFlush(buf).sync();
+                beans.values().forEach(listener -> listener.onConnectSuccess(future, fromServerInfo, toServerInfo, index));
             } else {
                 System.out.println("【" + fromServerInfo.getType() + "】 Client #" + index
                         + " Failed to connect to server 【" + toServerInfo.getType() + "】"
@@ -92,10 +77,7 @@ public final class TcpClient {
                         + ", trying to reconnect in " + reconnectInterval + " seconds");
                 // 延迟重连
                 future.channel().eventLoop().schedule(() -> connect(bootstrap), reconnectInterval, TimeUnit.SECONDS);
-                // 清除登陆在断线的服务器中的所有用户
-                if (index == 0) {
-                    outerSessionManager.logoutWithBelongServer(toServerInfo.getType(), toServerInfo.getId());
-                }
+                beans.values().forEach(listener -> listener.onConnectFail(future, fromServerInfo, toServerInfo, index));
             }
         });
     }

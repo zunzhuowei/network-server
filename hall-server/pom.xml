@@ -22,6 +22,11 @@
             <artifactId>server-framework</artifactId>
             <version>1.0.0</version>
         </dependency>
+        <dependency>
+            <groupId>com.hbsoo</groupId>
+            <artifactId>server-message-queue</artifactId>
+            <version>1.0.0</version>
+        </dependency>
     </dependencies>
 
     <build>

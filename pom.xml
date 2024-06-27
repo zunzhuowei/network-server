@@ -18,6 +18,7 @@
         <module>server-cache</module>
         <module>server-permission</module>
         <module>server-access-control</module>
+        <module>server-message-queue</module>
     </modules>
 
     <properties>
