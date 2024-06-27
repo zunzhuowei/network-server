@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 消息包
- * 包结构：header(4 byte) + packageBodyLen(4 int) + body(msgType(4 int) + (n-4))
+ * 包结构：header(4 byte) + packageBodyLen(4bytes int) + body(msgType(4bytes int) + (n-4))
  * Created by zun.wei on 2024/6/4.
  */
 public final class HBSPackage {
@@ -284,7 +284,9 @@ public final class HBSPackage {
         private final AtomicInteger readOffset = new AtomicInteger(0);
 
         private Decoder(byte[] header) {
-            assert header.length % 2 == 0;
+            if (!(header.length % 2 == 0)) {
+                throw new RuntimeException("header.length % 2 must equal 0");
+            }
             this.header = header;
         }
         public static Decoder withDefaultHeader() {
