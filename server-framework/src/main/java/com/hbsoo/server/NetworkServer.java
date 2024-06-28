@@ -65,8 +65,13 @@ public final class NetworkServer {
                         ch.pipeline().addLast(new ProtocolDispatcher(handler, maxFrameLength, protocols));
                     }
                 })
-                .option(ChannelOption.SO_BACKLOG, 128)
-                .childOption(ChannelOption.SO_KEEPALIVE, true);
+                .option(ChannelOption.SO_BACKLOG, 256)
+                .option(ChannelOption.SO_RCVBUF, 10 * 1024 * 1024)
+                .option(ChannelOption.SO_REUSEADDR, true)
+                .childOption(ChannelOption.SO_KEEPALIVE, true)
+                //.childOption(ChannelOption.TCP_NODELAY, true)
+                .childOption(ChannelOption.SO_SNDBUF, 5 * 1024)
+        ;
         if (protocols.contains("UDP")) {
             enableUdpServer();
         }

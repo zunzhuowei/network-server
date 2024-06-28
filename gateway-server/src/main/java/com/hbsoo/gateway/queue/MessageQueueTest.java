@@ -15,8 +15,8 @@ public class MessageQueueTest implements QueueMessageHandler {
     @Override
     public boolean handle(String objJson) {
         final ServerInfo serverInfo = NowServer.getServerInfo();
-        System.out.println("objJson = " + objJson);
-        System.out.println("serverInfo = " + serverInfo.getId());
+        //System.out.println("objJson = " + objJson);
+        //System.out.println("serverInfo = " + serverInfo.getId());
         return false;
     }
 

@@ -10,6 +10,7 @@ import java.util.concurrent.Executors;
 public class ThreadPoolScheduler {
 
     private final ExecutorService[] executors;
+    private final Random random = new Random();
     //private static final int CPU_COUNT = Runtime.getRuntime().availableProcessors();
 
     /**
@@ -60,7 +61,6 @@ public class ThreadPoolScheduler {
      * @param command 要执行的Runnable任务。
      */
     public void execute(Runnable command) {
-        Random random = new Random();
         execute(random.nextInt(), command);
     }
 

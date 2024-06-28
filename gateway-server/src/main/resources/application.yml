@@ -5,8 +5,8 @@ hbsoo:
     udpHeader: UHBS
     threadPoolSize:
       innerClient: 5
-      innerServer: 5
-      outerServer: 5
+      innerServer: 10
+      outerServer: 20
     outerServer:
       enable: true
       port: 5555

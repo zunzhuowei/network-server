@@ -30,10 +30,10 @@ public class IndexAction extends HttpServerMessageDispatcher {
     @Override
     public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) {
         final List<Genealogy> genealogies = genealogyService.listAll();
-        System.out.println("genealogies = " + genealogies);
+        //System.out.println("genealogies = " + genealogies);
         addResponseListener(future -> {
             if (future.isSuccess()) {
-                System.out.println("writeAndFlush success");
+                //System.out.println("writeAndFlush success");
             } else {
                 System.out.println("writeAndFlush fail");
             }

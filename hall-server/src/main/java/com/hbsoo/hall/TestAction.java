@@ -15,7 +15,7 @@ public class TestAction extends ServerMessageDispatcher {
     @Override
     public void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
         final String s = decoder.readStr();
-        System.out.println("s = " + s);
+        //System.out.println("s = " + s);
     }
 
     @Override
