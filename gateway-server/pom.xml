@@ -37,11 +37,11 @@
             <artifactId>server-permission</artifactId>
             <version>1.0.0</version>
         </dependency>
-        <dependency>
+        <!--<dependency>
             <groupId>com.hbsoo</groupId>
             <artifactId>server-access-control</artifactId>
             <version>1.0.0</version>
-        </dependency>
+        </dependency>-->
         <dependency>
             <groupId>com.hbsoo</groupId>
             <artifactId>server-message-queue</artifactId>

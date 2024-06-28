@@ -2,6 +2,7 @@ package com.hbsoo.gateway.service.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.hbsoo.server.client.outer.WebsocketOuterUserLoginAuthenticator;
+import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.entity.HBSPackage;
 import io.netty.channel.ChannelHandlerContext;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,10 @@ public class GatewayUserLoginAuthenticator extends WebsocketOuterUserLoginAuthen
         final Object data = map.get("data");
         System.out.println("data = " + data);
         Integer id = (Integer) ((Map) data).get("id");
+        HBSPackage.Builder.withDefaultHeader()
+                .msgType(HBSMessageType.Outer.LOGIN)
+                .writeInt(id)
+                .buildAndSendTextWebSocketTo(ctx.channel());
         return id.longValue();
     }
 

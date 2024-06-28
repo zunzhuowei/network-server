@@ -1,6 +1,5 @@
 package com.hbsoo.gateway.action;
 
-import com.hbsoo.access.control.AccessLimit;
 import com.hbsoo.gateway.entity.Genealogy;
 import com.hbsoo.gateway.service.IGenealogyService;
 import com.hbsoo.server.annotation.OuterServerMessageHandler;
@@ -16,7 +15,6 @@ import java.util.List;
 /**
  * Created by zun.wei on 2024/6/15.
  */
-@AccessLimit
 @OuterServerMessageHandler(value = 0, uri = "/index2", protocol = Protocol.HTTP)
 public class IndexAction2 extends HttpServerMessageDispatcher {
 

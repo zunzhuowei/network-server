@@ -1,6 +1,6 @@
 package com.hbsoo.gateway.action;
 
-import com.hbsoo.access.control.AccessLimit;
+//import com.hbsoo.access.control.AccessLimit;
 import com.hbsoo.gateway.entity.Genealogy;
 import com.hbsoo.gateway.service.IGenealogyService;
 import com.hbsoo.message.queue.QueueMessageSender;
@@ -19,7 +19,7 @@ import java.util.List;
  * Created by zun.wei on 2024/6/15.
  */
 @PermissionAuth(permission = {})
-@AccessLimit(userRateSize = 1, globalRateSize = 2)
+//@AccessLimit(userRateSize = 1, globalRateSize = 2)
 @OuterServerMessageHandler(value = 0, uri = "/index", protocol = Protocol.HTTP)
 public class IndexAction extends HttpServerMessageDispatcher {
 
