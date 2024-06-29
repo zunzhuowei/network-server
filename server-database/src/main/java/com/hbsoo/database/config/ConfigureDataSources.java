@@ -71,8 +71,8 @@ public class ConfigureDataSources {
     }
 
     @Bean
-    public DataSourceTransactionManager transactionManager(DruidProperties druidProperties) {
-        return new DataSourceTransactionManager(dataSource(druidProperties));
+    public DataSourceTransactionManager transactionManager(DynamicDataSource dynamicDataSource) {
+        return new DataSourceTransactionManager(dynamicDataSource);
     }
 
 }
