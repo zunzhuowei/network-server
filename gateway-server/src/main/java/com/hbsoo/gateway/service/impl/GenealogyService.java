@@ -9,6 +9,8 @@ import org.redisson.api.RBucket;
 import org.redisson.api.RedissonClient;
 import org.redisson.api.options.PlainOptions;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 /**
  * Created by zun.wei on 2024/6/15.
@@ -29,20 +32,44 @@ public class GenealogyService extends ServiceImpl<GenealogyMapper, Genealogy> im
     GenealogyMapper genealogyMapper;
     @Autowired
     private RedissonClient redissonClient;
+    @Autowired
+    private CacheManager cacheManager;
+    @Qualifier("redissonSpringCacheManager")
+    @Autowired
+    private CacheManager redissonSpringCacheManager;
 
+
+//    @Override
+//    @DataSource(dsName = "SLAVE")
+//    @Cacheable(cacheNames = "genealogy", key = "'genealogy'")
+//    public List<Genealogy> listAll() {
+//        final String id = redissonClient.getId();
+//        System.out.println("id = " + id);
+//        final RBucket<String> test = redissonClient.getBucket(PlainOptions.name("test")
+//                .timeout(Duration.ofSeconds(3))
+//                .retryInterval(Duration.ofSeconds(5)));
+//        final List<Genealogy> list = list();
+//        test.set(list.toString());
+//        return list;
+//    }
 
     @Override
-    @DataSource(dsName = "SLAVE")
-    @Cacheable(cacheNames = "genealogy", key = "'genealogy'")
     public List<Genealogy> listAll() {
-        final String id = redissonClient.getId();
-        System.out.println("id = " + id);
-        final RBucket<String> test = redissonClient.getBucket(PlainOptions.name("test")
-                .timeout(Duration.ofSeconds(3))
-                .retryInterval(Duration.ofSeconds(5)));
-        final List<Genealogy> list = list();
-        test.set(list.toString());
-        return list;
+        return cacheManager.getCache("genealogy")
+                .get("genealogy", new Callable<List<Genealogy>>() {
+                    @Override
+                    public List<Genealogy> call() throws Exception {
+                        return redissonSpringCacheManager.getCache("genealogy")
+                                .get("genealogy", new Callable<List<Genealogy>>() {
+                                    @Override
+                                    public List<Genealogy> call() throws Exception {
+                                        final String id = redissonClient.getId();
+                                        System.out.println("id = " + id);
+                                        return list();
+                                    }
+                                });
+                    }
+                });
     }
 
 //    public User getUserById(Long userId) {
