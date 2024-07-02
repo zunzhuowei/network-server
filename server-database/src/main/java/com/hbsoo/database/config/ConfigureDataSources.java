@@ -4,6 +4,7 @@ import com.alibaba.druid.pool.DruidDataSource;
 import com.hbsoo.database.entity.DruidSource;
 import com.hbsoo.database.utils.DynamicDataSource;
 import com.hbsoo.database.utils.RealDruidSources;
+import com.hbsoo.database.utils.TransactionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,7 +19,7 @@ import java.util.stream.Collectors;
 /**
  * Created by zun.wei on 2024/1/1.
  */
-@Import({DataSourceExtAspect.class})
+@Import({DataSourceExtAspect.class, TransactionUtils.class})
 @Configuration
 public class ConfigureDataSources {
 

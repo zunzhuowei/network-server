@@ -75,13 +75,17 @@ public abstract class AbstractForwardMessageSender implements ForwardMessageSend
                         logger.warn("forward fail, toServerType:{}, forwardKey:{},msgType:{},retry 3 seconds after!", toServerType, forwardKey, msgType);
                         resend(message);
                     } else {
-                        logger.debug("forward success, toServerType:{}, forwardKey:{},msgType:{},", toServerType, forwardKey, msgType);
+                        if (toServerId > 0) {
+                            logger.debug("forward use toServerId, toServerType:{},toServerId:{},msgType:{},", toServerType, toServerId, msgType);
+                        } else {
+                            logger.debug("forward use forwardKey, toServerType:{}, forwardKey:{},msgType:{},", toServerType, forwardKey, msgType);
+                        }
                         removeFromDb(id);
                     }
                 });
             } else {
                 List<ServerInfo> innerServers = NowServer.getInnerServers();
-                boolean match = innerServers.stream().anyMatch(e -> e.getType().equals(toServerType));
+                boolean match = innerServers.parallelStream().anyMatch(e -> e.getType().equals(toServerType));
                 if (!match) {
                     logger.debug("serverType is not exist, toServerType:{}, forwardKey:{}!", toServerType, forwardKey);
                     return;

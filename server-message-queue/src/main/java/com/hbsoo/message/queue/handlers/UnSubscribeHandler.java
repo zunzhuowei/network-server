@@ -10,14 +10,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * 保存订阅关系
+ * 取消订阅关系
  * 【服务端测】
  * Created by zun.wei on 2024/6/27.
  */
-@InnerServerMessageHandler(HBSMessageType.Inner.SUBSCRIBE)
-public final class SubscribeHandler extends ServerMessageDispatcher {
+@InnerServerMessageHandler(HBSMessageType.Inner.UN_SUBSCRIBE)
+public final class UnSubscribeHandler extends ServerMessageDispatcher {
 
-    private static final Logger logger = LoggerFactory.getLogger(SubscribeHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(UnSubscribeHandler.class);
 
     @Override
     public void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
@@ -26,8 +26,8 @@ public final class SubscribeHandler extends ServerMessageDispatcher {
         String topic = subscribeMessage.getTopic();
         int serverId = subscribeMessage.getServerId();
         String serverType = subscribeMessage.getServerType();
-        SubscribeSessionManager.subscribe(topic, serverType, serverId);
-        logger.info("保存订阅关系 订阅主题:{},订阅服务器类型:{},订阅服务器id:{}", topic, serverType, serverId);
+        SubscribeSessionManager.unSubscribe(topic, serverType, serverId);
+        logger.info("取消订阅关系 订阅主题:{},订阅服务器类型:{},订阅服务器id:{}", topic, serverType, serverId);
     }
 
     @Override

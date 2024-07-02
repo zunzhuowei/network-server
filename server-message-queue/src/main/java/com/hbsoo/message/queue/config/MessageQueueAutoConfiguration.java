@@ -1,8 +1,6 @@
 package com.hbsoo.message.queue.config;
 
-import com.hbsoo.message.queue.handlers.PublishHandler;
-import com.hbsoo.message.queue.handlers.PublishPushHandler;
-import com.hbsoo.message.queue.handlers.SubscribeHandler;
+import com.hbsoo.message.queue.handlers.*;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
@@ -14,6 +12,10 @@ import org.springframework.context.annotation.Import;
         SubscribeHandler.class,
         PublishHandler.class,
         PublishPushHandler.class,
+        ResultCallbackHandler.class,
+        ResultCallbackPushHandler.class,
+        TransactionRollbackHandler.class,
+        TransactionRollbackPushHandler.class,
 })
 @Configuration
 public class MessageQueueAutoConfiguration {

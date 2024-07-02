@@ -54,6 +54,29 @@ public final class RegisterSubscriptionMessage2Server implements InnerTcpClientC
 
     @Override
     public void onConnectFail(ChannelFuture channelFuture, ServerInfo fromServerInfo, ServerInfo toServerInfo, int index) {
-
+        if (index != 0) {
+            return;
+        }
+        Map<String, QueueMessageHandler> handlerMap = SpringBeanFactory.getBeansOfType(QueueMessageHandler.class);
+        handlerMap.forEach((k, v) -> {
+            MessageListener messageListener = AnnotationUtils.findAnnotation(v.getClass(), MessageListener.class);
+            if (messageListener != null) {
+                String topic = messageListener.topic();
+                String serverType = messageListener.serverType();
+                // 发送取消订阅消息给队列服务器
+                if (toServerInfo.getType().equals(serverType)) {
+                    SubscribeMessage subscribeMessage = new SubscribeMessage();
+                    subscribeMessage.setTopic(topic);
+                    subscribeMessage.setServerType(fromServerInfo.getType());
+                    subscribeMessage.setServerId(fromServerInfo.getId());
+                    HBSPackage.Builder builder = HBSPackage.Builder.withDefaultHeader()
+                            .msgType(HBSMessageType.Inner.UN_SUBSCRIBE)
+                            .writeObj(subscribeMessage);
+                    InnerClientSessionManager.forwardMsg2ServerByTypeAndKeyUseSender(builder, serverType, toServerInfo.getId());
+                }
+            } else {
+                logger.warn("{} 没有 @MessageListener 注解", v.getClass().getName());
+            }
+        });
     }
 }

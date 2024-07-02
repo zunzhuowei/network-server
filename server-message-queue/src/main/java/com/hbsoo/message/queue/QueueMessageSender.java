@@ -5,12 +5,15 @@ import com.hbsoo.server.config.ServerInfo;
 import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.entity.HBSPackage;
 import com.hbsoo.server.session.InnerClientSessionManager;
+import com.hbsoo.server.utils.SnowflakeIdGenerator;
+import com.hbsoo.server.utils.SpringBeanFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 /**
+ * 【客户端测】
  * Created by zun.wei on 2024/6/27.
  */
 public final class QueueMessageSender {
@@ -34,11 +37,16 @@ public final class QueueMessageSender {
             logger.warn("queueServerTypeName is not exist:{}", queueServerTypeName);
             return;
         }
+        SnowflakeIdGenerator snowflakeIdGenerator = SpringBeanFactory.getBean(SnowflakeIdGenerator.class);
+        long msgId = snowflakeIdGenerator.generateId();
         HBSPackage.Builder builder = HBSPackage.Builder.withDefaultHeader()
-                .writeStr(objJson, topic)
+                .writeLong(msgId)
+                .writeStr(objJson)
+                .writeStr(topic)
+                .writeStr(NowServer.getServerInfo().getType())
+                .writeInt(NowServer.getServerInfo().getId())
                 .msgType(HBSMessageType.Inner.PUBLISH);
-        InnerClientSessionManager.forwardMsg2ServerByTypeAndKeyUseSender
-                (builder, queueServerTypeName, objJson);
+        InnerClientSessionManager.forwardMsg2ServerByTypeAndKeyUseSender(builder, queueServerTypeName, msgId);
     }
 
 }

@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
- * 接收外部服务器登录后，同步用户会话信息到本服务器保存
+ * 同步网关登录的外部用户到本服务器
  * Created by zun.wei on 2024/6/6.
  */
 @InnerServerMessageHandler(HBSMessageType.Inner.LOGIN_SYNC)

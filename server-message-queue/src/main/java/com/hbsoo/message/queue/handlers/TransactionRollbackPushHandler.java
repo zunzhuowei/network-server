@@ -1,14 +1,12 @@
 package com.hbsoo.message.queue.handlers;
 
+import com.hbsoo.message.queue.QueueMessageHandler;
 import com.hbsoo.message.queue.TransactionQueueMessageHandler;
 import com.hbsoo.message.queue.config.MessageListener;
-import com.hbsoo.message.queue.QueueMessageHandler;
-import com.hbsoo.server.NowServer;
 import com.hbsoo.server.annotation.InnerServerMessageHandler;
 import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.entity.HBSPackage;
 import com.hbsoo.server.message.server.ServerMessageDispatcher;
-import com.hbsoo.server.session.InnerClientSessionManager;
 import com.hbsoo.server.utils.SpringBeanFactory;
 import com.hbsoo.server.utils.ThreadPoolScheduler;
 import io.netty.channel.ChannelHandlerContext;
@@ -20,44 +18,37 @@ import org.springframework.core.annotation.AnnotationUtils;
 import java.util.Map;
 
 /**
- * 客户端接收服务端推送的订阅消息；将消息分发给消息处理器
+ * 客户端接收服务端推送的事务回滚消息；将消息分发给消息处理器
  * 【客户端测】
  * Created by zun.wei on 2024/6/27.
  */
-@InnerServerMessageHandler(HBSMessageType.Inner.PUBLISH_PUSH)
-public final class PublishPushHandler extends ServerMessageDispatcher {
+@InnerServerMessageHandler(HBSMessageType.Inner.TRANSACTION_ROLLBACK_PUSH)
+public final class TransactionRollbackPushHandler extends ServerMessageDispatcher {
 
-    private static final Logger logger = LoggerFactory.getLogger(PublishPushHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(TransactionRollbackPushHandler.class);
     @Autowired
     private ThreadPoolScheduler innerServerThreadPoolScheduler;
 
     @Override
     public void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
         long msgId = decoder.readLong();
-        String objJson = decoder.readStr();
         String reciTopic = decoder.readStr();
-        String fromServerType = decoder.readStr();
-        int fromServerId = decoder.readInt();
-        String mqServerType = decoder.readStr();
-        int mqServerId = decoder.readInt();
+        String objJson = decoder.readStr();
+        String serverType = decoder.readStr();
+        int serverId = decoder.readInt();
         Map<String, QueueMessageHandler> handlerMap = SpringBeanFactory.getBeansOfType(QueueMessageHandler.class);
         handlerMap.forEach((k, handler) -> {
             MessageListener messageListener = AnnotationUtils.findAnnotation(handler.getClass(), MessageListener.class);
             if (messageListener != null) {
                 String topic = messageListener.topic();
                 if (reciTopic.equals(topic)) {
-                    innerServerThreadPoolScheduler.execute(msgId, () -> {
-                        boolean handle = handler.handle(msgId, objJson);
-                        if (handler instanceof TransactionQueueMessageHandler) {
-                            //将执行结果返回消息队列，然后再返回发送者
-                            HBSPackage.Builder builder = decoder.toBuilder()
-                                    .writeStr(NowServer.getServerInfo().getType())
-                                    .writeInt(NowServer.getServerInfo().getId())
-                                    .writeBoolean(handle)
-                                    .msgType(HBSMessageType.Inner.RESULT_CALLBACK);
-                            InnerClientSessionManager.forwardMsg2ServerByTypeAndIdUseSender(builder, mqServerId, mqServerType);
-                        }
-                    });
+                    if (handler instanceof TransactionQueueMessageHandler) {
+                        innerServerThreadPoolScheduler.execute(msgId, () -> {
+                            boolean rollback = ((TransactionQueueMessageHandler) handler).rollback(msgId, objJson);
+                        });
+                    } else {
+                        throw new RuntimeException(handler.getClass().getName() +" must implements TransactionQueueMessageHandler");
+                    }
                 }
             } else {
                 logger.warn("PublishPushHandler {} 没有 @MessageListener 注解", handler.getClass().getName());

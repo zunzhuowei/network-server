@@ -1,5 +1,6 @@
 package com.hbsoo.message.queue.handlers;
 
+import com.hbsoo.server.NowServer;
 import com.hbsoo.server.annotation.InnerServerMessageHandler;
 import com.hbsoo.server.config.ServerInfo;
 import com.hbsoo.server.message.HBSMessageType;
@@ -24,22 +25,26 @@ public final class PublishHandler extends ServerMessageDispatcher {
 
     @Override
     public void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
+        long msgId = decoder.readLong();
         String objJson = decoder.readStr();
         String topic = decoder.readStr();
-        List<ServerInfo> subscribeServers = SubscribeSessionManager.getSubscribeServers(topic);
+        List<ServerInfo> subscribeServers = SubscribeSessionManager.getSubscribeServers(topic, msgId);
+        //转发给客户端
         for (ServerInfo subscribeServer : subscribeServers) {
             String type = subscribeServer.getType();
             Integer id = subscribeServer.getId();
-            //转发给客户端
-            InnerClientSessionManager.forwardMsg2ServerByTypeAndIdUseSender
-                    (decoder.toBuilder().msgType(HBSMessageType.Inner.PUBLISH_PUSH), id, type);
+            HBSPackage.Builder builder = decoder.toBuilder()
+                    .writeStr(NowServer.getServerInfo().getType())
+                    .writeInt(NowServer.getServerInfo().getId())
+                    .msgType(HBSMessageType.Inner.PUBLISH_PUSH);
+            InnerClientSessionManager.forwardMsg2ServerByTypeAndIdUseSender(builder, id, type);
         }
         logger.debug("PublishHandler handle topic:{},objJson:{}", topic, objJson);
     }
 
     @Override
     public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
-        return decoder.readStr();
+        return decoder.readLong();
     }
 
 }
