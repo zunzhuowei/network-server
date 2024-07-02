@@ -26,6 +26,9 @@
 
 3. Supports message forwarding between internal and external networks
 
+
+4. Supports distributed transactions `server-message-queue` module
+
 ### Modules introduction
 
 1. `server-framework`: The `core module` of the framework, which provides the basic configuration of the framework, and
