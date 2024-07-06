@@ -1,7 +1,7 @@
 package com.hbsoo.server.netty;
 
 import com.hbsoo.server.session.InnerClientSessionManager;
-import com.hbsoo.server.session.OuterSessionManager;
+import com.hbsoo.server.session.OuterUserSessionManager;
 import com.hbsoo.server.utils.SpringBeanFactory;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -33,7 +33,7 @@ public final class ChannelInactiveHandler extends ChannelInboundHandlerAdapter {
         if (Objects.nonNull(id)) {
             Boolean isInnerClient = ctx.channel().attr(AttributeKeyConstants.isInnerClientAttr).get();
             if (Objects.isNull(isInnerClient)) {
-                OuterSessionManager manager = SpringBeanFactory.getBean(OuterSessionManager.class);
+                OuterUserSessionManager manager = SpringBeanFactory.getBean(OuterUserSessionManager.class);
                 logger.debug("Outer channelInactive id = " + id);
                 manager.logoutAndSyncAllServer(id);
             } else {

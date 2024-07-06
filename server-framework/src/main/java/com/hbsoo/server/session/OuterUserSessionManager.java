@@ -1,19 +1,19 @@
 package com.hbsoo.server.session;
 
-import com.hbsoo.server.client.outer.HttpOuterUserLoginAuthenticator;
-import com.hbsoo.server.client.outer.TcpOuterUserLoginAuthenticator;
-import com.hbsoo.server.client.outer.UdpOuterUserLoginAuthenticator;
-import com.hbsoo.server.client.outer.WebsocketOuterUserLoginAuthenticator;
 import com.hbsoo.server.config.ServerInfo;
 import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.entity.ForwardMessage;
 import com.hbsoo.server.message.entity.HBSPackage;
-import com.hbsoo.server.message.queue.ForwardMessageSender;
+import com.hbsoo.server.message.sender.ForwardMessageSender;
 import com.hbsoo.server.netty.AttributeKeyConstants;
 import com.hbsoo.server.utils.SnowflakeIdGenerator;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.socket.DatagramPacket;
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import org.slf4j.Logger;
@@ -33,21 +33,13 @@ import java.util.stream.Collectors;
  * 管理外部用户session
  * Created by zun.wei on 2024/5/31.
  */
-public final class OuterSessionManager {
+public final class OuterUserSessionManager {
 
-    private static final Logger logger = LoggerFactory.getLogger(OuterSessionManager.class);
+    private static final Logger logger = LoggerFactory.getLogger(OuterUserSessionManager.class);
     @Autowired
     private ForwardMessageSender forwardMessageSender;
     @Autowired
     private SnowflakeIdGenerator snowflakeIdGenerator;
-    @Autowired(required = false)
-    private HttpOuterUserLoginAuthenticator httpOuterUserLoginAuthenticator;
-    @Autowired(required = false)
-    private TcpOuterUserLoginAuthenticator tcpOuterUserLoginAuthenticator;
-    @Autowired(required = false)
-    private UdpOuterUserLoginAuthenticator udpOuterUserLoginAuthenticator;
-    @Autowired(required = false)
-    private WebsocketOuterUserLoginAuthenticator websocketOuterUserLoginAuthenticator;
     //用户session
     static Map<Long, UserSession> clients = new ConcurrentHashMap<>();
     private final ServerInfo nowServerInfo;
@@ -57,7 +49,7 @@ public final class OuterSessionManager {
      *
      * @param nowServerInfo 当前服务器信息
      */
-    public OuterSessionManager(ServerInfo nowServerInfo) {
+    public OuterUserSessionManager(ServerInfo nowServerInfo) {
         this.nowServerInfo = nowServerInfo;
     }
 
@@ -91,7 +83,7 @@ public final class OuterSessionManager {
      * @param id          用户id
      * @param userSession 用户session
      */
-    public void loginAndSyncAllServer(Long id, UserSession userSession) {
+    private void loginAndSyncAllServer(Long id, UserSession userSession) {
         login(id, userSession);
         // 保存id,断线的时候踢出登录
         userSession.getChannel().attr(AttributeKeyConstants.idAttr).set(userSession.getId());
@@ -103,6 +95,34 @@ public final class OuterSessionManager {
                 .writeInt(userSession.getBelongServer().getPort())
                 .writeStr(userSession.getBelongServer().getType());
         InnerClientSessionManager.forwardMsg2AllServerByKeyUseSender(builder, id);
+    }
+
+    public void loginWithTcpAndSyncAllServer(Channel channel, Long userId) {
+        UserSession userSession = new UserSession();
+        userSession.setId(userId);
+        userSession.setBelongServer(nowServerInfo);
+        userSession.setChannel(channel);
+        userSession.setUdp(false);
+        loginAndSyncAllServer(userId, userSession);
+    }
+
+    public void loginWithWebsocketAndSyncAllServer(Channel channel, Long userId) {
+        loginWithTcpAndSyncAllServer(channel, userId);
+    }
+
+    public void loginWithHttpAndSyncAllServer(Channel channel, Long userId) {
+        loginWithTcpAndSyncAllServer(channel, userId);
+    }
+
+    public void loginWithUdpAndSyncAllServer(Channel channel, Long userId, String sendHost, int sendPort) {
+        UserSession userSession = new UserSession();
+        userSession.setId(userId);
+        userSession.setBelongServer(nowServerInfo);
+        userSession.setChannel(channel);
+        userSession.setUdp(true);
+        userSession.setUdpHost(sendHost);
+        userSession.setUdpPort(sendPort);
+        loginAndSyncAllServer(userId, userSession);
     }
 
     /**
@@ -137,46 +157,19 @@ public final class OuterSessionManager {
      */
     public void logout(Long id) {
         clients.remove(id);
-        if (httpOuterUserLoginAuthenticator != null) {
-            try {
-                httpOuterUserLoginAuthenticator.logoutCallback(id);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        if (tcpOuterUserLoginAuthenticator != null) {
-            try {
-                tcpOuterUserLoginAuthenticator.logoutCallback(id);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        if (udpOuterUserLoginAuthenticator != null) {
-            try {
-                udpOuterUserLoginAuthenticator.logoutCallback(id);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        if (websocketOuterUserLoginAuthenticator != null) {
-            try {
-                websocketOuterUserLoginAuthenticator.logoutCallback(id);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
     }
 
     /**
      * 退出所有指定服务器的用户session
+     *
      * @param serverType 服务器类型
-     * @param serverId 服务器id
+     * @param serverId   服务器id
      */
     public void logoutWithBelongServer(String serverType, Integer serverId) {
         List<Long> ids = clients.values().stream()
                 .filter(userSession ->
                         userSession.getBelongServer().getType().equals(serverType) &&
-                        userSession.getBelongServer().getId().equals(serverId))
+                                userSession.getBelongServer().getId().equals(serverId))
                 .map(UserSession::getId).collect(Collectors.toList());
         ids.forEach(this::logout);
         logger.debug("退出所有指定服务器的用户session, serverType:{}, serverId:{}", serverType, serverId);
@@ -190,11 +183,11 @@ public final class OuterSessionManager {
      * @param ids        用户id
      */
     public void sendMsg2User(UserSessionProtocol protocol, HBSPackage.Builder msgBuilder, Long... ids) {
-        sendMsg2User(protocol, msgBuilder.buildPackage(), ids);
+        sendMsg2User(protocol, msgBuilder.buildPackage(),null, ids);
     }
 
     public void sendTextWebSocketFrameMsg2User(String text, Long... ids) {
-        sendMsg2User(UserSessionProtocol.text_websocket, text.getBytes(StandardCharsets.UTF_8), ids);
+        sendMsg2User(UserSessionProtocol.text_websocket, text.getBytes(StandardCharsets.UTF_8), null, ids);
     }
 
     /**
@@ -203,8 +196,9 @@ public final class OuterSessionManager {
      * @param protocol     用户协议类型
      * @param innerPackage 消息, HBSPackage.Builder#buildPackage()
      * @param ids          用户id
+     * @param contentType  内容类型，针对http协议使用。
      */
-    public void sendMsg2User(UserSessionProtocol protocol, byte[] innerPackage, Long... ids) {
+    public void sendMsg2User(UserSessionProtocol protocol, byte[] innerPackage, String contentType, Long... ids) {
         if (Objects.isNull(innerPackage) || Objects.isNull(protocol)) {
             return;
         }
@@ -223,6 +217,7 @@ public final class OuterSessionManager {
                             .msgType(HBSMessageType.Inner.REDIRECT)
                             .writeLong(id)//用户id
                             .writeStr(protocol.name())//用户协议类型
+                            .writeStr(contentType == null ? "" : contentType)
                             .writeBytes(innerPackage);//转发的消息
 
                     //重试三次
@@ -257,7 +252,7 @@ public final class OuterSessionManager {
                         channel.writeAndFlush(Unpooled.wrappedBuffer(innerPackage));
                         break;
                     }
-                    case udp:
+                    case udp: {
                         DatagramPacket packet = new DatagramPacket(
                                 Unpooled.wrappedBuffer(innerPackage),
                                 new InetSocketAddress(userSession.getUdpHost(),
@@ -265,6 +260,11 @@ public final class OuterSessionManager {
                         );
                         channel.writeAndFlush(packet);
                         break;
+                    }
+                    case http: {
+                        response(channel, innerPackage, contentType);
+                        break;
+                    }
                     default:
                         break;
                 }
@@ -275,5 +275,12 @@ public final class OuterSessionManager {
         }
     }
 
-
+    private void response(Channel channel, byte[] bytes, String contentType) {
+        DefaultFullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
+        response.content().writeBytes(bytes);
+        response.headers().set(HttpHeaderNames.CONTENT_TYPE, contentType);
+        response.headers().set(HttpHeaderNames.CONTENT_LENGTH, response.content().readableBytes());
+        channel.writeAndFlush(response);
+        channel.close();
+    }
 }

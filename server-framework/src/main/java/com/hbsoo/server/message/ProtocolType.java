@@ -9,5 +9,6 @@ public enum ProtocolType {
     INNER_TCP,
     OUTER_WEBSOCKET,
     OUTER_TCP,
+    OUTER_HTTP,
 
 }

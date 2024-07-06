@@ -5,7 +5,7 @@ import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.entity.HBSPackage;
 import com.hbsoo.server.message.server.ServerMessageDispatcher;
 import com.hbsoo.server.netty.AttributeKeyConstants;
-import com.hbsoo.server.session.OuterSessionManager;
+import com.hbsoo.server.session.OuterUserSessionManager;
 import com.hbsoo.server.session.UserSession;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
@@ -23,7 +23,7 @@ public class InnerServerLoginAction extends ServerMessageDispatcher {
 
     private static final Logger logger = LoggerFactory.getLogger(InnerServerLoginAction.class);
     @Autowired
-    private OuterSessionManager outerSessionManager;
+    private OuterUserSessionManager outerUserSessionManager;
 
     @Override
     public void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
@@ -46,7 +46,7 @@ public class InnerServerLoginAction extends ServerMessageDispatcher {
 
         // 内网服务器登录，将已登录的用户session同步给登录服务器
         if (index == 0) {
-            Map<Long, UserSession> clients = outerSessionManager.getClients();
+            Map<Long, UserSession> clients = outerUserSessionManager.getClients();
             clients.forEach((userId, userSession) -> {
                 // 登录服务器
                 HBSPackage.Builder builder = HBSPackage.Builder.withDefaultHeader()

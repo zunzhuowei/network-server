@@ -20,6 +20,8 @@ public interface HBSMessageType {
         int RESULT_CALLBACK_PUSH = 12; //将消费者服务器处理结果推送给事务发起方服务器
         int TRANSACTION_ROLLBACK = 13; //事务发起方服务器发起回滚事件到队列服务器中
         int TRANSACTION_ROLLBACK_PUSH = 14; //队列服务器推送回滚事件消息给消费者服务器
+        int GATEWAY_ROUTING_HTTP_TO_INNER_SERVER = 15; //网关转发消息给内部服务
+        int GATEWAY_ROUTING_WEBSOCKET_TCP_UDP_TO_INNER_SERVER = 16; //网关转发消息给内部服务
     }
 
     interface Outer {

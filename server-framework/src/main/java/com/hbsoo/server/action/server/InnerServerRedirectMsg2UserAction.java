@@ -4,7 +4,7 @@ import com.hbsoo.server.annotation.InnerServerMessageHandler;
 import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.entity.HBSPackage;
 import com.hbsoo.server.message.server.ServerMessageDispatcher;
-import com.hbsoo.server.session.OuterSessionManager;
+import com.hbsoo.server.session.OuterUserSessionManager;
 import com.hbsoo.server.session.UserSessionProtocol;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
@@ -20,16 +20,17 @@ public class InnerServerRedirectMsg2UserAction extends ServerMessageDispatcher {
 
     private static final Logger logger = LoggerFactory.getLogger(InnerServerRedirectMsg2UserAction.class);
     @Autowired
-    private OuterSessionManager outerSessionManager;
+    private OuterUserSessionManager outerUserSessionManager;
 
     @Override
     public void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
-        final long id = decoder.readLong();
+        long id = decoder.readLong();
         String protocolStr = decoder.readStr();
+        String contentType = decoder.readStr();
         byte[] innerPackage = decoder.readBytes();
         UserSessionProtocol protocol = UserSessionProtocol.valueOf(protocolStr);
         logger.debug("InnerServerRedirectMsg2UserAction id:{} protocol:{}", id, protocol);
-        outerSessionManager.sendMsg2User(protocol, innerPackage, id);
+        outerUserSessionManager.sendMsg2User(protocol, innerPackage, contentType, id);
     }
 
 

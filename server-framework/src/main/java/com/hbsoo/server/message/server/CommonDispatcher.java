@@ -7,6 +7,9 @@ import com.hbsoo.server.annotation.Protocol;
 import com.hbsoo.server.message.entity.HBSPackage;
 import com.hbsoo.server.message.entity.HttpPackage;
 import com.hbsoo.server.message.entity.TextWebSocketPackage;
+import com.hbsoo.server.netty.AttributeKeyConstants;
+import com.hbsoo.server.session.OuterUserSessionManager;
+import com.hbsoo.server.session.UserSessionProtocol;
 import com.hbsoo.server.utils.SpringBeanFactory;
 import com.hbsoo.server.utils.ThreadPoolScheduler;
 import io.netty.buffer.ByteBuf;
@@ -21,10 +24,12 @@ import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.AnnotationUtils;
+import org.springframework.util.StringUtils;
 
 import java.lang.annotation.Annotation;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -141,24 +146,40 @@ interface CommonDispatcher {
     default void dispatcher(ChannelHandlerContext ctx, Protocol protocol, HBSPackage.Decoder decoder) {
         int msgType = decoder.readMsgType();
         ServerMessageDispatcher dispatcher = dispatchers().get(protocol).get(msgType);
-        if (Objects.isNull(dispatcher)) {
-            final String s = ctx.channel().id().asShortText();
-            logger.warn("消息类型未注册：" + msgType + ",channelID:" + s + ",protocol:" + protocol.name());
-            if (protocol == Protocol.UDP) {
-                return;
-            }
-            if (ctx.channel() instanceof NioDatagramChannel) {
-                return;
-            }
-            ctx.close();
+        if (Objects.nonNull(dispatcher)) {
+            Object threadKey = dispatcher.threadKey(ctx, decoder);
+            decoder.resetBodyReadOffset();//重置读取位置
+            decoder.readMsgType();//消息类型
+            threadPoolScheduler().execute(threadKey, () -> {
+                dispatcher.handle(ctx, decoder);
+            });
             return;
         }
-        Object threadKey = dispatcher.threadKey(ctx, decoder);
-        decoder.resetBodyReadOffset();//重置读取位置
-        decoder.readMsgType();//消息类型
-        threadPoolScheduler().execute(threadKey, () -> {
-            dispatcher.handle(ctx, decoder);
-        });
+        Map<String, DefaultServerMessageDispatcher> beans = SpringBeanFactory.getBeansOfType(DefaultServerMessageDispatcher.class);
+        if (!beans.isEmpty()) {
+            for (DefaultServerMessageDispatcher messageDispatcher : beans.values()) {
+                Object threadKey = messageDispatcher.threadKey(ctx, decoder);
+                decoder.resetBodyReadOffset();//重置读取位置
+                decoder.readMsgType();//消息类型
+                threadPoolScheduler().execute(threadKey, () -> {
+                    messageDispatcher.handle(ctx, decoder);
+                });
+                break;
+            }
+            return;
+        }
+        final String s = ctx.channel().id().asShortText();
+        logger.warn("消息类型未注册：" + msgType + ",channelID:" + s + ",protocol:" + protocol.name());
+        if (protocol == Protocol.UDP) {
+            return;
+        }
+        if (ctx.channel() instanceof NioDatagramChannel) {
+            return;
+        }
+        Boolean isInnerClient = ctx.channel().attr(AttributeKeyConstants.isInnerClientAttr).get();
+        if (isInnerClient == null || !isInnerClient) {
+            ctx.close();
+        }
     }
 
 
@@ -169,7 +190,7 @@ interface CommonDispatcher {
         try {
             Integer bodyLen = getBodyLen(msg, Protocol.TCP);
             if (bodyLen == null) return;
-            byte[] received = new byte[bodyLen + 8];
+            byte[] received = new byte[bodyLen + (HBSPackage.TCP_HEADER.length + 4)];
             msg.readBytes(received);
             HBSPackage.Decoder decoder = HBSPackage.Decoder.withDefaultHeader().readPackageBody(received);
             dispatcher(ctx, Protocol.TCP, decoder);
@@ -186,16 +207,16 @@ interface CommonDispatcher {
             ByteBuf msg = datagramPacket.content();
             Integer bodyLen = getBodyLen(msg, Protocol.UDP);
             if (bodyLen == null) return;
-            byte[] received = new byte[bodyLen + 8];
+            byte[] received = new byte[bodyLen + (HBSPackage.UDP_HEADER.length + 4)];
             msg.readBytes(received);
             HBSPackage.Decoder decoder = HBSPackage.Decoder.withHeader(HBSPackage.UDP_HEADER).readPackageBody(received);
             byte[] bodyData = decoder.readAllTheRestBodyData();
             // 把发送地址包装起来
             HBSPackage.Decoder wrapper = HBSPackage.Builder.withHeader(HBSPackage.UDP_HEADER)
-                    .msgType(decoder.getMsgType())
-                    .writeStr(datagramPacket.sender().getHostString())
-                    .writeInt(datagramPacket.sender().getPort())
-                    .writeBytes(bodyData)
+                    .msgType(decoder.getMsgType())//消息类型
+                    .writeStr(datagramPacket.sender().getHostString())//发送端地址
+                    .writeInt(datagramPacket.sender().getPort())//发送端端口
+                    .writeBytes(bodyData)//消息体
                     .toDecoder();
             dispatcher(ctx, Protocol.UDP, wrapper);
         } catch (Exception e) {
@@ -212,13 +233,8 @@ interface CommonDispatcher {
      */
     default Integer getBodyLen(ByteBuf msg, Protocol protocol) {
         int readableBytes = msg.readableBytes();
-        if (readableBytes < 4) {
-            byte[] received = new byte[readableBytes];
-            msg.getBytes(0, received);
-            logger.debug("消息长度小于4：{},{}", readableBytes, new String(received));
-            return null;
-        }
-        byte[] headerBytes = new byte[4];
+        int headerLength = protocol == Protocol.TCP ? HBSPackage.TCP_HEADER.length : HBSPackage.UDP_HEADER.length;
+        byte[] headerBytes = new byte[headerLength];
         msg.getBytes(0, headerBytes);
         boolean matchHeader = protocol == Protocol.TCP
                 ? Arrays.equals(HBSPackage.TCP_HEADER, headerBytes)
@@ -229,19 +245,19 @@ interface CommonDispatcher {
             logger.debug("消息头不匹配：{},{}", readableBytes, new String(received));
             return null;
         }
-        if (readableBytes < 8) {
+        if (readableBytes < (headerLength + 4)) {//4个字节是消息长度
             byte[] received = new byte[readableBytes];
             msg.getBytes(0, received);
             logger.debug("消息长度小于8：{},{}", readableBytes, new String(received));
             return null;
         }
-        byte[] bodyLenBytes = new byte[4];
-        msg.getBytes(4, bodyLenBytes);
+        byte[] bodyLenBytes = new byte[4];//int4字节是消息长度
+        msg.getBytes(headerLength, bodyLenBytes);
         int bodyLen = ByteBuffer.wrap(bodyLenBytes).order(ByteOrder.BIG_ENDIAN).getInt();
-        if (readableBytes < 8 + bodyLen) {
+        if (readableBytes < (headerLength + 4) + bodyLen) {
             byte[] received = new byte[readableBytes];
             msg.getBytes(0, received);
-            logger.debug("包体长度小于{}：{},{}", (8 + bodyLen), readableBytes, new String(received));
+            logger.debug("包体长度小于{}：{},{}", ((headerLength + 4) + bodyLen), readableBytes, new String(received));
             return null;
         }
         return bodyLen;
@@ -272,23 +288,39 @@ interface CommonDispatcher {
             HBSPackage.Decoder decoder = HBSPackage.Decoder.withDefaultHeader().readPackageBody(received);
             int msgType = decoder.readMsgType();
             ServerMessageDispatcher dispatcher = dispatchers().get(Protocol.WEBSOCKET).get(msgType);
-            if (Objects.isNull(dispatcher)) {
-                try {
-                    String _404 = "404";
-                    WebSocketFrame response = isText ? new TextWebSocketFrame(_404) : new BinaryWebSocketFrame(Unpooled.wrappedBuffer(_404.getBytes()));
-                    ctx.writeAndFlush(response).sync();
-                    ctx.close();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+            if (Objects.nonNull(dispatcher)) {
+                Object threadKey = dispatcher.threadKey(ctx, decoder);
+                decoder.resetBodyReadOffset();//重置读取位置
+                decoder.readMsgType();//消息类型
+                threadPoolScheduler().execute(threadKey, () -> {
+                    dispatcher.handle(ctx, decoder);
+                });
+                return;
+            }
+            Map<String, DefaultServerMessageDispatcher> beans = SpringBeanFactory.getBeansOfType(DefaultServerMessageDispatcher.class);
+            if (!beans.isEmpty()) {
+                for (DefaultServerMessageDispatcher messageDispatcher : beans.values()) {
+                    Object threadKey = messageDispatcher.threadKey(ctx, decoder);
+                    decoder.resetBodyReadOffset();//重置读取位置
+                    decoder.readMsgType();//消息类型
+                    threadPoolScheduler().execute(threadKey, () -> {
+                        messageDispatcher.handle(ctx, decoder);
+                    });
+                    break;
                 }
                 return;
             }
-            Object threadKey = dispatcher.threadKey(ctx, decoder);
-            decoder.resetBodyReadOffset();//重置读取位置
-            decoder.readMsgType();//消息类型
-            threadPoolScheduler().execute(threadKey, () -> {
-                dispatcher.handle(ctx, decoder);
-            });
+            try {
+                String _404 = "404";
+                WebSocketFrame response = isText ? new TextWebSocketFrame(_404) : new BinaryWebSocketFrame(Unpooled.wrappedBuffer(_404.getBytes()));
+                ctx.writeAndFlush(response).sync();
+                Boolean isInnerClient = ctx.channel().attr(AttributeKeyConstants.isInnerClientAttr).get();
+                if (isInnerClient == null || !isInnerClient) {
+                    ctx.close();
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         } catch (Exception e) {
             e.printStackTrace();
             ctx.close();
@@ -345,14 +377,40 @@ interface CommonDispatcher {
                 dispatcher.handle(ctx, httpPackage);
                 //ctx.close();
             });
-        } else {
-            DefaultFullHttpResponse response = new DefaultFullHttpResponse(msg.protocolVersion(), HttpResponseStatus.NOT_FOUND);
-            try {
-                ctx.writeAndFlush(response).sync();
-                ctx.close();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            return;
+        }
+        Map<String, DefaultHttpServerDispatcher> beans = SpringBeanFactory.getBeansOfType(DefaultHttpServerDispatcher.class);
+        if (!beans.isEmpty()) {
+            for (DefaultHttpServerDispatcher messageDispatcher : beans.values()) {
+                Object threadKey = messageDispatcher.threadKey(ctx, null);
+                //decoder.resetBodyReadOffset();//重置读取位置
+                threadPoolScheduler().execute(threadKey, () -> {
+                    messageDispatcher.handle(ctx, httpPackage);
+                    //ctx.close();
+                });
+                break;
             }
+            return;
+        }
+        //内部转发头部会有用户id字段
+        String outerUserId = msg.headers().get("outerUserId");
+        if (StringUtils.hasLength(outerUserId)) {
+            OuterUserSessionManager sessionManager = SpringBeanFactory.getBean(OuterUserSessionManager.class);
+            sessionManager.sendMsg2User(
+                    UserSessionProtocol.http,
+                    "404".getBytes(StandardCharsets.UTF_8),
+                    "application/json; charset=UTF-8",
+                    Long.parseLong(outerUserId)
+            );
+            return;
+        }
+        // 404
+        DefaultFullHttpResponse response = new DefaultFullHttpResponse(msg.protocolVersion(), HttpResponseStatus.NOT_FOUND);
+        try {
+            ctx.writeAndFlush(response).sync();
+            ctx.close();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 

@@ -131,7 +131,8 @@ public final class InnerClientMessageDispatcher extends ClientMessageDispatcher 
         try {
             Integer bodyLen = getBodyLen(msg, protocol);
             if (bodyLen == null) return;
-            byte[] received = new byte[bodyLen + 8];
+            int headerLength = protocol == Protocol.TCP ? HBSPackage.TCP_HEADER.length : HBSPackage.UDP_HEADER.length;
+            byte[] received = new byte[headerLength + 4 + bodyLen];
             msg.readBytes(received);
             HBSPackage.Decoder decoder = protocol == Protocol.TCP
                     ? HBSPackage.Decoder.withDefaultHeader().readPackageBody(received)
@@ -146,13 +147,8 @@ public final class InnerClientMessageDispatcher extends ClientMessageDispatcher 
 
     Integer getBodyLen(ByteBuf msg, Protocol protocol) {
         int readableBytes = msg.readableBytes();
-        if (readableBytes < 4) {
-            byte[] received = new byte[readableBytes];
-            msg.getBytes(0, received);
-            logger.debug("消息长度小于4：{},{}", readableBytes, new String(received));
-            return null;
-        }
-        byte[] headerBytes = new byte[4];
+        int headerLength = protocol == Protocol.TCP ? HBSPackage.TCP_HEADER.length : HBSPackage.UDP_HEADER.length;
+        byte[] headerBytes = new byte[headerLength];
         msg.getBytes(0, headerBytes);
         boolean matchHeader = protocol == Protocol.TCP
                 ? Arrays.equals(HBSPackage.TCP_HEADER, headerBytes)
@@ -163,19 +159,19 @@ public final class InnerClientMessageDispatcher extends ClientMessageDispatcher 
             logger.debug("消息头不匹配：{},{}", readableBytes, new String(received));
             return null;
         }
-        if (readableBytes < 8) {
+        if (readableBytes < (headerLength + 4)) {//4个字节是消息长度
             byte[] received = new byte[readableBytes];
             msg.getBytes(0, received);
             logger.debug("消息长度小于8：{},{}", readableBytes, new String(received));
             return null;
         }
-        byte[] bodyLenBytes = new byte[4];
-        msg.getBytes(4, bodyLenBytes);
+        byte[] bodyLenBytes = new byte[4];//int4字节是消息长度
+        msg.getBytes(headerLength, bodyLenBytes);
         int bodyLen = ByteBuffer.wrap(bodyLenBytes).order(ByteOrder.BIG_ENDIAN).getInt();
-        if (readableBytes < 8 + bodyLen) {
+        if (readableBytes < (headerLength + 4) + bodyLen) {
             byte[] received = new byte[readableBytes];
             msg.getBytes(0, received);
-            logger.debug("包体长度小于{}：{},{}", (8 + bodyLen), readableBytes, new String(received));
+            logger.debug("包体长度小于{}：{},{}", ((headerLength + 4) + bodyLen), readableBytes, new String(received));
             return null;
         }
         return bodyLen;

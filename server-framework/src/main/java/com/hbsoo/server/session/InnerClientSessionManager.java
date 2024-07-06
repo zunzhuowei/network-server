@@ -2,7 +2,7 @@ package com.hbsoo.server.session;
 
 import com.hbsoo.server.message.entity.ForwardMessage;
 import com.hbsoo.server.message.entity.HBSPackage;
-import com.hbsoo.server.message.queue.ForwardMessageSender;
+import com.hbsoo.server.message.sender.ForwardMessageSender;
 import com.hbsoo.server.utils.SnowflakeIdGenerator;
 import com.hbsoo.server.utils.SpringBeanFactory;
 import io.netty.channel.Channel;

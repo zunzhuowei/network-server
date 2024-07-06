@@ -7,6 +7,7 @@ public enum UserSessionProtocol {
 
     binary_websocket,
     text_websocket,
+    http,
     tcp,
     udp;
 

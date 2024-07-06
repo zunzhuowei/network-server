@@ -19,7 +19,7 @@ public class UserSession {
     /**
      * 登录的channel；如果由内网登录同步得session，则为空
      */
-    private Channel channel;
+    private transient Channel channel;
     private String udpHost;
     private int udpPort;
     private boolean isUdp;

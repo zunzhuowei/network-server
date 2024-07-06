@@ -3,7 +3,7 @@ package com.hbsoo.server.client;
 import com.hbsoo.server.config.ServerInfo;
 import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.entity.HBSPackage;
-import com.hbsoo.server.session.OuterSessionManager;
+import com.hbsoo.server.session.OuterUserSessionManager;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
@@ -15,7 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class DefaultInnerTcpClientConnectListener implements InnerTcpClientConnectListener {
 
     @Autowired
-    private OuterSessionManager outerSessionManager;
+    private OuterUserSessionManager outerUserSessionManager;
 
     @Override
     public void onConnectSuccess(ChannelFuture channelFuture, ServerInfo fromServerInfo, ServerInfo toServerInfo, int index) {
@@ -36,7 +36,7 @@ public class DefaultInnerTcpClientConnectListener implements InnerTcpClientConne
     public void onConnectFail(ChannelFuture channelFuture, ServerInfo fromServerInfo, ServerInfo toServerInfo, int index) {
         // 清除登陆在断线的服务器中的所有用户
         if (index == 0) {
-            outerSessionManager.logoutWithBelongServer(toServerInfo.getType(), toServerInfo.getId());
+            outerUserSessionManager.logoutWithBelongServer(toServerInfo.getType(), toServerInfo.getId());
         }
     }
 }

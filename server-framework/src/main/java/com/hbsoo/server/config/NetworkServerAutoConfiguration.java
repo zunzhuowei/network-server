@@ -3,11 +3,11 @@ package com.hbsoo.server.config;
 import com.hbsoo.server.NetworkServer;
 import com.hbsoo.server.client.DefaultInnerTcpClientConnectListener;
 import com.hbsoo.server.message.client.InnerClientMessageDispatcher;
-import com.hbsoo.server.message.queue.DefaultForwardMessageSender;
-import com.hbsoo.server.message.queue.ForwardMessageSender;
+import com.hbsoo.server.message.sender.DefaultForwardMessageSender;
+import com.hbsoo.server.message.sender.ForwardMessageSender;
 import com.hbsoo.server.message.server.InnerServerMessageDispatcher;
 import com.hbsoo.server.message.server.OuterServerMessageDispatcher;
-import com.hbsoo.server.session.OuterSessionManager;
+import com.hbsoo.server.session.OuterUserSessionManager;
 import com.hbsoo.server.utils.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -117,7 +117,7 @@ public class NetworkServerAutoConfiguration {
      * 外部服务器工作线程池
      */
     @Bean(destroyMethod = "shutdown")
-    @ConditionalOnProperty(prefix = "hbsoo.server.outerServer", name = "enable", havingValue = "true")
+    //@ConditionalOnProperty(prefix = "hbsoo.server.outerServer", name = "enable", havingValue = "true")
     public ThreadPoolScheduler outerServerThreadPoolScheduler() {
         final Map<String, Object> threadPoolSize = serverInfoProperties.getThreadPoolSize();
         String poolName = "OuterServer-biz-pool";
@@ -152,12 +152,12 @@ public class NetworkServerAutoConfiguration {
      * 创建外网session管理器
      */
     @Bean
-    public OuterSessionManager outerSessionManager() {
+    public OuterUserSessionManager outerSessionManager() {
         List<ServerInfo> innerServers = serverInfoProperties.getInnerServers();
         Integer id = serverInfoProperties.getId();
         Optional<ServerInfo> optional = innerServers.stream().filter(e -> e.getId().equals(id)).findFirst();
         ServerInfo serverInfo = optional.get();
-        return new OuterSessionManager(serverInfo);
+        return new OuterUserSessionManager(serverInfo);
     }
 
     @Bean(initMethod = "forwardFormDb")

@@ -6,15 +6,23 @@ import com.hbsoo.server.annotation.Protocol;
 import com.hbsoo.server.message.entity.ForwardMessage;
 import com.hbsoo.server.message.entity.HBSPackage;
 import com.hbsoo.server.message.ProtocolType;
-import com.hbsoo.server.message.queue.ForwardMessageSender;
+import com.hbsoo.server.message.sender.ForwardMessageSender;
 import com.hbsoo.server.session.InnerClientSessionManager;
+import com.hbsoo.server.session.OuterUserSessionManager;
+import com.hbsoo.server.session.UserSession;
 import com.hbsoo.server.utils.DelayThreadPoolScheduler;
+import com.hbsoo.server.utils.HttpRequestParser;
 import com.hbsoo.server.utils.SnowflakeIdGenerator;
 import com.hbsoo.server.utils.SpringBeanFactory;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.http.DefaultFullHttpRequest;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.HttpVersion;
 import io.netty.util.ReferenceCountUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -28,6 +36,8 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
     private ForwardMessageSender forwardMessageSender;
     @Autowired
     private SnowflakeIdGenerator snowflakeIdGenerator;
+    @Autowired
+    private OuterUserSessionManager outerUserSessionManager;
 
     /**
      * 注意，业务层不要重写此方法。此方法给分发器使用
@@ -151,6 +161,23 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
         redirectAndSwitchProtocolOrg(ctx, protocolType, decoder);
     }
 
+    public void redirectAndSwitch2OuterHttp(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) {
+        redirectAndSwitchProtocolOrg(ctx, ProtocolType.OUTER_HTTP, fullHttpRequest);
+    }
+
+    public void redirectAndSwitch2OuterHttp(ChannelHandlerContext ctx, HttpRequestParser parser) {
+        FullHttpRequest httpRequest = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,
+                HttpMethod.valueOf(parser.getMethod()), parser.getUri());
+        httpRequest.content().writeBytes(parser.getBody());
+        UserSession userSession = parser.getUserSession();
+        Map<String, String> headers = parser.getHeaders();
+        for (String key : headers.keySet()) {
+            httpRequest.headers().set(key, headers.get(key));
+        }
+        outerUserSessionManager.login(userSession.getId(), userSession);
+        redirectAndSwitch2OuterHttp(ctx, httpRequest);
+    }
+
     /**
      * 消息重定向到【指定协议】的消息处理器中处理,作用于【当前服务器】
      * @param ctx 上下文
@@ -173,6 +200,9 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
                     break;
                 case OUTER_WEBSOCKET:
                     outerServerMessageDispatcher.onMessage(ctx, customMsg, Protocol.WEBSOCKET);
+                    break;
+                case OUTER_HTTP:
+                    outerServerMessageDispatcher.onMessage(ctx, customMsg, Protocol.HTTP);
                     break;
             }
         } finally {

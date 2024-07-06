@@ -1,4 +1,4 @@
-package com.hbsoo.hall;
+package com.hbsoo.hall.action;
 
 import com.hbsoo.server.annotation.InnerServerMessageHandler;
 import com.hbsoo.server.message.entity.HBSPackage;

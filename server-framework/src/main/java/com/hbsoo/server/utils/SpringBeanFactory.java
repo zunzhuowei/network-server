@@ -37,6 +37,10 @@ public final class SpringBeanFactory implements ApplicationContextAware {
         return context.getBeansOfType(clazz);
     }
 
+    public boolean containsBean(String name) {
+        return context.containsBean(name);
+    }
+
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         context = applicationContext;

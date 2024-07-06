@@ -58,7 +58,7 @@ public final class HBSPackage {
         }
 
         public byte[] getHeader() {
-            ByteBuffer buffer = ByteBuffer.allocate(4);
+            ByteBuffer buffer = ByteBuffer.allocate(headerByteList.size());
             headerByteList.forEach(buffer::put);
             return buffer.array();
         }
@@ -328,6 +328,10 @@ public final class HBSPackage {
             }
             System.arraycopy(received, this.header.length + bodyLenBytes.length, bodyBytes, 0, bodyBytes.length);
             return bodyBytes;
+        }
+
+        public byte[] getHeader() {
+            return header;
         }
 
         public Builder toBuilder() {

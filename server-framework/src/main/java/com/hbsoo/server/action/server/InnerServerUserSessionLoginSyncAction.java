@@ -5,7 +5,7 @@ import com.hbsoo.server.config.ServerInfo;
 import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.entity.HBSPackage;
 import com.hbsoo.server.message.server.ServerMessageDispatcher;
-import com.hbsoo.server.session.OuterSessionManager;
+import com.hbsoo.server.session.OuterUserSessionManager;
 import com.hbsoo.server.session.UserSession;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
@@ -21,7 +21,7 @@ public class InnerServerUserSessionLoginSyncAction extends ServerMessageDispatch
 
     private static final Logger logger = LoggerFactory.getLogger(InnerServerUserSessionLoginSyncAction.class);
     @Autowired
-    private OuterSessionManager outerSessionManager;
+    private OuterUserSessionManager outerUserSessionManager;
 
     @Override
     public void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
@@ -45,7 +45,7 @@ public class InnerServerUserSessionLoginSyncAction extends ServerMessageDispatch
         belongServer.setPort(belongServerPort);
         belongServer.setType(belongServerType);
         userSession.setBelongServer(belongServer);
-        outerSessionManager.login(id, userSession);
+        outerUserSessionManager.login(id, userSession);
 
         //TODO测试发送消息给用户端
         //final ServerInfo serverInfo = NowServer.getServerInfo();

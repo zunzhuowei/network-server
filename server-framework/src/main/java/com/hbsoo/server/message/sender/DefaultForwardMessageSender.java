@@ -1,4 +1,4 @@
-package com.hbsoo.server.message.queue;
+package com.hbsoo.server.message.sender;
 
 import com.hbsoo.server.NowServer;
 import com.hbsoo.server.config.ServerInfo;

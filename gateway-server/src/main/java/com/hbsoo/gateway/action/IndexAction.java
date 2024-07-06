@@ -31,13 +31,7 @@ public class IndexAction extends HttpServerMessageDispatcher {
     public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) {
         final List<Genealogy> genealogies = genealogyService.listAll();
         //System.out.println("genealogies = " + genealogies);
-        addResponseListener(future -> {
-            if (future.isSuccess()) {
-                //System.out.println("writeAndFlush success");
-            } else {
-                System.out.println("writeAndFlush fail");
-            }
-        }).responseJson(ctx, genealogies, response -> {});
+        responseJson(ctx, httpPackage, genealogies);
 
         forward2InnerServerUseSender(
                 HBSPackage.Builder.withDefaultHeader()

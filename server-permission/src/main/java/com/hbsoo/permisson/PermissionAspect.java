@@ -95,7 +95,7 @@ public class PermissionAspect {
             String authentication = httpPackage.getHeaders().get("Authentication");
             if (checkJwtPermission(permissions, authentication)) return true;
             ((HttpServerMessageDispatcher) point.getTarget())
-                    .responseHtml(context, "<h1>权限不足</h1>", null);
+                    .responseHtml(context, httpPackage, "<h1>权限不足</h1>");
             return false;
         }
         //UDP特殊处理
@@ -104,9 +104,9 @@ public class PermissionAspect {
             String sendHost = decoder.skipGetStr(HBSPackage.DecodeSkip.INT);
             int sendPort = decoder.skipGetInt(HBSPackage.DecodeSkip.INT, HBSPackage.DecodeSkip.STRING);
             String authentication = decoder.skipGetStr(
-                    HBSPackage.DecodeSkip.INT,
-                    HBSPackage.DecodeSkip.STRING,
-                    HBSPackage.DecodeSkip.INT);
+                    HBSPackage.DecodeSkip.INT,//消息类型
+                    HBSPackage.DecodeSkip.STRING,//发送端
+                    HBSPackage.DecodeSkip.INT);//发送端口
             if (checkJwtPermission(permissions, authentication)) return true;
             HBSPackage.Builder.withHeader(HBSPackage.UDP_HEADER)
                     .msgType(HBSMessageType.Outer.PERMISSION_DENIED)
