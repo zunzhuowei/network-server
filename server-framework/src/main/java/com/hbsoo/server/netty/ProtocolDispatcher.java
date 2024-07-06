@@ -101,7 +101,7 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<Object
                 // 可选的压缩支持
                 ctx.pipeline().addLast(new WebSocketServerCompressionHandler());
                 // 添加WebSocket协议处理器
-                ctx.pipeline().addLast(new WebSocketServerProtocolHandler("/ws"));
+                ctx.pipeline().addLast(new WebSocketServerProtocolHandler("/ws", null, true));
                 // 添加WebSocket帧处理器
                 ctx.pipeline().addLast(new WebSocketFrameHandler(handler));
                 ctx.pipeline().remove(this);
