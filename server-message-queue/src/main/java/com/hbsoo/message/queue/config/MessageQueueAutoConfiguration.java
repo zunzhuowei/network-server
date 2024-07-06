@@ -16,6 +16,7 @@ import org.springframework.context.annotation.Import;
         ResultCallbackPushHandler.class,
         TransactionRollbackHandler.class,
         TransactionRollbackPushHandler.class,
+        UnSubscribeHandler.class,
 })
 @Configuration
 public class MessageQueueAutoConfiguration {

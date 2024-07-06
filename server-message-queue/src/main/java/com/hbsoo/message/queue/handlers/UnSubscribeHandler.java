@@ -1,6 +1,5 @@
 package com.hbsoo.message.queue.handlers;
 
-import com.hbsoo.message.queue.entity.SubscribeMessage;
 import com.hbsoo.server.annotation.InnerServerMessageHandler;
 import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.entity.HBSPackage;
@@ -21,20 +20,14 @@ public final class UnSubscribeHandler extends ServerMessageDispatcher {
 
     @Override
     public void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
-        SubscribeMessage subscribeMessage = new SubscribeMessage();
-        decoder.decode2Obj(subscribeMessage);
-        String topic = subscribeMessage.getTopic();
-        int serverId = subscribeMessage.getServerId();
-        String serverType = subscribeMessage.getServerType();
-        SubscribeSessionManager.unSubscribe(topic, serverType, serverId);
-        logger.info("取消订阅关系 订阅主题:{},订阅服务器类型:{},订阅服务器id:{}", topic, serverType, serverId);
+        String serverType = decoder.readStr();
+        int serverId = decoder.readInt();
+        SubscribeSessionManager.unSubscribe(serverType, serverId);
     }
 
     @Override
     public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
-        SubscribeMessage subscribeMessage = new SubscribeMessage();
-        decoder.decode2Obj(subscribeMessage);
-        return subscribeMessage.getTopic();
+        return null;
     }
 
 }

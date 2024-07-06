@@ -2,10 +2,12 @@ package com.hbsoo.message.queue.config;
 
 import com.hbsoo.message.queue.QueueMessageHandler;
 import com.hbsoo.message.queue.entity.SubscribeMessage;
+import com.hbsoo.server.annotation.Protocol;
 import com.hbsoo.server.client.InnerTcpClientConnectListener;
 import com.hbsoo.server.config.ServerInfo;
 import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.entity.HBSPackage;
+import com.hbsoo.server.message.server.InnerServerMessageDispatcher;
 import com.hbsoo.server.session.InnerClientSessionManager;
 import com.hbsoo.server.utils.SpringBeanFactory;
 import io.netty.channel.ChannelFuture;
@@ -57,7 +59,8 @@ public final class RegisterSubscriptionMessage2Server implements InnerTcpClientC
         if (index != 0) {
             return;
         }
-        Map<String, QueueMessageHandler> handlerMap = SpringBeanFactory.getBeansOfType(QueueMessageHandler.class);
+        // 外部服务取消订阅
+        /*Map<String, QueueMessageHandler> handlerMap = SpringBeanFactory.getBeansOfType(QueueMessageHandler.class);
         handlerMap.forEach((k, v) -> {
             MessageListener messageListener = AnnotationUtils.findAnnotation(v.getClass(), MessageListener.class);
             if (messageListener != null) {
@@ -72,11 +75,18 @@ public final class RegisterSubscriptionMessage2Server implements InnerTcpClientC
                     HBSPackage.Builder builder = HBSPackage.Builder.withDefaultHeader()
                             .msgType(HBSMessageType.Inner.UN_SUBSCRIBE)
                             .writeObj(subscribeMessage);
-                    InnerClientSessionManager.forwardMsg2ServerByTypeAndKeyUseSender(builder, serverType, toServerInfo.getId());
+                    InnerClientSessionManager.forwardMsg2ServerByTypeAndKey(builder, serverType, toServerInfo.getId());
                 }
             } else {
                 logger.warn("{} 没有 @MessageListener 注解", v.getClass().getName());
             }
-        });
+        });*/
+        // 队列服务器自行移除订阅
+        InnerServerMessageDispatcher dispatcher = SpringBeanFactory.getBean(InnerServerMessageDispatcher.class);
+        HBSPackage.Builder builder = HBSPackage.Builder.withDefaultHeader()
+                .msgType(HBSMessageType.Inner.UN_SUBSCRIBE)
+                .writeString(toServerInfo.getType())
+                .writeInt(toServerInfo.getId());
+        dispatcher.onMessage(null, builder, Protocol.TCP);
     }
 }

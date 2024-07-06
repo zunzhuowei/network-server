@@ -2,6 +2,8 @@ package com.hbsoo.message.queue.handlers;
 
 
 import com.hbsoo.server.config.ServerInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,6 +16,7 @@ import java.util.stream.Collectors;
 final class SubscribeSessionManager {
 
     private static final Map<String, CopyOnWriteArraySet<String>> sessionMap = new ConcurrentHashMap<>();
+    private static final Logger logger = LoggerFactory.getLogger(SubscribeSessionManager.class);
 
     /**
      * 保存订阅主题与服务器的关系
@@ -30,14 +33,19 @@ final class SubscribeSessionManager {
 
     /**
      * 取消订阅
-     * @param topic 主题
      * @param serverType 服务器类型
      * @param serverId 服务器id
      */
-    public static void unSubscribe(String topic, String serverType, int serverId) {
+    public static void unSubscribe(String serverType, int serverId) {
         synchronized (sessionMap) {
-            CopyOnWriteArraySet<String> topics = sessionMap.computeIfAbsent(topic, k -> new CopyOnWriteArraySet<>());
-            topics.remove(serverType + ":" + serverId);
+            sessionMap.forEach((k, v) -> {
+                boolean remove = v.remove(serverType + ":" + serverId);
+                if (remove) {
+                    logger.info("取消订阅关系 订阅服务器类型:{},订阅服务器id:{}", serverType, serverId);
+                }
+            });
+            //CopyOnWriteArraySet<String> topics = sessionMap.computeIfAbsent(topic, k -> new CopyOnWriteArraySet<>());
+            //topics.remove(serverType + ":" + serverId);
         }
     }
 
