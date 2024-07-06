@@ -9,6 +9,7 @@ import com.hbsoo.server.netty.AttributeKeyConstants;
 import com.hbsoo.server.utils.SnowflakeIdGenerator;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.socket.DatagramPacket;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaderNames;
@@ -280,7 +281,7 @@ public final class OuterUserSessionManager {
         response.content().writeBytes(bytes);
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, contentType);
         response.headers().set(HttpHeaderNames.CONTENT_LENGTH, response.content().readableBytes());
-        channel.writeAndFlush(response);
-        channel.close();
+        channel.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+        //channel.close();
     }
 }

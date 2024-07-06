@@ -9,6 +9,7 @@ import com.hbsoo.server.session.OuterUserSessionManager;
 import com.hbsoo.server.session.UserSession;
 import com.hbsoo.server.session.UserSessionProtocol;
 import com.hbsoo.server.utils.SnowflakeIdGenerator;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.*;
 import io.netty.util.CharsetUtil;
@@ -84,13 +85,12 @@ public abstract class HttpServerMessageDispatcher extends ServerMessageDispatche
         response.content().writeBytes(bytes);
         //response.content().writeCharSequence(html, CharsetUtil.UTF_8);
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, contentType);
-        response.headers().set(HttpHeaderNames.CONTENT_LENGTH, response.content().readableBytes());
+        //response.headers().set(HttpHeaderNames.CONTENT_LENGTH, response.content().readableBytes());
         if (Objects.nonNull(future)) {
-            ctx.writeAndFlush(response).addListener(future);
+            ctx.writeAndFlush(response).addListener(future).addListener(ChannelFutureListener.CLOSE);
         } else {
-            ctx.writeAndFlush(response);
+            ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
         }
-        ctx.close();
     }
 
 

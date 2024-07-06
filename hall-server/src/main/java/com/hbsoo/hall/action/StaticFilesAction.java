@@ -29,6 +29,7 @@ public class StaticFilesAction extends DefaultHttpServerDispatcher {
                 responseHtml(ctx, httpPackage, new String(bytes));
             } catch (IOException e) {
                 e.printStackTrace();
+                responseHtml(ctx, httpPackage, "404");
             }
         } else {
             responseHtml(ctx, httpPackage, "404");
