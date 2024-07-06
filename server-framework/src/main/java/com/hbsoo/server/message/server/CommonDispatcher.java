@@ -14,6 +14,7 @@ import com.hbsoo.server.utils.SpringBeanFactory;
 import com.hbsoo.server.utils.ThreadPoolScheduler;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.DatagramPacket;
 import io.netty.channel.socket.nio.NioDatagramChannel;
@@ -406,12 +407,7 @@ interface CommonDispatcher {
         }
         // 404
         DefaultFullHttpResponse response = new DefaultFullHttpResponse(msg.protocolVersion(), HttpResponseStatus.NOT_FOUND);
-        try {
-            ctx.writeAndFlush(response).sync();
-            ctx.close();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
     }
 
 }
