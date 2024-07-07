@@ -17,9 +17,9 @@ import org.springframework.beans.factory.annotation.Autowired;
  * Created by zun.wei on 2024/6/6.
  */
 @InnerServerMessageHandler(HBSMessageType.Inner.LOGIN_SYNC)
-public class InnerServerUserSessionLoginSyncAction extends ServerMessageDispatcher {
+public class InnerServerOuterUserSessionLoginSyncAction extends ServerMessageDispatcher {
 
-    private static final Logger logger = LoggerFactory.getLogger(InnerServerUserSessionLoginSyncAction.class);
+    private static final Logger logger = LoggerFactory.getLogger(InnerServerOuterUserSessionLoginSyncAction.class);
     @Autowired
     private OuterUserSessionManager outerUserSessionManager;
 
