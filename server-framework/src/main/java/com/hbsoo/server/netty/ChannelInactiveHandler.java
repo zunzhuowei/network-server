@@ -2,6 +2,7 @@ package com.hbsoo.server.netty;
 
 import com.hbsoo.server.session.InnerClientSessionManager;
 import com.hbsoo.server.session.OuterUserSessionManager;
+import com.hbsoo.server.session.UserSession;
 import com.hbsoo.server.utils.SpringBeanFactory;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -34,8 +35,19 @@ public final class ChannelInactiveHandler extends ChannelInboundHandlerAdapter {
             Boolean isInnerClient = ctx.channel().attr(AttributeKeyConstants.isInnerClientAttr).get();
             if (Objects.isNull(isInnerClient)) {
                 OuterUserSessionManager manager = SpringBeanFactory.getBean(OuterUserSessionManager.class);
-                logger.debug("Outer channelInactive id = " + id);
-                manager.logoutAndSyncAllServer(id);
+                //防止客户端重连的时候，旧的客户端被踢出时，把新的客户端踢出。
+                UserSession userSession = manager.getUserSession(id);
+                if (Objects.nonNull(userSession)) {
+                    if (ctx.channel().id() == userSession.getChannel().id()) {
+                        logger.debug("Outer channelInactive id = " + id);
+                        manager.logoutAndSyncAllServer(id);
+                    } else {
+                        logger.debug("Outer channelInactive1 id = " + id);
+                    }
+                } else {
+                    logger.debug("Outer channelInactive2 id = " + id);
+                    manager.logoutAndSyncAllServer(id);
+                }
             } else {
                 logger.debug("Inner channelInactive id = " + id);
                 InnerClientSessionManager.innerLogoutWithChannel(ctx.channel());
