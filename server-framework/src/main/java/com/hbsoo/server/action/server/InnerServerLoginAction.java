@@ -49,7 +49,7 @@ public class InnerServerLoginAction extends ServerMessageDispatcher {
             Map<Long, UserSession> clients = outerUserSessionManager.getClients();
             clients.forEach((userId, userSession) -> {
                 // 登录服务器
-                HBSPackage.Builder builder = HBSPackage.Builder.withDefaultHeader()
+                HBSPackage.Builder.withDefaultHeader()
                         .msgType(HBSMessageType.Inner.LOGIN_SYNC)
                         .writeLong(userId)//登录用户id
                         //.writeStr(userSession.getName())
@@ -57,8 +57,10 @@ public class InnerServerLoginAction extends ServerMessageDispatcher {
                         .writeInt(userSession.getBelongServer().getId()) //登录所属服务器id
                         .writeStr(userSession.getBelongServer().getHost())
                         .writeInt(userSession.getBelongServer().getPort())
-                        .writeStr(userSession.getBelongServer().getType());
-                forward2InnerServer(builder, serverTypeStr, serverId);
+                        .writeStr(userSession.getBelongServer().getType())
+                        .sendTcpTo(ctx.channel());
+                //必须用sender发送，否则可能对方客户端链接了但是服务端还未启动完成
+                //forward2InnerServerUseSender(builder, serverTypeStr, serverId);
             });
         }
     }
