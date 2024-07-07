@@ -264,6 +264,7 @@ public final class OuterUserSessionManager {
                     }
                     case http: {
                         response(channel, innerPackage, contentType);
+                        logout(id);
                         break;
                     }
                     default:
