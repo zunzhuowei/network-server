@@ -25,11 +25,16 @@ const HEARTBEAT_TIMEOUT = 5000;
             }
             return this.socket;
         },
+        reconnect(websocket, ssl) {
+            console.log('Attempting to reconnect...');
+            socketBuilder.connect(websocket, ssl);// 尝试重连的时间间隔
+        },
         connect(websocket, ssl) {
             socket = socketBuilder.build(websocket, ssl);
             //打开事件
             socket.onopen = function (evt) {
                 receiver.onOpen(evt);
+                clearHeartbeatTimers();
                 heartbeatTimer = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
             };
             //获得消息事件
@@ -46,6 +51,7 @@ const HEARTBEAT_TIMEOUT = 5000;
             socket.onclose = function (evt) {
                 clearHeartbeatTimers();
                 receiver.onClose(evt);
+                socketBuilder.reconnect(websocket, ssl);
             };
 
             //发生了错误事件
@@ -55,17 +61,6 @@ const HEARTBEAT_TIMEOUT = 5000;
                 //此时可以尝试刷新页面
             };
 
-
-
-            function reconnect() {
-                if (reconnectTimer) {
-                    clearTimeout(reconnectTimer);
-                }
-                console.log('Attempting to reconnect...');
-                reconnectTimer = setTimeout(() => {
-                    this.connect(websocket, ssl);
-                }, 3000); // 尝试重连的时间间隔
-            }
 
             // 发送心跳包
             function sendHeartbeat() {
@@ -87,7 +82,7 @@ const HEARTBEAT_TIMEOUT = 5000;
             heartbeatTimer = setInterval(function () {
                 heartbeatTimeout = setTimeout(function () {
                     console.error('Heartbeat timeout, connection is considered lost');
-                    //socket.close();
+                    socket.close();
                 }, HEARTBEAT_TIMEOUT);
             }, HEARTBEAT_INTERVAL);
         }

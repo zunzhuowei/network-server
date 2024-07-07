@@ -13,12 +13,16 @@ router.route = function (msgType, dataView) {
 
 // 登录
 router.route100 = function (dataView) {
-    var position = 4 + 4 + 4; //header + bodyLen + msgType
-    //var err = dataView.getUint32(position, socketBuilder.littleEndian);
-    //var result = "err:" + err + ";";
-    var dataParser = new DataParser(dataView, position);
+    var dataParser = new DataParser(dataView);
     var username = dataParser.getStr();
     var userId = dataParser.getLong();
     console.log("userId:" + userId + ";username:" + username)
+};
+
+// 心跳包
+router.route99 = function (dataView) {
+    var dataParser = new DataParser(dataView);
+    var userId = dataParser.getLong();
+    console.log("心跳包 userId:" + userId)
 };
 

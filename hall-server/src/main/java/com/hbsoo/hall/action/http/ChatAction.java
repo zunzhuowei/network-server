@@ -18,6 +18,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Created by zun.wei on 2024/6/15.
@@ -29,13 +30,19 @@ public class ChatAction extends HttpServerMessageDispatcher {
     @Override
     public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) {
         byte[] body = httpPackage.getBody();
-        String dataStr = new String(body);
-        QueryStringDecoder decoder = new QueryStringDecoder("?" + dataStr);
-        Map<String, List<String>> parameters = decoder.parameters();
-        String username = parameters.get("username").get(0);
         String page = "pages/chat.html";
+        String username = null;
         boolean success = true;
-        if (!StringUtils.hasLength(username)) {
+        if (Objects.nonNull(body)) {
+            String dataStr = new String(body);
+            QueryStringDecoder decoder = new QueryStringDecoder("?" + dataStr);
+            Map<String, List<String>> parameters = decoder.parameters();
+            username = parameters.get("username").get(0);
+            if (!StringUtils.hasLength(username)) {
+                page = "pages/login.html";
+                success = false;
+            }
+        } else {
             page = "pages/login.html";
             success = false;
         }

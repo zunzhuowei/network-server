@@ -38,7 +38,7 @@ function MsgParser(data) {
 // 拆包工具类
 function DataParser(dv, position) {
     this.dataView = dv;
-    this.position = position;
+    this.position = position === undefined ? 12 : position; //header + bodyLen + msgType
     this.textDecoder = new TextDecoder();
 
     this.getStr = function getStr() {
