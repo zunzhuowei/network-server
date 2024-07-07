@@ -118,7 +118,7 @@ public final class NetworkServer {
                     System.out.println("UDP server started on port " + port);
                     //防止客户端第一个包丢失问题，自己给自己先发一个
                     HBSPackage.Builder.withHeader(HBSPackage.UDP_HEADER)
-                            .msgType(0).buildAndSendUdpTo(future.channel(), "127.0.0.1", port);
+                            .msgType(0).sendUdpTo(future.channel(), "127.0.0.1", port);
                 } else {
                     System.out.println("UDP server failed to start on port " + port);
                 }

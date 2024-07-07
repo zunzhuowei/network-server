@@ -32,7 +32,7 @@ public class InnerServerOuterUserSessionLoginSyncAction extends ServerMessageDis
         String belongServerHost = decoder.readStr();
         final int belongServerPort = decoder.readInt();
         final String belongServerType = decoder.readStr();
-        logger.debug("InnerServerUserSessionLoginSyncAction id:{} belongServerId:{} belongServerHost:{} belongServerPort:{} belongServerType:{}",
+        logger.debug("InnerServerOuterUserSessionLoginSyncAction id:{} belongServerId:{} belongServerHost:{} belongServerPort:{} belongServerType:{}",
                 id, belongServerId, belongServerHost, belongServerPort, belongServerType);
         UserSession userSession = new UserSession();
         userSession.setId(id);

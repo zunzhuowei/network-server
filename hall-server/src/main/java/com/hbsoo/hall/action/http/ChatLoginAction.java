@@ -1,4 +1,4 @@
-package com.hbsoo.hall.action;
+package com.hbsoo.hall.action.http;
 
 import com.hbsoo.server.annotation.OuterServerMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
@@ -15,7 +15,7 @@ import java.nio.charset.StandardCharsets;
 /**
  * Created by zun.wei on 2024/6/15.
  */
-@OuterServerMessageHandler(value = 0, uri = "/hall/chat", protocol = Protocol.HTTP)
+@OuterServerMessageHandler(value = 0, uri = "/hall/login", protocol = Protocol.HTTP)
 public class ChatLoginAction extends HttpServerMessageDispatcher {
 
 

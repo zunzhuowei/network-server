@@ -24,7 +24,7 @@ public class InnerServerOuterUserSessionLogoutSyncAction extends ServerMessageDi
     @Override
     public void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
         long id = decoder.readLong();
-        logger.debug("InnerServerUserSessionLogoutSyncAction id:{}", id);
+        logger.debug("InnerServerOuterUserSessionLogoutSyncAction id:{}", id);
         outerUserSessionManager.logout(id);
     }
 

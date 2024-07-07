@@ -228,44 +228,44 @@ public final class HBSPackage {
             return ByteBuffer.wrap(msgTypeBytes).order(ByteOrder.BIG_ENDIAN).getInt();
         }
 
-        public void buildAndSendBytesTo(Channel channel) {
+        public void sendTcpTo(Channel channel) {
             byte[] bytes = buildPackage();
             channel.writeAndFlush(Unpooled.wrappedBuffer(bytes));
         }
-        public void buildAndSendBytesTo(Channel channel, GenericFutureListener<? extends Future<? super Void>> futureListener) {
+        public void sendTcpTo(Channel channel, GenericFutureListener<? extends Future<? super Void>> futureListener) {
             byte[] bytes = buildPackage();
             channel.writeAndFlush(Unpooled.wrappedBuffer(bytes)).addListener(futureListener);
         }
 
-        public void buildAndSendBinWebSocketTo(Channel channel) {
+        public void sendBinWebSocketTo(Channel channel) {
             byte[] bytes = buildPackage();
             BinaryWebSocketFrame frame = new BinaryWebSocketFrame(Unpooled.wrappedBuffer(bytes));
             channel.writeAndFlush(frame);
         }
-        public void buildAndSendBinWebSocketTo(Channel channel, GenericFutureListener<? extends Future<? super Void>> futureListener) {
+        public void sendBinWebSocketTo(Channel channel, GenericFutureListener<? extends Future<? super Void>> futureListener) {
             byte[] bytes = buildPackage();
             BinaryWebSocketFrame frame = new BinaryWebSocketFrame(Unpooled.wrappedBuffer(bytes));
             channel.writeAndFlush(frame).addListener(futureListener);
         }
 
-        public void buildAndSendTextWebSocketTo(Channel channel) {
+        public void sendTextWebSocketTo(Channel channel) {
             byte[] bytes = buildPackage();
             TextWebSocketFrame frame = new TextWebSocketFrame(new String(bytes, StandardCharsets.UTF_8));
             channel.writeAndFlush(frame);
         }
-        public void buildAndSendTextWebSocketTo(Channel channel, GenericFutureListener<? extends Future<? super Void>> futureListener) {
+        public void sendTextWebSocketTo(Channel channel, GenericFutureListener<? extends Future<? super Void>> futureListener) {
             byte[] bytes = buildPackage();
             TextWebSocketFrame frame = new TextWebSocketFrame(new String(bytes, StandardCharsets.UTF_8));
             channel.writeAndFlush(frame).addListener(futureListener);
         }
 
-        public void buildAndSendUdpTo(Channel channel, String host, int port) {
+        public void sendUdpTo(Channel channel, String host, int port) {
             byte[] bytes = buildPackage();
             DatagramPacket packet = new DatagramPacket(Unpooled.wrappedBuffer(bytes),
                     new InetSocketAddress(host, port));
             channel.writeAndFlush(packet);
         }
-        public void buildAndSendUdpTo(Channel channel, String host, int port, GenericFutureListener<? extends Future<? super Void>> futureListener) {
+        public void sendUdpTo(Channel channel, String host, int port, GenericFutureListener<? extends Future<? super Void>> futureListener) {
             byte[] bytes = buildPackage();
             DatagramPacket packet = new DatagramPacket(Unpooled.wrappedBuffer(bytes),
                     new InetSocketAddress(host, port));

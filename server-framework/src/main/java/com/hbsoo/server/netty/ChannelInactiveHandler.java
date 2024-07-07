@@ -41,6 +41,7 @@ public final class ChannelInactiveHandler extends ChannelInboundHandlerAdapter {
                 InnerClientSessionManager.innerLogoutWithChannel(ctx.channel());
             }
         }
+        ProtocolDispatcher.channels.remove(ctx.channel());
     }
 
     @Override

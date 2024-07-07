@@ -110,7 +110,7 @@ public class PermissionAspect {
             if (checkJwtPermission(permissions, authentication)) return true;
             HBSPackage.Builder.withHeader(HBSPackage.UDP_HEADER)
                     .msgType(HBSMessageType.Outer.PERMISSION_DENIED)
-                    .buildAndSendUdpTo(context.channel(), sendHost, sendPort);
+                    .sendUdpTo(context.channel(), sendHost, sendPort);
             return false;
         }
         // 非http
@@ -140,12 +140,12 @@ public class PermissionAspect {
         if (protocol == Protocol.TCP) {
             HBSPackage.Builder.withDefaultHeader()
                     .msgType(HBSMessageType.Outer.PERMISSION_DENIED)
-                    .buildAndSendBytesTo(context.channel());
+                    .sendTcpTo(context.channel());
         }
         if (protocol == Protocol.WEBSOCKET) {
             HBSPackage.Builder.withDefaultHeader()
                     .msgType(HBSMessageType.Outer.PERMISSION_DENIED)
-                    .buildAndSendBinWebSocketTo(context.channel());
+                    .sendBinWebSocketTo(context.channel());
         }
         return false;
     }

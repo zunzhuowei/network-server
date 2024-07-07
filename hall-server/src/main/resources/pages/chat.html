@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta charset="utf-8">
+</head>
+<body>
+<div>
+    <!-- 布局一个聊天对话框 -->
+    <div id="chat-box">
+        <div id="chat-list">
+            <!-- 聊天记录 -->
+        </div>
+        <div id="chat-input">
+            <!-- 输入框 -->
+            <input type="text" id="chat-input-text" placeholder="请输入聊天内容">
+            <button id="chat-input-button">发送</button>
+        </div>
+        <div id="username">{{username}}</div>
+    </div>
+</div>
+<script src="/hall/js/jquery-3.3.1.js"></script>
+<script src="/hall/js/receiver.js" type="application/javascript"></script>
+<script src="/hall/js/router.js" type="application/javascript"></script>
+<script src="/hall/js/sender.js" type="application/javascript"></script>
+<script src="/hall/js/socket.js" type="application/javascript"></script>
+<script>
+    $(function () {
+        socketBuilder.connect("localhost:5555/ws", false);
+
+    });
+</script>
+</body>
+</html>

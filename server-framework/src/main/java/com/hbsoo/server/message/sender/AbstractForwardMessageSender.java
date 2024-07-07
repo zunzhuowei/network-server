@@ -70,7 +70,7 @@ public abstract class AbstractForwardMessageSender implements ForwardMessageSend
                         .readPackageBody(originMessage);
                 int msgType = decoder.getMsgType();
                 HBSPackage.Builder builder = decoder.toBuilder().msgType(msgType);
-                builder.buildAndSendBytesTo(channel, future -> {
+                builder.sendTcpTo(channel, future -> {
                     if (!future.isSuccess()) {
                         logger.warn("forward fail, toServerType:{}, forwardKey:{},msgType:{},retry 3 seconds after!", toServerType, forwardKey, msgType);
                         resend(message);

@@ -1,4 +1,4 @@
-package com.hbsoo.hall.action;
+package com.hbsoo.hall.action.http;
 
 import com.hbsoo.server.message.entity.HBSPackage;
 import com.hbsoo.server.message.entity.HttpPackage;

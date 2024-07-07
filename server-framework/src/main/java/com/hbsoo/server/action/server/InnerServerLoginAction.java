@@ -41,7 +41,7 @@ public class InnerServerLoginAction extends ServerMessageDispatcher {
                 .writeInt(id)//当前服务器id
                 .writeStr(loginServerTypeStr)//当前服务器类型
                 .writeInt(index)//客户端编号
-                .buildAndSendBytesTo(ctx.channel());
+                .sendTcpTo(ctx.channel());
         logger.info("接收到内部服务器登录消息：InnerServerLoginAction login success,serverType[{}],id[{}],index[{}]", serverTypeStr, serverId, index);
 
         // 内网服务器登录，将已登录的用户session同步给登录服务器

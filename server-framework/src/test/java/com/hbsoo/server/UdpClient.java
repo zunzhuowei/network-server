@@ -41,13 +41,13 @@ public class UdpClient {
             //channelFuture.channel().writeAndFlush(new DatagramPacket(buf, new InetSocketAddress("localhost", 5555))).sync();
             HBSPackage.Builder.withHeader(HBSPackage.UDP_HEADER)
                     .msgType(1).writeStr("Hello, UDP Server!")
-                    .buildAndSendUdpTo(channelFuture.channel(), "localhost", 5555);
+                    .sendUdpTo(channelFuture.channel(), "localhost", 5555);
             HBSPackage.Builder.withHeader(HBSPackage.UDP_HEADER)
                     .msgType(1).writeStr("Hello, UDP Server2!")
-                    .buildAndSendUdpTo(channelFuture.channel(), "localhost", 5555);
+                    .sendUdpTo(channelFuture.channel(), "localhost", 5555);
             HBSPackage.Builder.withHeader(HBSPackage.UDP_HEADER)
                     .msgType(1).writeStr("Hello, UDP Server3!")
-                    .buildAndSendUdpTo(channelFuture.channel(), "localhost", 5555);
+                    .sendUdpTo(channelFuture.channel(), "localhost", 5555);
             channelFuture.channel().closeFuture().await(); // wait for 10 seconds for responses
         } finally {
             group.shutdownGracefully();

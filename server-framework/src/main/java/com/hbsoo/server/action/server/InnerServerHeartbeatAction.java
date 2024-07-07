@@ -24,7 +24,7 @@ public class InnerServerHeartbeatAction extends ServerMessageDispatcher {
         // 发送心跳包
         HBSPackage.Builder.withDefaultHeader()
                 .msgType(HBSMessageType.Inner.HEARTBEAT)
-                .buildAndSendBytesTo(ctx.channel());
+                .sendTcpTo(ctx.channel());
     }
 
     @Override

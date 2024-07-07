@@ -5,6 +5,8 @@ import com.hbsoo.server.message.server.ServerMessageHandler;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.group.ChannelGroup;
+import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.socket.DatagramPacket;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.handler.codec.DecoderException;
@@ -18,6 +20,7 @@ import io.netty.handler.codec.mqtt.MqttDecoder;
 import io.netty.handler.codec.mqtt.MqttEncoder;
 import io.netty.handler.codec.mqtt.MqttMessageType;
 import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.util.concurrent.GlobalEventExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,6 +36,7 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<Object
     private final int maxFrameLength;
     private final Set<String> protocols;
     private static final Logger logger = LoggerFactory.getLogger(ProtocolDispatcher.class);
+    public static ChannelGroup channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
 
     public ProtocolDispatcher(ServerMessageHandler handler, int maxFrameLength, Set<String> protocols) {
         this.protocols = protocols;
@@ -50,6 +54,7 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<Object
         ctx.pipeline().addLast("unknownIdleStateHandler", new IdleStateHandler(0, 0, 1));
         ctx.pipeline().addLast("unknownServerHeartbeatHandler", new ServerHeartbeatHandler());
         ctx.pipeline().addLast("unknownChannelInactiveHandler", new ChannelInactiveHandler(ProtocolType.UNKNOWN));
+        channels.add(ctx.channel());
     }
 
     @Override

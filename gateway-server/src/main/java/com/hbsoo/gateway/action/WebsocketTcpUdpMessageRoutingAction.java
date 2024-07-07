@@ -34,6 +34,15 @@ public class WebsocketTcpUdpMessageRoutingAction extends DefaultServerMessageDis
                 .writeBytes(decoder.getHeader())
                 .writeBytes(decoder.readAllTheRestBodyData());
         if (msgType < 1000) {
+            //login type
+            if (msgType == 100) {
+                HBSPackage.Decoder decoder1 = decoder.toBuilder()
+                        .writeStr(ctx.channel().id().asLongText()).toDecoder();
+                builder = HBSPackage.Builder.withDefaultHeader()
+                        .msgType(HBSMessageType.Inner.GATEWAY_ROUTING_WEBSOCKET_TCP_UDP_TO_INNER_SERVER)
+                        .writeBytes(decoder1.getHeader())
+                        .writeBytes(decoder1.readAllTheRestBodyData());
+            }
             forward2InnerServer(builder, "hall", threadKey);
             return;
         }

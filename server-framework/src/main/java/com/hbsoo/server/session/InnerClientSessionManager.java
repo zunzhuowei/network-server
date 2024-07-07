@@ -57,7 +57,7 @@ public final class InnerClientSessionManager {
     public static void forwardMsg2ServerByTypeAndId(HBSPackage.Builder msgBuilder, int serverId, String serverType) {
         Channel channel = InnerSessionManager.getChannelByServerTypeAndId(serverId, serverType, () -> clientsMap);
         if (channel != null) {
-            msgBuilder.buildAndSendBytesTo(channel);
+            msgBuilder.sendTcpTo(channel);
         }
     }
 
@@ -89,7 +89,7 @@ public final class InnerClientSessionManager {
     public static void forwardMsg2ServerByTypeAndKey(HBSPackage.Builder msgBuilder, String serverType, Object key) {
         Channel channel = InnerSessionManager.getChannelByTypeAndKey(serverType, key, () -> clientsMap);
         if (channel != null) {
-            msgBuilder.buildAndSendBytesTo(channel);
+            msgBuilder.sendTcpTo(channel);
         }
     }
     /**
@@ -111,7 +111,7 @@ public final class InnerClientSessionManager {
     public static void forwardMsg2AvailableServerByTypeAndKey(HBSPackage.Builder msgBuilder, String serverType, Object key) {
         Channel channel = InnerSessionManager.getAvailableChannelByTypeAndKey(serverType, key, () -> clientsMap);
         if (channel != null) {
-            msgBuilder.buildAndSendBytesTo(channel);
+            msgBuilder.sendTcpTo(channel);
         }
     }
 
@@ -145,7 +145,7 @@ public final class InnerClientSessionManager {
         clientsMap.forEach((serverType, serverTypeMap) -> {
             Channel channel = InnerSessionManager.getChannelByTypeAndKey(serverType, key, () -> clientsMap);
             if (channel != null) {
-                msgBuilder.buildAndSendBytesTo(channel);
+                msgBuilder.sendTcpTo(channel);
             }
         });
     }
@@ -175,7 +175,7 @@ public final class InnerClientSessionManager {
         for (ConcurrentHashMap<Integer, Channel> value : map.values()) {
             Channel channel = value.get(0);
             if (channel != null) {
-                msgBuilder.buildAndSendBytesTo(channel);
+                msgBuilder.sendTcpTo(channel);
             }
         }
     }
@@ -209,7 +209,7 @@ public final class InnerClientSessionManager {
     public static void forwardMsg2ServerByTypeUseWeight(HBSPackage.Builder msgBuilder, String serverType) {
         Channel channel = InnerSessionManager.getChannelByTypeUseWeight(serverType, () -> clientsMap);
         if (channel != null) {
-            msgBuilder.buildAndSendBytesTo(channel);
+            msgBuilder.sendTcpTo(channel);
         }
     }
 
