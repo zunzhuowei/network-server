@@ -4,6 +4,7 @@ import com.hbsoo.gateway.queue.MessageQueueTest;
 import com.hbsoo.server.message.HBSMessageType;
 import com.hbsoo.server.message.entity.HBSPackage;
 import com.hbsoo.server.message.server.DefaultServerMessageDispatcher;
+import com.hbsoo.server.netty.AttributeKeyConstants;
 import com.hbsoo.server.session.OuterUserSessionManager;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.nio.NioDatagramChannel;
@@ -11,6 +12,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.Objects;
 
 /**
  * Created by zun.wei on 2024/7/5.
@@ -29,20 +32,18 @@ public class WebsocketTcpUdpMessageRoutingAction extends DefaultServerMessageDis
         Object threadKey = threadKey(ctx, decoder);
 
         decoder.resetBodyReadOffset();
+        Long userId = AttributeKeyConstants.getAttr(ctx.channel(), AttributeKeyConstants.idAttr);
+        HBSPackage.Decoder decoder1;
+        if (Objects.isNull(userId)) {
+            decoder1 = decoder.toBuilder().writeStr(ctx.channel().id().asLongText()).toDecoder();
+        } else {
+            decoder1 = decoder.toBuilder().writeLong(userId).toDecoder();
+        }
         HBSPackage.Builder builder = HBSPackage.Builder.withDefaultHeader()
                 .msgType(HBSMessageType.Inner.GATEWAY_ROUTING_WEBSOCKET_TCP_UDP_TO_INNER_SERVER)
-                .writeBytes(decoder.getHeader())
-                .writeBytes(decoder.readAllTheRestBodyData());
+                .writeBytes(decoder1.getHeader())
+                .writeBytes(decoder1.readAllTheRestBodyData());
         if (msgType < 1000) {
-            //login type
-            if (msgType == 100) {
-                HBSPackage.Decoder decoder1 = decoder.toBuilder()
-                        .writeStr(ctx.channel().id().asLongText()).toDecoder();
-                builder = HBSPackage.Builder.withDefaultHeader()
-                        .msgType(HBSMessageType.Inner.GATEWAY_ROUTING_WEBSOCKET_TCP_UDP_TO_INNER_SERVER)
-                        .writeBytes(decoder1.getHeader())
-                        .writeBytes(decoder1.readAllTheRestBodyData());
-            }
             forward2InnerServer(builder, "hall", threadKey);
             return;
         }
