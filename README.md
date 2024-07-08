@@ -117,31 +117,24 @@ hbsoo:
 5. Define the HTTP message handler as follows
 
 ```java
-
 @OuterServerMessageHandler(value = 0, uri = "/index", protocol = Protocol.HTTP)
 public class IndexAction extends HttpServerMessageDispatcher {
 
     @Autowired
     private IGenealogyService genealogyService;
 
-    @Override
-    public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) {
-        final List<Genealogy> genealogies = genealogyService.listAll();
-        addResponseListener(future -> {
-            if (future.isSuccess()) {
-                System.out.println("writeAndFlush success");
-            } else {
-                System.out.println("writeAndFlush fail");
-            }
-        }).responseJson(ctx, genealogies, response -> {
-        });
-
-        forward2InnerServerUseSender(
-                HBSPackage.Builder.withDefaultHeader()
-                        .msgType(100).writeStr(genealogies.toString()),
-                "hall",
-                "", 3);
-    }
+   @Override
+   public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) {
+      final List<Genealogy> genealogies = genealogyService.listAll();
+      //System.out.println("genealogies = " + genealogies);
+      responseJson(ctx, httpPackage, genealogies);
+      forward2InnerServerUseSender(
+              HBSPackage.Builder.withDefaultHeader()
+                      .msgType(100).writeStr(genealogies.toString()),
+              "hall",
+              "",3);
+      QueueMessageSender.publish("hall", "test", genealogies.toString());
+   }
 
     @Override
     public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
@@ -194,7 +187,6 @@ public class UserLoginActionTest extends ServerMessageDispatcher {
 * The interface tested was IndexAction, as follows
 
 ```java
-
 @PermissionAuth(permission = {})
 //@AccessLimit(userRateSize = 1, globalRateSize = 2)
 @OuterServerMessageHandler(value = 0, uri = "/index", protocol = Protocol.HTTP)
@@ -202,29 +194,18 @@ public class IndexAction extends HttpServerMessageDispatcher {
     @Autowired
     private IGenealogyService genealogyService;
 
-    @Override
-    public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) {
-        //get data from db
-        final List<Genealogy> genealogies = genealogyService.listAll();
-        //response json to client
-        addResponseListener(future -> {
-            if (future.isSuccess()) {
-                //System.out.println("writeAndFlush success");
-            } else {
-                System.out.println("writeAndFlush fail");
-            }
-        }).responseJson(ctx, genealogies, response -> {
-        });
-
-        // forward to hall server
-        forward2InnerServerUseSender(
-                HBSPackage.Builder.withDefaultHeader()
-                        .msgType(100).writeStr(genealogies.toString()),
-                "hall",
-                "", 3);
-        // publish message to hall server
-        QueueMessageSender.publish("hall", "test", genealogies.toString());
-    }
+   @Override
+   public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) {
+      final List<Genealogy> genealogies = genealogyService.listAll();
+      //System.out.println("genealogies = " + genealogies);
+      responseJson(ctx, httpPackage, genealogies);
+      forward2InnerServerUseSender(
+              HBSPackage.Builder.withDefaultHeader()
+                      .msgType(100).writeStr(genealogies.toString()),
+              "hall",
+              "",3);
+      QueueMessageSender.publish("hall", "test", genealogies.toString());
+   }
 
     @Override
     public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
