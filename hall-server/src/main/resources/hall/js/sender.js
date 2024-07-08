@@ -79,12 +79,12 @@ var sender;
             this.dataView.setUint32(4, this.position - 8, this.littleEndian); // body len
             return this.dataView.buffer.slice(0, this.position);
         },
-        buildHead(msgType) {
+        buildHead(msgType, bufferLen) {
             this.position = 0;
             this.msgType = 0;
             this.dataView = null;
 
-            var buf = new ArrayBuffer(1024);
+            var buf = new ArrayBuffer(bufferLen === undefined ? 1024 : bufferLen);
             this.dataView = new DataView(buf);
             this.buildInt32(0);//header
             this.buildInt32(0);//bodyLen

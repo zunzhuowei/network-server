@@ -16,7 +16,7 @@ var receiver;
             socket.send(buffer);
         },
         onError(evt) {
-            alert("Socket发生了错误");
+            console.log("Socket发生了错误");
         },
         onClose(evt) {
             console.log("Socket已关闭");

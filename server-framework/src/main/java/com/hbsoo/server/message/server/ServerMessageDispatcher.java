@@ -67,10 +67,43 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
      * @param delaySecond 延迟时间（秒）
      */
     public void forward2InnerServer(HBSPackage.Builder msgBuilder, String serverType, Object key, int delaySecond) {
-        delayThreadPoolScheduler.schedule(() ->
-                InnerClientSessionManager.forwardMsg2ServerByTypeAndKey(msgBuilder, serverType, key),
-                delaySecond, TimeUnit.SECONDS
-        );
+        delayThreadPoolScheduler.schedule(() -> forward2InnerServer(msgBuilder, serverType, key), delaySecond, TimeUnit.SECONDS);
+    }
+    /**
+     * 消息转发到【其他内网服务器】的消息处理器中，
+     * 注意：如果转发的服务器类型属于当前服务器类型，则会转发到兄弟服务器中。
+     * 内网【TCP】协议
+     * @param msgBuilder 消息
+     * @param serverType 服务器类型
+     * @param serverId  服务器id。
+     */
+    public void forward2InnerServer(HBSPackage.Builder msgBuilder,int serverId, String serverType) {
+        InnerClientSessionManager.forwardMsg2ServerByTypeAndId(msgBuilder, serverId, serverType);
+    }
+
+    /**
+     * 延迟转发到【其他内网服务器】的消息处理器中，
+     *
+     * @param delaySecond 延迟时间（秒）
+     */
+    public void forward2InnerServer(HBSPackage.Builder msgBuilder, int serverId, String serverType, int delaySecond) {
+        delayThreadPoolScheduler.schedule(() -> forward2InnerServer(msgBuilder, serverId, serverType), delaySecond, TimeUnit.SECONDS);
+    }
+
+    public void forward2AllInnerServerByType(HBSPackage.Builder msgBuilder, String serverType) {
+        InnerClientSessionManager.forwardMsg2ServerByTypeAll(msgBuilder, serverType);
+    }
+
+    public void forward2AllInnerServerByType(HBSPackage.Builder msgBuilder, String serverType, int delaySecond) {
+        delayThreadPoolScheduler.schedule(() -> forward2AllInnerServerByType(msgBuilder, serverType), delaySecond, TimeUnit.SECONDS);
+    }
+
+    public void forward2AllInnerServerByTypeUseSender(HBSPackage.Builder msgBuilder, String serverType) {
+        InnerClientSessionManager.forwardMsg2ServerByTypeAllUseSender(msgBuilder, serverType);
+    }
+
+    public void forward2AllInnerServerByTypeUseSender(HBSPackage.Builder msgBuilder, String serverType, int delaySecond) {
+        delayThreadPoolScheduler.schedule(() -> forward2AllInnerServerByTypeUseSender(msgBuilder, serverType), delaySecond, TimeUnit.SECONDS);
     }
 
     /**
@@ -79,9 +112,7 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
      * {@link ServerMessageDispatcher#forward2InnerServer}
      */
     public void forward2InnerServerUseSender(HBSPackage.Builder msgBuilder, String serverType, Object key) {
-        long id = snowflakeIdGenerator.generateId();
-        ForwardMessage forwardMessage = new ForwardMessage(id, msgBuilder, -1, -1, serverType, key);
-        forwardMessageSender.send(forwardMessage);
+        InnerClientSessionManager.forwardMsg2ServerByTypeAndKeyUseSender(msgBuilder, serverType, key);
     }
     /**
      * 消息转发到【其他内网服务器】的消息处理器中，
@@ -89,9 +120,24 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
      * {@link ServerMessageDispatcher#forward2InnerServer}
      */
     public void forward2InnerServerUseSender(HBSPackage.Builder msgBuilder, String serverType, Object key, int delaySecond) {
-        long id = snowflakeIdGenerator.generateId();
-        ForwardMessage forwardMessage = new ForwardMessage(id, msgBuilder, delaySecond, serverType, key);
-        forwardMessageSender.send(forwardMessage);
+        delayThreadPoolScheduler.schedule(() -> forward2InnerServerUseSender(msgBuilder, serverType, key), delaySecond, TimeUnit.SECONDS);
+    }
+    /**
+     * 消息转发到【其他内网服务器】的消息处理器中，
+     * 使用sender发送，保证发送失败时候重发消息；
+     * {@link ServerMessageDispatcher#forward2InnerServer}
+     */
+    public void forward2InnerServerUseSender(HBSPackage.Builder msgBuilder, int serverId, String serverType) {
+        InnerClientSessionManager.forwardMsg2ServerByTypeAndIdUseSender(msgBuilder, serverId, serverType);
+    }
+
+    /**
+     * 消息转发到【其他内网服务器】的消息处理器中，
+     * 使用sender发送，保证发送失败时候重发消息；
+     * {@link ServerMessageDispatcher#forward2InnerServer}
+     */
+    public void forward2InnerServerUseSender(HBSPackage.Builder msgBuilder, int serverId, String serverType, int delaySecond) {
+        delayThreadPoolScheduler.schedule(() -> forward2InnerServerUseSender(msgBuilder, serverId, serverType), delaySecond, TimeUnit.SECONDS);
     }
     /**
      * 消息重定向到【当前服务器】中的其他消息处理器中，与当前处理器【相同协议】
@@ -101,12 +147,19 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
         redirectMessageOrg(ctx, builder);
     }
 
+    public void redirectMessage(ChannelHandlerContext ctx, HBSPackage.Builder builder, int delaySecond) {
+        delayThreadPoolScheduler.schedule(() -> redirectMessage(ctx, builder), delaySecond, TimeUnit.SECONDS);
+    }
+
     /**
      * 消息重定向到【当前服务器】中的其他消息处理器中，与当前处理器【相同协议】
      * 注意：【不支持http、udp协议类型的处理器调用】。
      */
     public void redirectMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
         redirectMessageOrg(ctx, decoder);
+    }
+    public void redirectMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder, int delaySecond) {
+        delayThreadPoolScheduler.schedule(() -> redirectMessage(ctx, decoder), delaySecond, TimeUnit.SECONDS);
     }
     /**
      * 消息重定向到【当前服务器】中的其他消息处理器中，与当前处理器【相同协议】

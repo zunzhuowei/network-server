@@ -54,6 +54,10 @@ public final class OuterUserSessionManager {
         this.nowServerInfo = nowServerInfo;
     }
 
+    public ServerInfo getNowServerInfo() {
+        return this.nowServerInfo;
+    }
+
     /**
      * 获取用户session
      *

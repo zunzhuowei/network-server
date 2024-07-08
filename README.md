@@ -280,3 +280,4 @@ public class IndexAction extends HttpServerMessageDispatcher {
 27. ~~协议头配置化~~？
 28. 注册接口？
 29. ~~接口权限控制？~~
+30. ~~做一个im群组聊天室，测试框架完善度~~

@@ -19,13 +19,13 @@ public class LoginChatRoomAction extends ServerMessageDispatcher {
     public void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
         String username = decoder.readStr();
         String channelId = decoder.readStr();
-        //1.执行登录流程，同步到到网关服。
-        //2.判断聊天房间是否存在
-        //3.存在则进入，不存在则创建；进入聊天房间
-        //4.发送聊天小则走房间服务。
         int userId = Math.abs(username.hashCode());
         logger.info("login chat room username:{}，channelId:{}，userId:{}", username, channelId, userId);
-        decoder.toBuilder().writeInt(userId).sendTcpTo(ctx.channel());
+        //通知客户端登录成功
+        HBSPackage.Builder builder = decoder.toBuilder().writeInt(userId);
+        builder.sendTcpTo(ctx.channel());
+        //加入房间
+        forward2InnerServerUseSender(builder, "room", userId);
     }
 
     @Override
