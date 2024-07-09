@@ -26,8 +26,6 @@ public class InnerServerOuterUserSessionLoginSyncAction extends ServerMessageDis
     @Override
     public void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
         long id = decoder.readLong();
-        //String username = decoder.readStr();
-        //String token = decoder.readStr();
         final int belongServerId = decoder.readInt();
         String belongServerHost = decoder.readStr();
         final int belongServerPort = decoder.readInt();
@@ -36,9 +34,6 @@ public class InnerServerOuterUserSessionLoginSyncAction extends ServerMessageDis
                 id, belongServerId, belongServerHost, belongServerPort, belongServerType);
         UserSession userSession = new UserSession();
         userSession.setId(id);
-        //userSession.setName(username);
-        //userSession.setToken(token);
-        //userSession.setChannel(ctx.channel());
         final ServerInfo belongServer = new ServerInfo();
         belongServer.setId(belongServerId);
         belongServer.setHost(belongServerHost);
@@ -46,12 +41,6 @@ public class InnerServerOuterUserSessionLoginSyncAction extends ServerMessageDis
         belongServer.setType(belongServerType);
         userSession.setBelongServer(belongServer);
         outerUserSessionManager.login(id, userSession);
-
-        //TODO测试发送消息给用户端
-        //final ServerInfo serverInfo = NowServer.getServerInfo();
-        //Gson gson = new Gson();
-        //final String s = gson.toJson(serverInfo);
-        //outerSessionManager.sendTextWebSocketFrameMsg2User(s, id);
     }
 
 

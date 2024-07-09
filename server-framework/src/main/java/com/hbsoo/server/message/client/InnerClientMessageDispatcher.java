@@ -3,7 +3,9 @@ package com.hbsoo.server.message.client;
 import com.google.gson.Gson;
 import com.hbsoo.server.annotation.Protocol;
 import com.hbsoo.server.message.entity.HBSPackage;
+import com.hbsoo.server.message.entity.SyncMessage;
 import com.hbsoo.server.message.entity.TextWebSocketPackage;
+import com.hbsoo.server.session.InnerClientSessionManager;
 import com.hbsoo.server.utils.DelayThreadPoolScheduler;
 import com.hbsoo.server.utils.SpringBeanFactory;
 import com.hbsoo.server.utils.ThreadPoolScheduler;
@@ -25,6 +27,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * Created by zun.wei on 2024/6/12.
@@ -112,6 +115,13 @@ public final class InnerClientMessageDispatcher extends ClientMessageDispatcher 
 
     void dispatcher(ChannelHandlerContext ctx, Protocol protocol, HBSPackage.Decoder decoder) {
         int msgType = decoder.readMsgType();
+        //如果是同步消息,服务端返回的结果交给客户端处理
+        SyncMessage syncMessage = InnerClientSessionManager.syncMsgMap.get(decoder.getLastLong());
+        if (Objects.nonNull(syncMessage)) {
+            syncMessage.setDecoder(decoder);
+            syncMessage.getCountDownLatch().countDown();
+            return;
+        }
         ClientMessageDispatcher dispatcher = innerClientDispatchers.get(protocol).get(msgType);
         if (Objects.isNull(dispatcher)) {
             final String s = ctx.channel().id().asShortText();

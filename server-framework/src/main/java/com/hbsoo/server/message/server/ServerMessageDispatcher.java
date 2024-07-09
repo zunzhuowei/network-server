@@ -3,7 +3,6 @@ package com.hbsoo.server.message.server;
 import com.hbsoo.server.annotation.InnerServerMessageHandler;
 import com.hbsoo.server.annotation.OuterServerMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
-import com.hbsoo.server.message.entity.ForwardMessage;
 import com.hbsoo.server.message.entity.HBSPackage;
 import com.hbsoo.server.message.ProtocolType;
 import com.hbsoo.server.message.sender.ForwardMessageSender;
@@ -24,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /**
  * Created by zun.wei on 2024/6/13.
@@ -99,7 +99,7 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
     }
 
     public void forward2AllInnerServerByTypeUseSender(HBSPackage.Builder msgBuilder, String serverType) {
-        InnerClientSessionManager.forwardMsg2ServerByTypeAllUseSender(msgBuilder, serverType);
+        InnerClientSessionManager.forwardMsg2AllServerByTypeUseSender(msgBuilder, serverType);
     }
 
     public void forward2AllInnerServerByTypeUseSender(HBSPackage.Builder msgBuilder, String serverType, int delaySecond) {
@@ -260,6 +260,24 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
             }
         } finally {
             ReferenceCountUtil.release(customMsg);
+        }
+    }
+
+    /**
+     * 请求服务器，并等待服务器响应返回值；
+     * 【注意】:方法会在消息体【尾部追加消息ID】。
+     * 服务端接收到消息后，响应结果时【必须使用channel】返回，需要【将消息ID也追加到消息体尾部】。
+     * @param builder 消息内容
+     * @param waitSeconds 等待相应结果时间秒数
+     * @param forwardMsg2ServerFunction 消息发送函数
+     * @return 服务器响应的内容或者null(等待返回值超时)
+     */
+    public HBSPackage.Decoder request2Server(HBSPackage.Builder builder, int waitSeconds, Consumer<HBSPackage.Builder> forwardMsg2ServerFunction) {
+        try {
+            return InnerClientSessionManager.requestServer(builder, waitSeconds, forwardMsg2ServerFunction);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            return null;
         }
     }
 }

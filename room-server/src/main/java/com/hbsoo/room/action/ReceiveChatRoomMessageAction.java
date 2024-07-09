@@ -31,6 +31,9 @@ public class ReceiveChatRoomMessageAction extends ServerMessageDispatcher {
         String message = decoder.readStr();
         long userId = decoder.readLong();
         ChatRoom chatRoom = ChatRoomManager.getChatRoom("first-chatroom");
+        //测试发送同步消息
+        //HBSPackage.Decoder result = request2Server(decoder.toBuilder(), 10, (builder) -> forward2InnerServer(builder, "gateway", userId));
+        //System.out.println("result = " + result);
         if (Objects.isNull(chatRoom)) {
             forward2AllInnerServerByTypeUseSender(decoder.toBuilder(), "room");
             return;

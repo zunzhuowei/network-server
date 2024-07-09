@@ -406,6 +406,17 @@ public final class HBSPackage {
         }
 
         /**
+         * 获取最后的long字段
+         * 如果不存在long字段则返回0
+         */
+        public long getLastLong() {
+            if (body.length - 8 > 0) {
+                return ByteBuffer.wrap(body, body.length - 8, 8).order(ByteOrder.BIG_ENDIAN).getLong();
+            }
+            return 0L;
+        }
+
+        /**
          * 获取消息类型,阅读偏移量不移动
          */
         public int getMsgType() {

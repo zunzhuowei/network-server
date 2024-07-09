@@ -262,3 +262,4 @@ public class IndexAction extends HttpServerMessageDispatcher {
 28. 注册接口？
 29. ~~接口权限控制？~~
 30. ~~做一个im群组聊天室，测试框架完善度~~
+31. 让内部服务客户端发送同步消息（客户端发送等待服务端返回消息）

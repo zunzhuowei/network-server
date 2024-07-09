@@ -2,6 +2,7 @@ package com.hbsoo.server.session;
 
 import com.hbsoo.server.message.entity.ForwardMessage;
 import com.hbsoo.server.message.entity.HBSPackage;
+import com.hbsoo.server.message.entity.SyncMessage;
 import com.hbsoo.server.message.sender.ForwardMessageSender;
 import com.hbsoo.server.utils.SnowflakeIdGenerator;
 import com.hbsoo.server.utils.SpringBeanFactory;
@@ -11,6 +12,10 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 
 /**
  * 保存了当前服务器登录其他服务的channel;
@@ -31,7 +36,10 @@ public final class InnerClientSessionManager {
      */
     //关于key的解释：1.serverType:服务器类型 2.serverId:服务器id 3.链接服务器的channel编号
     public static Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = new ConcurrentHashMap<>();
-
+    /**
+     * 同步消息的map
+     */
+    public static Map<Long, SyncMessage> syncMsgMap = new ConcurrentHashMap<>();
 
     public static void innerLogin(String serverType, Integer serverId, Channel channel, int index) {
         InnerSessionManager.innerLogin(serverType, serverId, channel, index, () -> clientsMap);
@@ -58,6 +66,45 @@ public final class InnerClientSessionManager {
         Channel channel = InnerSessionManager.getChannelByServerTypeAndId(serverId, serverType, () -> clientsMap);
         if (channel != null) {
             msgBuilder.sendTcpTo(channel);
+        }
+    }
+
+    /**
+     * 根据消息类型和键值向特定服务器发送消息。
+     * 【注意】:方法会在消息体尾部追加消息ID。
+     * 服务端接收到消息后，响应结果时使用channel返回，需要将消息ID也追加到消息体尾部。
+     */
+    public static HBSPackage.Decoder requestServerByTypeAndId(HBSPackage.Builder msgBuilder, int serverId, String serverType)
+            throws InterruptedException, TimeoutException {
+        return requestServer(msgBuilder, 5, (builder) -> forwardMsg2ServerByTypeAndId(builder, serverId, serverType));
+    }
+
+    /**
+     * 请求服务器，并等待服务器响应返回值；
+     * 【注意】:方法会在消息体【尾部追加消息ID】。
+     * 服务端接收到消息后，响应结果时【必须使用channel】返回，需要【将消息ID也追加到消息体尾部】。
+     * @param msgBuilder 消息内容
+     * @param waitSeconds 等待相应结果时间秒数
+     * @param forwardMsg2ServerFunction 消息发送函数
+     * @return 服务器响应的内容或者null(等待返回值超时)
+     */
+    public static HBSPackage.Decoder requestServer(HBSPackage.Builder msgBuilder, int waitSeconds, Consumer<HBSPackage.Builder> forwardMsg2ServerFunction)
+            throws InterruptedException {
+        SnowflakeIdGenerator snowflakeIdGenerator = SpringBeanFactory.getBean(SnowflakeIdGenerator.class);
+        long generateId = snowflakeIdGenerator.generateId();
+        try {
+            msgBuilder.writeLong(generateId);
+            forwardMsg2ServerFunction.accept(msgBuilder);
+            SyncMessage syncMessage = syncMsgMap.computeIfAbsent(generateId, k -> new SyncMessage(new CountDownLatch(1)));
+            CountDownLatch latch = syncMessage.getCountDownLatch();
+            //阻塞等待结果
+            boolean await = latch.await(waitSeconds, TimeUnit.SECONDS);
+            if (await) {
+                return syncMessage.getDecoder();
+            }
+            return null;
+        } finally {
+            syncMsgMap.remove(generateId);
         }
     }
 
@@ -185,7 +232,7 @@ public final class InnerClientSessionManager {
      * 使用sender发送，保证发送失败时候重发消息；
      * {@link InnerClientSessionManager#forwardMsg2ServerByTypeAll}
      */
-    public static void forwardMsg2ServerByTypeAllUseSender(HBSPackage.Builder msgBuilder, String serverType) {
+    public static void forwardMsg2AllServerByTypeUseSender(HBSPackage.Builder msgBuilder, String serverType) {
         ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>> map = clientsMap.get(serverType);
         for (Integer serverId : map.keySet()) {
             ForwardMessageSender sender = SpringBeanFactory.getBean(ForwardMessageSender.class);
