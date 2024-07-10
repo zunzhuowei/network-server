@@ -7,7 +7,7 @@ import java.util.concurrent.CountDownLatch;
  */
 public final class SyncMessage {
 
-    private HBSPackage.Decoder decoder;
+    private NetworkPacket.Decoder decoder;
 
     private final CountDownLatch countDownLatch;
 
@@ -15,11 +15,11 @@ public final class SyncMessage {
         this.countDownLatch = countDownLatch;
     }
 
-    public HBSPackage.Decoder getDecoder() {
+    public NetworkPacket.Decoder getDecoder() {
         return decoder;
     }
 
-    public void setDecoder(HBSPackage.Decoder decoder) {
+    public void setDecoder(NetworkPacket.Decoder decoder) {
         this.decoder = decoder;
     }
 

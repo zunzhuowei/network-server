@@ -5,9 +5,9 @@ import com.hbsoo.gateway.entity.Genealogy;
 import com.hbsoo.gateway.service.IGenealogyService;
 import com.hbsoo.message.queue.QueueMessageSender;
 import com.hbsoo.permisson.PermissionAuth;
-import com.hbsoo.server.annotation.OuterServerMessageHandler;
+import com.hbsoo.server.annotation.OutsideMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
-import com.hbsoo.server.message.entity.HBSPackage;
+import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.entity.HttpPackage;
 import com.hbsoo.server.message.server.HttpServerMessageDispatcher;
 import io.netty.channel.ChannelHandlerContext;
@@ -20,7 +20,7 @@ import java.util.List;
  */
 @PermissionAuth(permission = {})
 //@AccessLimit(userRateSize = 1, globalRateSize = 2)
-@OuterServerMessageHandler(value = 0, uri = "/index", protocol = Protocol.HTTP)
+@OutsideMessageHandler(value = 0, uri = "/index", protocol = Protocol.HTTP)
 public class IndexAction extends HttpServerMessageDispatcher {
 
 
@@ -34,7 +34,7 @@ public class IndexAction extends HttpServerMessageDispatcher {
         responseJson(ctx, httpPackage, genealogies);
 
         forward2InnerServerUseSender(
-                HBSPackage.Builder.withDefaultHeader()
+                NetworkPacket.Builder.withDefaultHeader()
                         .msgType(100).writeStr(genealogies.toString()),
                 "hall",
                 "",3);
@@ -43,7 +43,7 @@ public class IndexAction extends HttpServerMessageDispatcher {
     }
 
     @Override
-    public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
+    public Object threadKey(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
         return null;
     }
 }

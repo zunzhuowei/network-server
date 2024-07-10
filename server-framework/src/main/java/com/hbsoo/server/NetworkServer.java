@@ -1,10 +1,11 @@
 package com.hbsoo.server;
 
-import com.hbsoo.server.message.entity.HBSPackage;
+import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.server.ServerMessageHandler;
 import com.hbsoo.server.netty.ProtocolDispatcher;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioDatagramChannel;
@@ -65,12 +66,19 @@ public final class NetworkServer {
                         ch.pipeline().addLast(new ProtocolDispatcher(handler, maxFrameLength, protocols));
                     }
                 })
-                .option(ChannelOption.SO_BACKLOG, 256)
+                .option(ChannelOption.SO_BACKLOG, 1024)
                 .option(ChannelOption.SO_RCVBUF, 10 * 1024 * 1024)
                 .option(ChannelOption.SO_REUSEADDR, true)
+                //Netty提供了Pooled ByteBufAllocator进行高效的内存管理，可以减少垃圾回收的压力。
+                //使用直接内存：减少堆内存的使用，提高GC效率。
+                .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
+                //开启TCP KeepAlive，保持长连接。
                 .childOption(ChannelOption.SO_KEEPALIVE, true)
-                //.childOption(ChannelOption.TCP_NODELAY, true)
-                .childOption(ChannelOption.SO_SNDBUF, 5 * 1024)
+                //禁用Nagle算法，减少延迟。
+                .childOption(ChannelOption.TCP_NODELAY, true)
+                .childOption(ChannelOption.SO_SNDBUF, 1024 * 1024)
+                .childOption(ChannelOption.SO_RCVBUF, 1024 * 1024)
+                .childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
         ;
         if (protocols.contains("UDP")) {
             enableUdpServer();
@@ -105,11 +113,13 @@ public final class NetworkServer {
                         //.handler(new LengthFieldBasedFrameDecoder
                         //        (maxFrameLength, 4, 4, 0, 0))
                         //.handler(new UdpServerHandler(handler))
+                        //SO_BROADCAST参数为true，表示允许在该通道上发送广播报文。
                         .option(ChannelOption.SO_BROADCAST, true)
                         .option(ChannelOption.SO_RCVBUF, 10 * 1024 * 1024)
                         .option(ChannelOption.SO_SNDBUF, 5 * 1024 * 1024)
                         .option(ChannelOption.SO_REUSEADDR, true)
-                        .option(ChannelOption.RCVBUF_ALLOCATOR, new FixedRecvByteBufAllocator(65525))
+                        //.option(ChannelOption.RCVBUF_ALLOCATOR, new FixedRecvByteBufAllocator(65525))
+                        .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
                 ;
 
                 // 绑定一个端口并且同步，生成了一个ChannelFuture对象
@@ -117,7 +127,7 @@ public final class NetworkServer {
                 if (future.isSuccess()) {
                     System.out.println("UDP server started on port " + port);
                     //防止客户端第一个包丢失问题，自己给自己先发一个
-                    HBSPackage.Builder.withHeader(HBSPackage.UDP_HEADER)
+                    NetworkPacket.Builder.withHeader(NetworkPacket.UDP_HEADER)
                             .msgType(0).sendUdpTo(future.channel(), "127.0.0.1", port);
                 } else {
                     System.out.println("UDP server failed to start on port " + port);

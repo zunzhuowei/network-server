@@ -1,21 +1,17 @@
 package com.hbsoo.hall.action.http;
 
-import com.hbsoo.server.annotation.OuterServerMessageHandler;
+import com.hbsoo.server.annotation.OutsideMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
-import com.hbsoo.server.message.entity.HBSPackage;
+import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.entity.HttpPackage;
 import com.hbsoo.server.message.server.HttpServerMessageDispatcher;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.QueryStringDecoder;
-import io.netty.handler.codec.http.multipart.HttpPostRequestDecoder;
-import io.netty.handler.codec.http.multipart.InterfaceHttpData;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -23,7 +19,7 @@ import java.util.Objects;
 /**
  * Created by zun.wei on 2024/6/15.
  */
-@OuterServerMessageHandler(value = 0, uri = "/hall/chat", protocol = Protocol.HTTP)
+@OutsideMessageHandler(value = 0, uri = "/hall/chat", protocol = Protocol.HTTP)
 public class ChatAction extends HttpServerMessageDispatcher {
 
 
@@ -63,7 +59,7 @@ public class ChatAction extends HttpServerMessageDispatcher {
     }
 
     @Override
-    public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
+    public Object threadKey(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
         return null;
     }
 

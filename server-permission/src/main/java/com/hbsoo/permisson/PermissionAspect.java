@@ -2,14 +2,15 @@ package com.hbsoo.permisson;
 
 import com.google.gson.Gson;
 import com.hbsoo.permisson.utils.JwtUtils;
-import com.hbsoo.server.annotation.OuterServerMessageHandler;
+import com.hbsoo.server.annotation.OutsideMessageHandler;
 import com.hbsoo.server.annotation.Permission;
 import com.hbsoo.server.annotation.Protocol;
-import com.hbsoo.server.message.HBSMessageType;
-import com.hbsoo.server.message.entity.HBSPackage;
+import com.hbsoo.server.message.MessageType;
+import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.entity.HttpPackage;
 import com.hbsoo.server.message.server.HttpServerMessageDispatcher;
-import com.hbsoo.server.netty.AttributeKeyConstants;
+import com.hbsoo.server.session.OutsideUserSessionManager;
+import com.hbsoo.server.session.UserSession;
 import io.jsonwebtoken.Claims;
 import io.netty.channel.ChannelHandlerContext;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -39,9 +40,11 @@ public class PermissionAspect {
 
     @Autowired
     private JwtUtils jwtUtils;
+    @Autowired
+    private OutsideUserSessionManager outsideUserSessionManager;
 
-    @Pointcut("@annotation(com.hbsoo.server.annotation.OuterServerMessageHandler)"
-            + "|| @within(com.hbsoo.server.annotation.OuterServerMessageHandler)"
+    @Pointcut("@annotation(com.hbsoo.server.annotation.OutsideMessageHandler)"
+            + "|| @within(com.hbsoo.server.annotation.OutsideMessageHandler)"
             //+ "|| @annotation(com.hbsoo.server.annotation.InnerServerMessageHandler)"
             //+ "|| @within(com.hbsoo.server.annotation.InnerServerMessageHandler)"
     )
@@ -55,8 +58,8 @@ public class PermissionAspect {
         if (!"handle".equals(methodName)) {
             return point.proceed();
         }
-        OuterServerMessageHandler outerServerMessageHandler = getOuterServerMessageHandler(point);
-        if (Objects.isNull(outerServerMessageHandler)) {
+        OutsideMessageHandler outsideMessageHandler = getOuterServerMessageHandler(point);
+        if (Objects.isNull(outsideMessageHandler)) {
             return point.proceed();
         }
         PermissionAuth permissionAuth = getPermissionAuth(point);
@@ -66,7 +69,7 @@ public class PermissionAspect {
         Object[] args = point.getArgs();
         String[] permissionStr = permissionAuth.permissionStr();
         Permission[] permission = permissionAuth.permission();
-        Protocol protocol = outerServerMessageHandler.protocol();
+        Protocol protocol = outsideMessageHandler.protocol();
         if (checkPermission(point, args, permissionStr, permission, protocol)) {
             return point.proceed();
         } else {
@@ -76,7 +79,8 @@ public class PermissionAspect {
     }
 
     /**
-     * 检查权限
+     * 检查权限,
+     * @return true, 有权限
      */
     private boolean checkPermission(ProceedingJoinPoint point, Object[] args,
                                     String[] permissionStr, Permission[] permission,
@@ -85,6 +89,11 @@ public class PermissionAspect {
                 Arrays.stream(permissionStr).map(String::toUpperCase),
                 Arrays.stream(permission).map(Permission::name)
         ).collect(Collectors.toSet());
+        // 无需任何权限
+        if (permissions.isEmpty()) {
+            return true;
+        }
+
         ChannelHandlerContext context = Objects.isNull(args[0]) ? null : (ChannelHandlerContext) args[0];
         //http
         if (protocol == Protocol.HTTP) {
@@ -100,51 +109,49 @@ public class PermissionAspect {
         }
         //UDP特殊处理
         else if (protocol == Protocol.UDP) {
-            HBSPackage.Decoder decoder = (HBSPackage.Decoder) args[1];
-            String sendHost = decoder.skipGetStr(HBSPackage.DecodeSkip.INT);
-            int sendPort = decoder.skipGetInt(HBSPackage.DecodeSkip.INT, HBSPackage.DecodeSkip.STRING);
+            NetworkPacket.Decoder decoder = (NetworkPacket.Decoder) args[1];
+            String sendHost = decoder.skipGetStr(NetworkPacket.DecodeSkip.INT);
+            int sendPort = decoder.skipGetInt(NetworkPacket.DecodeSkip.INT, NetworkPacket.DecodeSkip.STRING);
             String authentication = decoder.skipGetStr(
-                    HBSPackage.DecodeSkip.INT,//消息类型
-                    HBSPackage.DecodeSkip.STRING,//发送端
-                    HBSPackage.DecodeSkip.INT);//发送端口
+                    NetworkPacket.DecodeSkip.INT,//消息类型
+                    NetworkPacket.DecodeSkip.STRING,//发送端
+                    NetworkPacket.DecodeSkip.INT);//发送端口
             if (checkJwtPermission(permissions, authentication)) return true;
-            HBSPackage.Builder.withHeader(HBSPackage.UDP_HEADER)
-                    .msgType(HBSMessageType.Outer.PERMISSION_DENIED)
+            NetworkPacket.Builder.withHeader(NetworkPacket.UDP_HEADER)
+                    .msgType(MessageType.Outside.PERMISSION_DENIED)
                     .sendUdpTo(context.channel(), sendHost, sendPort);
             return false;
         }
-        // 非http
+        // 非http,非udp
         else {
-            //HBSPackage.Decoder decoder = (HBSPackage.Decoder) args[1];
             //int msgType = decoder.getMsgType();
             if (Objects.isNull(context)) {
                 return true;
             }
-            String[] channelPermissions = AttributeKeyConstants.getAttr(context.channel(),
-                    AttributeKeyConstants.permissionAttr);
-            if (Objects.isNull(channelPermissions) || channelPermissions.length == 0) {
-                if (permissions.isEmpty()) {
-                    return true;
-                }
+            NetworkPacket.Decoder decoder = (NetworkPacket.Decoder) args[1];
+            UserSession userSession = decoder.readUserSession();
+            if (Objects.isNull(userSession) || userSession.getId() == 0L) {
+                logger.debug("ChannelId:{}未登录，无法获取session信息", userSession.getChannelId());
+                return false;
             }
-            if (Objects.nonNull(channelPermissions)) {
-                Set<String> stringSet = Arrays.stream(channelPermissions)
-                        .map(String::toUpperCase).collect(Collectors.toSet());
-                for (String p : permissions) {
-                    if (stringSet.contains(p)) {
-                        return true;
-                    }
+            // 重置读取位置
+            decoder.resetBodyReadOffset();
+            decoder.readMsgType();
+            Set<String> userSessionPermissions = userSession.getPermissions();
+            for (String p : permissions) {
+                if (userSessionPermissions.contains(p)) {
+                    return true;
                 }
             }
         }
         if (protocol == Protocol.TCP) {
-            HBSPackage.Builder.withDefaultHeader()
-                    .msgType(HBSMessageType.Outer.PERMISSION_DENIED)
+            NetworkPacket.Builder.withDefaultHeader()
+                    .msgType(MessageType.Outside.PERMISSION_DENIED)
                     .sendTcpTo(context.channel());
         }
         if (protocol == Protocol.WEBSOCKET) {
-            HBSPackage.Builder.withDefaultHeader()
-                    .msgType(HBSMessageType.Outer.PERMISSION_DENIED)
+            NetworkPacket.Builder.withDefaultHeader()
+                    .msgType(MessageType.Outside.PERMISSION_DENIED)
                     .sendBinWebSocketTo(context.channel());
         }
         return false;
@@ -183,13 +190,13 @@ public class PermissionAspect {
         return false;
     }
 
-    public OuterServerMessageHandler getOuterServerMessageHandler(ProceedingJoinPoint point) {
+    public OutsideMessageHandler getOuterServerMessageHandler(ProceedingJoinPoint point) {
         MethodSignature signature = (MethodSignature) point.getSignature();
-        OuterServerMessageHandler dataSource = AnnotationUtils.findAnnotation(signature.getMethod(), OuterServerMessageHandler.class);
+        OutsideMessageHandler dataSource = AnnotationUtils.findAnnotation(signature.getMethod(), OutsideMessageHandler.class);
         if (Objects.nonNull(dataSource)) {
             return dataSource;
         }
-        return AnnotationUtils.findAnnotation(signature.getDeclaringType(), OuterServerMessageHandler.class);
+        return AnnotationUtils.findAnnotation(signature.getDeclaringType(), OutsideMessageHandler.class);
     }
 
 

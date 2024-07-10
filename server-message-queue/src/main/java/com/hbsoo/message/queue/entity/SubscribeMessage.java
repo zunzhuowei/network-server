@@ -2,14 +2,13 @@ package com.hbsoo.message.queue.entity;
 
 import com.hbsoo.server.NowServer;
 import com.hbsoo.server.config.ServerInfo;
-import com.hbsoo.server.message.HBSMessageType;
-import com.hbsoo.server.message.entity.HBSEntity;
-import com.hbsoo.server.message.entity.HBSPackage;
+import com.hbsoo.server.message.entity.NetworkPacketEntity;
+import com.hbsoo.server.message.entity.NetworkPacket;
 
 /**
  * Created by zun.wei on 2024/6/26.
  */
-public final class SubscribeMessage implements HBSEntity<SubscribeMessage> {
+public final class SubscribeMessage implements NetworkPacketEntity<SubscribeMessage> {
 
     /**
      * 订阅主题
@@ -50,17 +49,15 @@ public final class SubscribeMessage implements HBSEntity<SubscribeMessage> {
 
 
     @Override
-    public void serializable(HBSPackage.Builder builder, SubscribeMessage subscribeMessage) {
-        String topic = subscribeMessage.getTopic();
+    public void serializable(NetworkPacket.Builder builder) {
         ServerInfo serverInfo = NowServer.getServerInfo();
-        //List<ServerInfo> innerServers = NowServer.getInnerServers();
         builder.writeStr(serverInfo.getType())
                 .writeInt(serverInfo.getId())
-                .writeString(topic);
+                .writeString(this.topic);
     }
 
     @Override
-    public SubscribeMessage deserialize(HBSPackage.Decoder decoder) {
+    public SubscribeMessage deserialize(NetworkPacket.Decoder decoder) {
         String serverType = decoder.readStr();
         int serverId = decoder.readInt();
         String topic = decoder.readStr();

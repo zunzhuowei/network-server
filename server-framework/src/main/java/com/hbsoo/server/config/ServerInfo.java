@@ -29,7 +29,7 @@ public final class ServerInfo {
     /**
      * 链接该服务器的客户端数量
      */
-    private Integer clientAmount;
+    private Integer clientSize;
 
     /**
      * 服务器权重
@@ -44,12 +44,12 @@ public final class ServerInfo {
         this.weight = weight;
     }
 
-    public Integer getClientAmount() {
-        return clientAmount;
+    public Integer getClientSize() {
+        return clientSize;
     }
 
-    public void setClientAmount(Integer clientAmount) {
-        this.clientAmount = clientAmount;
+    public void setClientSize(Integer clientSize) {
+        this.clientSize = clientSize;
     }
 
     public Integer getId() {

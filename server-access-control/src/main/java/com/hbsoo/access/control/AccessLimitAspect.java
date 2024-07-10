@@ -4,8 +4,8 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.RateLimiter;
-import com.hbsoo.server.message.HBSMessageType;
-import com.hbsoo.server.message.entity.HBSPackage;
+import com.hbsoo.server.message.MessageType;
+import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.entity.HttpPackage;
 import com.hbsoo.server.message.server.HttpServerMessageDispatcher;
 import com.hbsoo.server.netty.AttributeKeyConstants;
@@ -56,8 +56,8 @@ public final class AccessLimitAspect {
         });
     }
 
-    @Pointcut("@annotation(com.hbsoo.server.annotation.OuterServerMessageHandler)"
-            + "|| @within(com.hbsoo.server.annotation.OuterServerMessageHandler)"
+    @Pointcut("@annotation(com.hbsoo.server.annotation.OutsideMessageHandler)"
+            + "|| @within(com.hbsoo.server.annotation.OutsideMessageHandler)"
             //+ "|| @annotation(com.hbsoo.server.annotation.InnerServerMessageHandler)"
             //+ "|| @within(com.hbsoo.server.annotation.InnerServerMessageHandler)"
     )
@@ -81,8 +81,8 @@ public final class AccessLimitAspect {
         List<String> blockIpList = accessControlProperties.getBlockIpList();
         List<String> whiteIpList = accessControlProperties.getWhiteIpList();
         if (context.channel() instanceof NioDatagramChannel) {
-            HBSPackage.Decoder decoder = (HBSPackage.Decoder) args[1];
-            String sendHost = decoder.skipGetStr(HBSPackage.DecodeSkip.INT);
+            NetworkPacket.Decoder decoder = (NetworkPacket.Decoder) args[1];
+            String sendHost = decoder.skipGetStr(NetworkPacket.DecodeSkip.INT);
             //int sendPort = decoder.skipGetInt(HBSPackage.DecodeSkip.INT, HBSPackage.DecodeSkip.STRING);
             if (Objects.nonNull(blockIpList) && blockIpList.contains(sendHost)) {
                 logger.debug("Block ip {}", sendHost);
@@ -118,8 +118,8 @@ public final class AccessLimitAspect {
             Long userId = null;
             //UDP
             if (context.channel() instanceof NioDatagramChannel) {
-                HBSPackage.Decoder decoder = (HBSPackage.Decoder) args[1];
-                String sendHost = decoder.skipGetStr(HBSPackage.DecodeSkip.INT);
+                NetworkPacket.Decoder decoder = (NetworkPacket.Decoder) args[1];
+                String sendHost = decoder.skipGetStr(NetworkPacket.DecodeSkip.INT);
                 //int sendPort = decoder.skipGetInt(HBSPackage.DecodeSkip.INT, HBSPackage.DecodeSkip.STRING);
                 userId = (long) Math.abs(sendHost.hashCode());
             } else {
@@ -154,8 +154,8 @@ public final class AccessLimitAspect {
         Long userId = null;
         //UDP
         if (context.channel() instanceof NioDatagramChannel) {
-            HBSPackage.Decoder decoder = (HBSPackage.Decoder) args[1];
-            String sendHost = decoder.skipGetStr(HBSPackage.DecodeSkip.INT);
+            NetworkPacket.Decoder decoder = (NetworkPacket.Decoder) args[1];
+            String sendHost = decoder.skipGetStr(NetworkPacket.DecodeSkip.INT);
             //int sendPort = decoder.skipGetInt(HBSPackage.DecodeSkip.INT, HBSPackage.DecodeSkip.STRING);
             userId = (long) Math.abs(sendHost.hashCode());
         } else {
@@ -184,19 +184,19 @@ public final class AccessLimitAspect {
      */
     private void responseAccessLimit(Object target, Object[] args, ChannelHandlerContext context) {
         if (context.channel() instanceof NioDatagramChannel) {
-            HBSPackage.Decoder decoder = (HBSPackage.Decoder) args[1];
-            String sendHost = decoder.skipGetStr(HBSPackage.DecodeSkip.INT);
-            int sendPort = decoder.skipGetInt(HBSPackage.DecodeSkip.INT, HBSPackage.DecodeSkip.STRING);
-            HBSPackage.Builder.withHeader(HBSPackage.UDP_HEADER)
-                    .msgType(HBSMessageType.Outer.TOO_MANY_REQUESTS)
+            NetworkPacket.Decoder decoder = (NetworkPacket.Decoder) args[1];
+            String sendHost = decoder.skipGetStr(NetworkPacket.DecodeSkip.INT);
+            int sendPort = decoder.skipGetInt(NetworkPacket.DecodeSkip.INT, NetworkPacket.DecodeSkip.STRING);
+            NetworkPacket.Builder.withHeader(NetworkPacket.UDP_HEADER)
+                    .msgType(MessageType.Outside.TOO_MANY_REQUESTS)
                     .sendUdpTo(context.channel(), sendHost, sendPort);
         } else if (target instanceof HttpServerMessageDispatcher) {
             HttpPackage httpPackage = (HttpPackage) args[1];
             ((HttpServerMessageDispatcher) target)
                     .responseHtml(context, httpPackage, "<h1>429</h1>");
         } else {
-            HBSPackage.Builder.withDefaultHeader()
-                    .msgType(HBSMessageType.Outer.TOO_MANY_REQUESTS)
+            NetworkPacket.Builder.withDefaultHeader()
+                    .msgType(MessageType.Outside.TOO_MANY_REQUESTS)
                     .sendBinWebSocketTo(context.channel());
             //HBSPackage.Builder.withDefaultHeader()
             //        .msgType(HBSMessageType.Outer.TOO_MANY_REQUESTS)

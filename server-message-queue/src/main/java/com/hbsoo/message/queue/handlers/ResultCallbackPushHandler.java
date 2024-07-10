@@ -4,9 +4,9 @@ import com.hbsoo.message.queue.QueueMessageHandler;
 import com.hbsoo.message.queue.TransactionQueueMessageSenderHandler;
 import com.hbsoo.message.queue.config.MessageListener;
 import com.hbsoo.message.queue.entity.CallbackMessage;
-import com.hbsoo.server.annotation.InnerServerMessageHandler;
-import com.hbsoo.server.message.HBSMessageType;
-import com.hbsoo.server.message.entity.HBSPackage;
+import com.hbsoo.server.annotation.InsideServerMessageHandler;
+import com.hbsoo.server.message.MessageType;
+import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.server.ServerMessageDispatcher;
 import com.hbsoo.server.utils.SpringBeanFactory;
 import com.hbsoo.server.utils.ThreadPoolScheduler;
@@ -14,6 +14,7 @@ import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.annotation.AnnotationUtils;
 
 import java.util.HashSet;
@@ -25,15 +26,16 @@ import java.util.Set;
  * 【发布端的客户端测】
  * Created by zun.wei on 2024/6/27.
  */
-@InnerServerMessageHandler(HBSMessageType.Inner.RESULT_CALLBACK_PUSH)
+@InsideServerMessageHandler(MessageType.Inside.RESULT_CALLBACK_PUSH)
 public final class ResultCallbackPushHandler extends ServerMessageDispatcher {
 
     private static final Logger logger = LoggerFactory.getLogger(ResultCallbackPushHandler.class);
+    @Qualifier("insideServerThreadPoolScheduler")
     @Autowired
-    private ThreadPoolScheduler innerServerThreadPoolScheduler;
+    private ThreadPoolScheduler threadPoolScheduler;
 
     @Override
-    public void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
+    public void handle(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
         long msgId = decoder.readLong();
         String objJson = decoder.readStr();
         String reciTopic = decoder.readStr();
@@ -51,7 +53,7 @@ public final class ResultCallbackPushHandler extends ServerMessageDispatcher {
                 String topic = messageListener.topic();
                 if (reciTopic.equals(topic)) {
                     if (handler instanceof TransactionQueueMessageSenderHandler) {
-                        innerServerThreadPoolScheduler.execute(msgId, () -> {
+                        threadPoolScheduler.execute(msgId, () -> {
                             CallbackMessage callbackMessage = new CallbackMessage(
                                     msgId, reciTopic, objJson,
                                     callbackServerType, callbackServerId,
@@ -87,7 +89,7 @@ public final class ResultCallbackPushHandler extends ServerMessageDispatcher {
     }
 
     @Override
-    public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
+    public Object threadKey(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
         return decoder.readLong();
     }
 

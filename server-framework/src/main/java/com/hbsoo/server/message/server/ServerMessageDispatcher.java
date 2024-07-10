@@ -1,13 +1,13 @@
 package com.hbsoo.server.message.server;
 
-import com.hbsoo.server.annotation.InnerServerMessageHandler;
-import com.hbsoo.server.annotation.OuterServerMessageHandler;
+import com.hbsoo.server.annotation.InsideServerMessageHandler;
+import com.hbsoo.server.annotation.OutsideMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
-import com.hbsoo.server.message.entity.HBSPackage;
+import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.ProtocolType;
 import com.hbsoo.server.message.sender.ForwardMessageSender;
-import com.hbsoo.server.session.InnerClientSessionManager;
-import com.hbsoo.server.session.OuterUserSessionManager;
+import com.hbsoo.server.session.InsideClientSessionManager;
+import com.hbsoo.server.session.OutsideUserSessionManager;
 import com.hbsoo.server.session.UserSession;
 import com.hbsoo.server.utils.DelayThreadPoolScheduler;
 import com.hbsoo.server.utils.HttpRequestParser;
@@ -37,7 +37,7 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
     @Autowired
     private SnowflakeIdGenerator snowflakeIdGenerator;
     @Autowired
-    private OuterUserSessionManager outerUserSessionManager;
+    private OutsideUserSessionManager outsideUserSessionManager;
 
     /**
      * 注意，业务层不要重写此方法。此方法给分发器使用
@@ -47,7 +47,7 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
     /**
      * 处理消息，tcp, udp, websocket
      */
-    public abstract void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder);
+    public abstract void handle(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder);
 
     /**
      * 消息转发到【其他内网服务器】的消息处理器中，
@@ -58,15 +58,15 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
      * @param key        键值，用于计算消息应该发送到哪个服务器。
      *                   同时，键值的哈希值被用于决定客户端的选择。
      */
-    public void forward2InnerServer(HBSPackage.Builder msgBuilder, String serverType, Object key) {
-        InnerClientSessionManager.forwardMsg2ServerByTypeAndKey(msgBuilder, serverType, key);
+    public void forward2InnerServer(NetworkPacket.Builder msgBuilder, String serverType, Object key) {
+        InsideClientSessionManager.forwardMsg2ServerByTypeAndKey(msgBuilder, serverType, key);
     }
 
     /**
      * 延迟转发到【其他内网服务器】的消息处理器中，
      * @param delaySecond 延迟时间（秒）
      */
-    public void forward2InnerServer(HBSPackage.Builder msgBuilder, String serverType, Object key, int delaySecond) {
+    public void forward2InnerServer(NetworkPacket.Builder msgBuilder, String serverType, Object key, int delaySecond) {
         delayThreadPoolScheduler.schedule(() -> forward2InnerServer(msgBuilder, serverType, key), delaySecond, TimeUnit.SECONDS);
     }
     /**
@@ -77,8 +77,8 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
      * @param serverType 服务器类型
      * @param serverId  服务器id。
      */
-    public void forward2InnerServer(HBSPackage.Builder msgBuilder,int serverId, String serverType) {
-        InnerClientSessionManager.forwardMsg2ServerByTypeAndId(msgBuilder, serverId, serverType);
+    public void forward2InnerServer(NetworkPacket.Builder msgBuilder, int serverId, String serverType) {
+        InsideClientSessionManager.forwardMsg2ServerByTypeAndId(msgBuilder, serverId, serverType);
     }
 
     /**
@@ -86,23 +86,23 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
      *
      * @param delaySecond 延迟时间（秒）
      */
-    public void forward2InnerServer(HBSPackage.Builder msgBuilder, int serverId, String serverType, int delaySecond) {
+    public void forward2InnerServer(NetworkPacket.Builder msgBuilder, int serverId, String serverType, int delaySecond) {
         delayThreadPoolScheduler.schedule(() -> forward2InnerServer(msgBuilder, serverId, serverType), delaySecond, TimeUnit.SECONDS);
     }
 
-    public void forward2AllInnerServerByType(HBSPackage.Builder msgBuilder, String serverType) {
-        InnerClientSessionManager.forwardMsg2ServerByTypeAll(msgBuilder, serverType);
+    public void forward2AllInnerServerByType(NetworkPacket.Builder msgBuilder, String serverType) {
+        InsideClientSessionManager.forwardMsg2ServerByTypeAll(msgBuilder, serverType);
     }
 
-    public void forward2AllInnerServerByType(HBSPackage.Builder msgBuilder, String serverType, int delaySecond) {
+    public void forward2AllInnerServerByType(NetworkPacket.Builder msgBuilder, String serverType, int delaySecond) {
         delayThreadPoolScheduler.schedule(() -> forward2AllInnerServerByType(msgBuilder, serverType), delaySecond, TimeUnit.SECONDS);
     }
 
-    public void forward2AllInnerServerByTypeUseSender(HBSPackage.Builder msgBuilder, String serverType) {
-        InnerClientSessionManager.forwardMsg2AllServerByTypeUseSender(msgBuilder, serverType);
+    public void forward2AllInnerServerByTypeUseSender(NetworkPacket.Builder msgBuilder, String serverType) {
+        InsideClientSessionManager.forwardMsg2AllServerByTypeUseSender(msgBuilder, serverType);
     }
 
-    public void forward2AllInnerServerByTypeUseSender(HBSPackage.Builder msgBuilder, String serverType, int delaySecond) {
+    public void forward2AllInnerServerByTypeUseSender(NetworkPacket.Builder msgBuilder, String serverType, int delaySecond) {
         delayThreadPoolScheduler.schedule(() -> forward2AllInnerServerByTypeUseSender(msgBuilder, serverType), delaySecond, TimeUnit.SECONDS);
     }
 
@@ -111,15 +111,15 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
      * 使用sender发送，保证发送失败时候重发消息；
      * {@link ServerMessageDispatcher#forward2InnerServer}
      */
-    public void forward2InnerServerUseSender(HBSPackage.Builder msgBuilder, String serverType, Object key) {
-        InnerClientSessionManager.forwardMsg2ServerByTypeAndKeyUseSender(msgBuilder, serverType, key);
+    public void forward2InnerServerUseSender(NetworkPacket.Builder msgBuilder, String serverType, Object key) {
+        InsideClientSessionManager.forwardMsg2ServerByTypeAndKeyUseSender(msgBuilder, serverType, key);
     }
     /**
      * 消息转发到【其他内网服务器】的消息处理器中，
      * 使用sender发送，保证发送失败时候重发消息；
      * {@link ServerMessageDispatcher#forward2InnerServer}
      */
-    public void forward2InnerServerUseSender(HBSPackage.Builder msgBuilder, String serverType, Object key, int delaySecond) {
+    public void forward2InnerServerUseSender(NetworkPacket.Builder msgBuilder, String serverType, Object key, int delaySecond) {
         delayThreadPoolScheduler.schedule(() -> forward2InnerServerUseSender(msgBuilder, serverType, key), delaySecond, TimeUnit.SECONDS);
     }
     /**
@@ -127,8 +127,8 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
      * 使用sender发送，保证发送失败时候重发消息；
      * {@link ServerMessageDispatcher#forward2InnerServer}
      */
-    public void forward2InnerServerUseSender(HBSPackage.Builder msgBuilder, int serverId, String serverType) {
-        InnerClientSessionManager.forwardMsg2ServerByTypeAndIdUseSender(msgBuilder, serverId, serverType);
+    public void forward2InnerServerUseSender(NetworkPacket.Builder msgBuilder, int serverId, String serverType) {
+        InsideClientSessionManager.forwardMsg2ServerByTypeAndIdUseSender(msgBuilder, serverId, serverType);
     }
 
     /**
@@ -136,18 +136,18 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
      * 使用sender发送，保证发送失败时候重发消息；
      * {@link ServerMessageDispatcher#forward2InnerServer}
      */
-    public void forward2InnerServerUseSender(HBSPackage.Builder msgBuilder, int serverId, String serverType, int delaySecond) {
+    public void forward2InnerServerUseSender(NetworkPacket.Builder msgBuilder, int serverId, String serverType, int delaySecond) {
         delayThreadPoolScheduler.schedule(() -> forward2InnerServerUseSender(msgBuilder, serverId, serverType), delaySecond, TimeUnit.SECONDS);
     }
     /**
      * 消息重定向到【当前服务器】中的其他消息处理器中，与当前处理器【相同协议】
      * 注意：【不支持http、udp协议类型的处理器调用】。
      */
-    public void redirectMessage(ChannelHandlerContext ctx, HBSPackage.Builder builder) {
+    public void redirectMessage(ChannelHandlerContext ctx, NetworkPacket.Builder builder) {
         redirectMessageOrg(ctx, builder);
     }
 
-    public void redirectMessage(ChannelHandlerContext ctx, HBSPackage.Builder builder, int delaySecond) {
+    public void redirectMessage(ChannelHandlerContext ctx, NetworkPacket.Builder builder, int delaySecond) {
         delayThreadPoolScheduler.schedule(() -> redirectMessage(ctx, builder), delaySecond, TimeUnit.SECONDS);
     }
 
@@ -155,10 +155,10 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
      * 消息重定向到【当前服务器】中的其他消息处理器中，与当前处理器【相同协议】
      * 注意：【不支持http、udp协议类型的处理器调用】。
      */
-    public void redirectMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
+    public void redirectMessage(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
         redirectMessageOrg(ctx, decoder);
     }
-    public void redirectMessage(ChannelHandlerContext ctx, HBSPackage.Decoder decoder, int delaySecond) {
+    public void redirectMessage(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder, int delaySecond) {
         delayThreadPoolScheduler.schedule(() -> redirectMessage(ctx, decoder), delaySecond, TimeUnit.SECONDS);
     }
     /**
@@ -174,16 +174,16 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
         //final byte[] buildPackage = msgBuilder.buildPackage();
         //ByteBuf buf = Unpooled.wrappedBuffer(buildPackage);
         try {
-            boolean outerHandler = this.getClass().isAnnotationPresent(OuterServerMessageHandler.class);
+            boolean outerHandler = this.getClass().isAnnotationPresent(OutsideMessageHandler.class);
             if (outerHandler) {
-                OuterServerMessageHandler handler = this.getClass().getAnnotation(OuterServerMessageHandler.class);
-                redirectAndSwitchProtocolOrg(ctx, ProtocolType.valueOf("OUTER_" + handler.protocol().name()), msg);
+                OutsideMessageHandler handler = this.getClass().getAnnotation(OutsideMessageHandler.class);
+                redirectAndSwitchProtocolOrg(ctx, ProtocolType.valueOf("OUTSIDE_" + handler.protocol().name()), msg);
                 return;
             }
-            boolean innerHandler = this.getClass().isAnnotationPresent(InnerServerMessageHandler.class);
+            boolean innerHandler = this.getClass().isAnnotationPresent(InsideServerMessageHandler.class);
             if (innerHandler) {
-                InnerServerMessageHandler handler = this.getClass().getAnnotation(InnerServerMessageHandler.class);
-                redirectAndSwitchProtocolOrg(ctx, ProtocolType.valueOf("INNER_" + handler.protocol().name()), msg);
+                InsideServerMessageHandler handler = this.getClass().getAnnotation(InsideServerMessageHandler.class);
+                redirectAndSwitchProtocolOrg(ctx, ProtocolType.valueOf("INSIDE_" + handler.protocol().name()), msg);
             }
         } finally {
             int i = ReferenceCountUtil.refCnt(msg);
@@ -200,7 +200,7 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
      * @param protocolType 协议类型
      * @param msgBuilder 消息
      */
-    public void redirectAndSwitchProtocol(ChannelHandlerContext ctx, ProtocolType protocolType, HBSPackage.Builder msgBuilder) {
+    public void redirectAndSwitchProtocol(ChannelHandlerContext ctx, ProtocolType protocolType, NetworkPacket.Builder msgBuilder) {
         redirectAndSwitchProtocolOrg(ctx, protocolType, msgBuilder);
     }
 
@@ -210,12 +210,12 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
      * @param protocolType 协议类型
      * @param decoder 消息
      */
-    public void redirectAndSwitchProtocol(ChannelHandlerContext ctx, ProtocolType protocolType, HBSPackage.Decoder decoder) {
+    public void redirectAndSwitchProtocol(ChannelHandlerContext ctx, ProtocolType protocolType, NetworkPacket.Decoder decoder) {
         redirectAndSwitchProtocolOrg(ctx, protocolType, decoder);
     }
 
     public void redirectAndSwitch2OuterHttp(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) {
-        redirectAndSwitchProtocolOrg(ctx, ProtocolType.OUTER_HTTP, fullHttpRequest);
+        redirectAndSwitchProtocolOrg(ctx, ProtocolType.OUTSIDE_HTTP, fullHttpRequest);
     }
 
     public void redirectAndSwitch2OuterHttp(ChannelHandlerContext ctx, HttpRequestParser parser) {
@@ -227,7 +227,7 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
         for (String key : headers.keySet()) {
             httpRequest.headers().set(key, headers.get(key));
         }
-        outerUserSessionManager.login(userSession.getId(), userSession);
+        outsideUserSessionManager.login(userSession.getId(), userSession);
         redirectAndSwitch2OuterHttp(ctx, httpRequest);
     }
 
@@ -238,24 +238,24 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
      * @param customMsg 消息; 1.HBSPackage.Decoder; 2.HBSPackage.Builder;
      */
     private void redirectAndSwitchProtocolOrg(ChannelHandlerContext ctx, ProtocolType protocolType, Object customMsg) {
-        InnerServerMessageDispatcher innerServerMessageDispatcher = SpringBeanFactory.getBean(InnerServerMessageDispatcher.class);
-        OuterServerMessageDispatcher outerServerMessageDispatcher = SpringBeanFactory.getBean(OuterServerMessageDispatcher.class);
+        InsideServerMessageDispatcher insideServerMessageDispatcher = SpringBeanFactory.getBean(InsideServerMessageDispatcher.class);
+        OutsideServerMessageDispatcher outsideServerMessageDispatcher = SpringBeanFactory.getBean(OutsideServerMessageDispatcher.class);
         try {
             switch (protocolType) {
-                case INNER_TCP:
-                    innerServerMessageDispatcher.onMessage(ctx, customMsg, Protocol.TCP);
+                case INSIDE_TCP:
+                    insideServerMessageDispatcher.onMessage(ctx, customMsg, Protocol.TCP);
                     break;
-                case INNER_WEBSOCKET:
-                    innerServerMessageDispatcher.onMessage(ctx, customMsg, Protocol.WEBSOCKET);
+                case INSIDE_WEBSOCKET:
+                    insideServerMessageDispatcher.onMessage(ctx, customMsg, Protocol.WEBSOCKET);
                     break;
-                case OUTER_TCP:
-                    outerServerMessageDispatcher.onMessage(ctx, customMsg, Protocol.TCP);
+                case OUTSIDE_TCP:
+                    outsideServerMessageDispatcher.onMessage(ctx, customMsg, Protocol.TCP);
                     break;
-                case OUTER_WEBSOCKET:
-                    outerServerMessageDispatcher.onMessage(ctx, customMsg, Protocol.WEBSOCKET);
+                case OUTSIDE_WEBSOCKET:
+                    outsideServerMessageDispatcher.onMessage(ctx, customMsg, Protocol.WEBSOCKET);
                     break;
-                case OUTER_HTTP:
-                    outerServerMessageDispatcher.onMessage(ctx, customMsg, Protocol.HTTP);
+                case OUTSIDE_HTTP:
+                    outsideServerMessageDispatcher.onMessage(ctx, customMsg, Protocol.HTTP);
                     break;
             }
         } finally {
@@ -272,9 +272,9 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
      * @param forwardMsg2ServerFunction 消息发送函数
      * @return 服务器响应的内容或者null(等待返回值超时)
      */
-    public HBSPackage.Decoder request2Server(HBSPackage.Builder builder, int waitSeconds, Consumer<HBSPackage.Builder> forwardMsg2ServerFunction) {
+    public NetworkPacket.Decoder request2Server(NetworkPacket.Builder builder, int waitSeconds, Consumer<NetworkPacket.Builder> forwardMsg2ServerFunction) {
         try {
-            return InnerClientSessionManager.requestServer(builder, waitSeconds, forwardMsg2ServerFunction);
+            return InsideClientSessionManager.requestServer(builder, waitSeconds, forwardMsg2ServerFunction);
         } catch (InterruptedException e) {
             e.printStackTrace();
             return null;

@@ -1,6 +1,6 @@
 package com.hbsoo.server;
 
-import com.hbsoo.server.message.entity.HBSPackage;
+import com.hbsoo.server.message.entity.NetworkPacket;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
@@ -39,13 +39,13 @@ public class UdpClient {
             final ChannelFuture channelFuture = b.bind(0).sync();
             //ByteBuf buf = Unpooled.copiedBuffer("Hello, UDP Server!".getBytes());
             //channelFuture.channel().writeAndFlush(new DatagramPacket(buf, new InetSocketAddress("localhost", 5555))).sync();
-            HBSPackage.Builder.withHeader(HBSPackage.UDP_HEADER)
+            NetworkPacket.Builder.withHeader(NetworkPacket.UDP_HEADER)
                     .msgType(1).writeStr("Hello, UDP Server!")
                     .sendUdpTo(channelFuture.channel(), "localhost", 5555);
-            HBSPackage.Builder.withHeader(HBSPackage.UDP_HEADER)
+            NetworkPacket.Builder.withHeader(NetworkPacket.UDP_HEADER)
                     .msgType(1).writeStr("Hello, UDP Server2!")
                     .sendUdpTo(channelFuture.channel(), "localhost", 5555);
-            HBSPackage.Builder.withHeader(HBSPackage.UDP_HEADER)
+            NetworkPacket.Builder.withHeader(NetworkPacket.UDP_HEADER)
                     .msgType(1).writeStr("Hello, UDP Server3!")
                     .sendUdpTo(channelFuture.channel(), "localhost", 5555);
             channelFuture.channel().closeFuture().await(); // wait for 10 seconds for responses

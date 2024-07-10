@@ -1,7 +1,7 @@
 package com.hbsoo.server.utils;
 
 import com.google.gson.Gson;
-import com.hbsoo.server.message.entity.HBSPackage;
+import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.session.UserSession;
 
 import java.util.List;
@@ -20,7 +20,7 @@ public final class HttpRequestParser {
     private byte[] body;
     private UserSession userSession;
 
-    public static HttpRequestParser parse(HBSPackage.Decoder decoder) {
+    public static HttpRequestParser parse(NetworkPacket.Decoder decoder) {
         HttpRequestParser httpRequestParser = new HttpRequestParser();
         String userSessionStr = decoder.readStr();
         String uri = decoder.readStr();

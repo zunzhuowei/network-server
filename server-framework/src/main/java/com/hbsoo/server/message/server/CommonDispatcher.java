@@ -1,15 +1,15 @@
 package com.hbsoo.server.message.server;
 
 import com.google.gson.Gson;
-import com.hbsoo.server.annotation.InnerServerMessageHandler;
-import com.hbsoo.server.annotation.OuterServerMessageHandler;
+import com.hbsoo.server.annotation.InsideServerMessageHandler;
+import com.hbsoo.server.annotation.OutsideMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
-import com.hbsoo.server.message.entity.HBSPackage;
+import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.entity.HttpPackage;
 import com.hbsoo.server.message.entity.TextWebSocketPackage;
 import com.hbsoo.server.netty.AttributeKeyConstants;
-import com.hbsoo.server.session.OuterUserSessionManager;
-import com.hbsoo.server.session.UserSessionProtocol;
+import com.hbsoo.server.session.OutsideUserSessionManager;
+import com.hbsoo.server.session.OutsideUserProtocol;
 import com.hbsoo.server.utils.SpringBeanFactory;
 import com.hbsoo.server.utils.ThreadPoolScheduler;
 import io.netty.buffer.ByteBuf;
@@ -72,11 +72,11 @@ interface CommonDispatcher {
                     if (annotation == null) {
                         return;
                     }
-                    boolean inner = annotation instanceof InnerServerMessageHandler;
+                    boolean inner = annotation instanceof InsideServerMessageHandler;
                     //boolean outer = annotation instanceof OuterServerMessageHandler;
-                    Protocol protocol = inner ? ((InnerServerMessageHandler) annotation).protocol() : ((OuterServerMessageHandler) annotation).protocol();
-                    String uri = inner ? ((InnerServerMessageHandler) annotation).uri() : ((OuterServerMessageHandler) annotation).uri();
-                    int msgType = inner ? ((InnerServerMessageHandler) annotation).value() : ((OuterServerMessageHandler) annotation).value();
+                    Protocol protocol = inner ? ((InsideServerMessageHandler) annotation).protocol() : ((OutsideMessageHandler) annotation).protocol();
+                    String uri = inner ? ((InsideServerMessageHandler) annotation).uri() : ((OutsideMessageHandler) annotation).uri();
+                    int msgType = inner ? ((InsideServerMessageHandler) annotation).value() : ((OutsideMessageHandler) annotation).value();
                     if (handler instanceof HttpServerMessageDispatcher) {
                         if (protocol != Protocol.HTTP || "".equals(uri)) {
                             throw new RuntimeException("http message handler must type in protocol and uri !");
@@ -123,17 +123,17 @@ interface CommonDispatcher {
      * 消息分发
      */
     default void handleMessage(ChannelHandlerContext ctx, Object msg, Protocol protocol) {
-        if (msg instanceof HBSPackage.Builder) {
-            HBSPackage.Builder builder = (HBSPackage.Builder) msg;
+        if (msg instanceof NetworkPacket.Builder) {
+            NetworkPacket.Builder builder = (NetworkPacket.Builder) msg;
             byte[] bytes = builder.buildPackage();
-            HBSPackage.Decoder decoder = HBSPackage.Decoder
+            NetworkPacket.Decoder decoder = NetworkPacket.Decoder
                     .withHeader(builder.getHeader())
                     .readPackageBody(bytes);
             dispatcher(ctx, protocol, decoder);
             return;
         }
-        if (msg instanceof HBSPackage.Decoder) {
-            HBSPackage.Decoder decoder = (HBSPackage.Decoder) msg;
+        if (msg instanceof NetworkPacket.Decoder) {
+            NetworkPacket.Decoder decoder = (NetworkPacket.Decoder) msg;
             decoder.resetBodyReadOffset();//重置读取偏移
             dispatcher(ctx, protocol, decoder);
             return;
@@ -144,7 +144,7 @@ interface CommonDispatcher {
     /**
      * 消息分发
      */
-    default void dispatcher(ChannelHandlerContext ctx, Protocol protocol, HBSPackage.Decoder decoder) {
+    default void dispatcher(ChannelHandlerContext ctx, Protocol protocol, NetworkPacket.Decoder decoder) {
         int msgType = decoder.readMsgType();
         ServerMessageDispatcher dispatcher = dispatchers().get(protocol).get(msgType);
         if (Objects.nonNull(dispatcher)) {
@@ -191,9 +191,9 @@ interface CommonDispatcher {
         try {
             Integer bodyLen = getBodyLen(msg, Protocol.TCP);
             if (bodyLen == null) return;
-            byte[] received = new byte[bodyLen + (HBSPackage.TCP_HEADER.length + 4)];
+            byte[] received = new byte[bodyLen + (NetworkPacket.TCP_HEADER.length + 4)];
             msg.readBytes(received);
-            HBSPackage.Decoder decoder = HBSPackage.Decoder.withDefaultHeader().readPackageBody(received);
+            NetworkPacket.Decoder decoder = NetworkPacket.Decoder.withDefaultHeader().readPackageBody(received);
             dispatcher(ctx, Protocol.TCP, decoder);
         } catch (Exception e) {
             e.printStackTrace();
@@ -208,12 +208,12 @@ interface CommonDispatcher {
             ByteBuf msg = datagramPacket.content();
             Integer bodyLen = getBodyLen(msg, Protocol.UDP);
             if (bodyLen == null) return;
-            byte[] received = new byte[bodyLen + (HBSPackage.UDP_HEADER.length + 4)];
+            byte[] received = new byte[bodyLen + (NetworkPacket.UDP_HEADER.length + 4)];
             msg.readBytes(received);
-            HBSPackage.Decoder decoder = HBSPackage.Decoder.withHeader(HBSPackage.UDP_HEADER).readPackageBody(received);
+            NetworkPacket.Decoder decoder = NetworkPacket.Decoder.withHeader(NetworkPacket.UDP_HEADER).readPackageBody(received);
             byte[] bodyData = decoder.readAllTheRestBodyData();
             // 把发送地址包装起来
-            HBSPackage.Decoder wrapper = HBSPackage.Builder.withHeader(HBSPackage.UDP_HEADER)
+            NetworkPacket.Decoder wrapper = NetworkPacket.Builder.withHeader(NetworkPacket.UDP_HEADER)
                     .msgType(decoder.getMsgType())//消息类型
                     .writeStr(datagramPacket.sender().getHostString())//发送端地址
                     .writeInt(datagramPacket.sender().getPort())//发送端端口
@@ -234,12 +234,12 @@ interface CommonDispatcher {
      */
     default Integer getBodyLen(ByteBuf msg, Protocol protocol) {
         int readableBytes = msg.readableBytes();
-        int headerLength = protocol == Protocol.TCP ? HBSPackage.TCP_HEADER.length : HBSPackage.UDP_HEADER.length;
+        int headerLength = protocol == Protocol.TCP ? NetworkPacket.TCP_HEADER.length : NetworkPacket.UDP_HEADER.length;
         byte[] headerBytes = new byte[headerLength];
         msg.getBytes(0, headerBytes);
         boolean matchHeader = protocol == Protocol.TCP
-                ? Arrays.equals(HBSPackage.TCP_HEADER, headerBytes)
-                : Arrays.equals(HBSPackage.UDP_HEADER, headerBytes);
+                ? Arrays.equals(NetworkPacket.TCP_HEADER, headerBytes)
+                : Arrays.equals(NetworkPacket.UDP_HEADER, headerBytes);
         if (!matchHeader) {
             byte[] received = new byte[readableBytes];
             msg.getBytes(0, received);
@@ -283,10 +283,10 @@ interface CommonDispatcher {
                 final TextWebSocketPackage socketPackage = gson.fromJson(jsonStr, TextWebSocketPackage.class);
                 final int msgType = socketPackage.getMsgType();
                 //把文本消息，转成json格式
-                received = HBSPackage.Builder.withDefaultHeader().msgType(msgType).writeStr(jsonStr).buildPackage();
+                received = NetworkPacket.Builder.withDefaultHeader().msgType(msgType).writeStr(jsonStr).buildPackage();
             }
             // BinaryWebSocketFrame
-            HBSPackage.Decoder decoder = HBSPackage.Decoder.withDefaultHeader().readPackageBody(received);
+            NetworkPacket.Decoder decoder = NetworkPacket.Decoder.withDefaultHeader().readPackageBody(received);
             int msgType = decoder.readMsgType();
             ServerMessageDispatcher dispatcher = dispatchers().get(Protocol.WEBSOCKET).get(msgType);
             if (Objects.nonNull(dispatcher)) {
@@ -394,14 +394,14 @@ interface CommonDispatcher {
             return;
         }
         //内部转发头部会有用户id字段
-        String outerUserId = msg.headers().get("outerUserId");
-        if (StringUtils.hasLength(outerUserId)) {
-            OuterUserSessionManager sessionManager = SpringBeanFactory.getBean(OuterUserSessionManager.class);
+        String outsideUserId = msg.headers().get("outsideUserId");
+        if (StringUtils.hasLength(outsideUserId)) {
+            OutsideUserSessionManager sessionManager = SpringBeanFactory.getBean(OutsideUserSessionManager.class);
             sessionManager.sendMsg2User(
-                    UserSessionProtocol.http,
+                    OutsideUserProtocol.HTTP,
                     "404".getBytes(StandardCharsets.UTF_8),
                     "application/json; charset=UTF-8",
-                    Long.parseLong(outerUserId)
+                    Long.parseLong(outsideUserId)
             );
             return;
         }

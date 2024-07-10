@@ -1,6 +1,6 @@
 package com.hbsoo.hall.action.http;
 
-import com.hbsoo.server.message.entity.HBSPackage;
+import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.entity.HttpPackage;
 import com.hbsoo.server.message.server.DefaultHttpServerDispatcher;
 import io.netty.channel.ChannelHandlerContext;
@@ -37,7 +37,7 @@ public class StaticFilesAction extends DefaultHttpServerDispatcher {
     }
 
     @Override
-    public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
+    public Object threadKey(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
         return ctx.channel().id().asShortText();
     }
 

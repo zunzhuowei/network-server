@@ -3,8 +3,8 @@ package com.hbsoo.server.message.sender;
 import com.hbsoo.server.NowServer;
 import com.hbsoo.server.config.ServerInfo;
 import com.hbsoo.server.message.entity.ForwardMessage;
-import com.hbsoo.server.message.entity.HBSPackage;
-import com.hbsoo.server.session.InnerClientSessionManager;
+import com.hbsoo.server.message.entity.NetworkPacket;
+import com.hbsoo.server.session.InsideClientSessionManager;
 import com.hbsoo.server.utils.DelayThreadPoolScheduler;
 import io.netty.channel.Channel;
 import org.slf4j.Logger;
@@ -58,18 +58,18 @@ public abstract class AbstractForwardMessageSender implements ForwardMessageSend
         delayThreadPoolScheduler.schedule(() -> {
             Channel channel = toServerId > 0 ?
                     //指定服务器类型和id
-                    InnerClientSessionManager.getChannelByServerTypeAndId(toServerId, toServerType) :
+                    InsideClientSessionManager.getChannelByServerTypeAndId(toServerId, toServerType) :
                     !useAvailableServer ?
                             // 指定服务器类型和key计算出来的服务器
-                            InnerClientSessionManager.getChannelByTypeAndKey(toServerType, forwardKey) :
+                            InsideClientSessionManager.getChannelByTypeAndKey(toServerType, forwardKey) :
                             // 指定服务器类型和key计算出来的服务器，如遇不可用服务器，尝试获取可用服务器
-                            InnerClientSessionManager.getAvailableChannelByTypeAndKey(toServerType, forwardKey);
+                            InsideClientSessionManager.getAvailableChannelByTypeAndKey(toServerType, forwardKey);
             if (channel != null) {
-                HBSPackage.Decoder decoder = HBSPackage.Decoder
-                        .withHeader(HBSPackage.TCP_HEADER)
+                NetworkPacket.Decoder decoder = NetworkPacket.Decoder
+                        .withHeader(NetworkPacket.TCP_HEADER)
                         .readPackageBody(originMessage);
                 int msgType = decoder.getMsgType();
-                HBSPackage.Builder builder = decoder.toBuilder().msgType(msgType);
+                NetworkPacket.Builder builder = decoder.toBuilder().msgType(msgType);
                 builder.sendTcpTo(channel, future -> {
                     if (!future.isSuccess()) {
                         logger.warn("forward fail, toServerType:{}, forwardKey:{},msgType:{},retry 3 seconds after!", toServerType, forwardKey, msgType);

@@ -23,13 +23,13 @@ router.route_100 = function (dataParser) {
 // 心跳包
 router.route_99 = function (dataParser) {
     var userId = dataParser.getLong();
-    console.log("心跳包 userId:" + userId)
+    //console.log("心跳包 userId:" + userId)
 };
 
 //加入房间消息
 router.route_101 = function (dataParser) {
     var chatRoomJson = dataParser.getStr();
-    console.log("chatRoomJson:" + chatRoomJson)
+    //console.log("chatRoomJson:" + chatRoomJson)
     $("#chat-list").append("<li>" + chatRoomJson + "</li>");
 };
 //聊天消息

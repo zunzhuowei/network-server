@@ -1,10 +1,11 @@
 package com.hbsoo.server.client;
 
 import com.hbsoo.server.config.ServerInfo;
-import com.hbsoo.server.message.entity.HBSPackage;
-import com.hbsoo.server.message.client.InnerClientMessageDispatcher;
+import com.hbsoo.server.message.entity.NetworkPacket;
+import com.hbsoo.server.message.client.InsideClientMessageDispatcher;
 import com.hbsoo.server.utils.SpringBeanFactory;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
@@ -22,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 public final class TcpClient {
 
     @Autowired
-    private InnerClientMessageDispatcher innerClientMessageDispatcher;
+    private InsideClientMessageDispatcher insideClientMessageDispatcher;
 
     private final int reconnectInterval;
     private final ServerInfo fromServerInfo;
@@ -36,7 +37,7 @@ public final class TcpClient {
         this.toServerInfo = toServerInfo;
         this.index = index;
         group = new NioEventLoopGroup(1, r -> {
-            return new Thread(r, "client-" + toServerInfo.getType() + "-" + toServerInfo.getId() + "#" + index);
+            return new Thread(r, "IC2" + toServerInfo.getType() + ":" + toServerInfo.getId() + "#" + index);
         });
     }
 
@@ -45,6 +46,9 @@ public final class TcpClient {
         bootstrap.group(group)
                 .channel(NioSocketChannel.class)
                 .option(ChannelOption.SO_KEEPALIVE, true)
+                .option(ChannelOption.SO_RCVBUF, 10 * 1024 * 1024)
+                .option(ChannelOption.SO_SNDBUF, 5 * 1024 * 1024)
+                .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
                 .handler(new ChannelInitializer<Channel>() {
                     @Override
                     protected void initChannel(Channel ch) {
@@ -53,8 +57,8 @@ public final class TcpClient {
                         pipeline.addLast(new IdleStateHandler(0, 0, 3, TimeUnit.SECONDS));
                         pipeline.addLast(new HeartbeatHandler(bootstrap, b -> connect(b)));
                         pipeline.addLast(new LengthFieldBasedFrameDecoder
-                                (1024 * 1024, HBSPackage.TCP_HEADER.length, 4, 0, 0));
-                        pipeline.addLast(new TcpClientHandler(innerClientMessageDispatcher));
+                                (1024 * 1024, NetworkPacket.TCP_HEADER.length, 4, 0, 0));
+                        pipeline.addLast(new TcpClientHandler(insideClientMessageDispatcher));
                     }
                 });
         connect(bootstrap);
@@ -67,7 +71,7 @@ public final class TcpClient {
 
     private void connect(Bootstrap bootstrap) {
         bootstrap.connect(toServerInfo.getHost(), toServerInfo.getPort()).addListener((ChannelFutureListener) future -> {
-            Map<String, InnerTcpClientConnectListener> beans = SpringBeanFactory.getBeansOfType(InnerTcpClientConnectListener.class);
+            Map<String, InsideTcpClientConnectListener> beans = SpringBeanFactory.getBeansOfType(InsideTcpClientConnectListener.class);
             if (future.isSuccess()) {
                 beans.values().forEach(listener -> listener.onConnectSuccess(future, fromServerInfo, toServerInfo, index));
             } else {

@@ -46,7 +46,7 @@
 
 4. `server-permission`: The `permission` module of the framework, Use `Spring AOP` and annotations to control interface
    permissions. The HTTP protocol uses the request header entrainment JWT method, the UDP protocol uses the JWT string
-   as the first field, and the AttributeKey:permission field in the channel is used for TCP and WebSocket. If you need
+   as the first field, and the `permissions` field in the `UserSession` is used for TCP and WebSocket. If you need
    to use a `permission` module, you can use it.`that is optional`.
 
 
@@ -88,36 +88,36 @@ hbsoo:
     udpHeader: UHBS # UDP header
     id: 1000 #Current node id
     threadPoolSize:
-      innerClient: 5 #Inner client side business thread pool size
-      innerServer: 5 #Inner server side business thread pool size
-      outerServer: 5 #outer server side business thread pool size
-    outerServer:
-      enable: true #Whether to enable the outer server
-      port: 5555 #Outer server port
-      protocol: "TCP,UDP,WEBSOCKET,HTTP" #Outer server protocol,Which protocols to use.
-    innerServers:
+      insideClient: 5 #inside client side business thread pool size
+      insideServer: 5 #inside server side business thread pool size
+      outsideServer: 5 #outside server side business thread pool size
+    outsideServer:
+      enable: true #Whether to enable the outside server
+      port: 5555 #Outside server port
+      protocol: "TCP,UDP,WEBSOCKET,HTTP" #Outside server protocol,Which protocols to use.
+    insideServers:
       - host: 192.168.1.104
         port: 6000
-        type: gateway #Inner server type,that's namespace customized
-        clientAmount: 1 #Connect to inner server client amount
-        weight: 10 #Inner server weight
-        id: 1000 #Inner server id; At least one id in the list of innerServers is associated with the current node id
+        type: gateway #Inside server type,that's namespace customized
+        clientSize: 1 #Connect to inner server client size
+        weight: 10 #Inside server weight
+        id: 1000 #Inside server id; At least one id in the list of insideServers is associated with the current node id
       - host: 192.168.1.104
         port: 6003
         type: hall
-        clientAmount: 1
+        clientSize: 1
         id: 2000
       - host: 192.168.1.104
         port: 6006
         type: room
-        clientAmount: 1
+        clientSize: 1
         id: 3000
 ```
 
 5. Define the HTTP message handler as follows
 
 ```java
-@OuterServerMessageHandler(value = 0, uri = "/index", protocol = Protocol.HTTP)
+@OutsideMessageHandler(value = 0, uri = "/index", protocol = Protocol.HTTP)
 public class IndexAction extends HttpServerMessageDispatcher {
 
     @Autowired
@@ -129,7 +129,7 @@ public class IndexAction extends HttpServerMessageDispatcher {
       //System.out.println("genealogies = " + genealogies);
       responseJson(ctx, httpPackage, genealogies);
       forward2InnerServerUseSender(
-              HBSPackage.Builder.withDefaultHeader()
+              NetworkPacket.Builder.withDefaultHeader()
                       .msgType(100).writeStr(genealogies.toString()),
               "hall",
               "",3);
@@ -137,7 +137,7 @@ public class IndexAction extends HttpServerMessageDispatcher {
    }
 
     @Override
-    public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
+    public Object threadKey(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
         return null;
     }
 }
@@ -146,30 +146,28 @@ public class IndexAction extends HttpServerMessageDispatcher {
 6. Define the WEBSOCKET message handler as follows
 
 ```java
+@OutsideMessageHandler(100)
+public class LoginChatRoomAction extends ServerMessageDispatcher {
 
-@OuterServerMessageHandler(HBSMessageType.Outer.LOGIN)
-public class UserLoginActionTest extends ServerMessageDispatcher {
+   private static final Logger logger = LoggerFactory.getLogger(LoginChatRoomAction.class);
 
-    @Autowired
-    private OuterSessionManager outerSessionManager;
+   @Override
+   public void handle(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
+      String username = decoder.readStr();
+      String channelId = decoder.readStr();
+      int userId = Math.abs(username.hashCode());
+      logger.info("login chat room username:{}，channelId:{}，userId:{}", username, channelId, userId);
+      //notify client login success
+      NetworkPacket.Builder builder = decoder.toBuilder().writeInt(userId).writeStr(Permission.USER.name());
+      builder.sendTcpTo(ctx.channel());
+      //forward to room server
+      forward2InnerServerUseSender(builder, "room", userId);
+   }
 
-    @Override
-    public void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
-        final String dataJson = decoder.readStr();
-        System.out.println("UserLoginActionTest dataJson = " + dataJson);
-        Gson gson = new Gson();
-        TextWebSocketPackage textWebSocketPackage = gson.fromJson(dataJson, TextWebSocketPackage.class);
-        Map<String, Object> data = textWebSocketPackage.getData();
-        UserSession userSession = gson.fromJson(gson.toJson(data), UserSession.class);
-        userSession.setBelongServer(NowServer.getServerInfo());
-        userSession.setChannel(ctx.channel());
-        outerSessionManager.loginAndSyncAllServer(userSession.getId(), userSession);
-    }
-
-    @Override
-    public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
-        return null;
-    }
+   @Override
+   public Object threadKey(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
+      return decoder.readStr();
+   }
 }
 ```
 
@@ -189,10 +187,10 @@ public class UserLoginActionTest extends ServerMessageDispatcher {
 ```java
 @PermissionAuth(permission = {})
 //@AccessLimit(userRateSize = 1, globalRateSize = 2)
-@OuterServerMessageHandler(value = 0, uri = "/index", protocol = Protocol.HTTP)
+@OutsideMessageHandler(value = 0, uri = "/index", protocol = Protocol.HTTP)
 public class IndexAction extends HttpServerMessageDispatcher {
-    @Autowired
-    private IGenealogyService genealogyService;
+   @Autowired
+   private IGenealogyService genealogyService;
 
    @Override
    public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) {
@@ -200,17 +198,17 @@ public class IndexAction extends HttpServerMessageDispatcher {
       //System.out.println("genealogies = " + genealogies);
       responseJson(ctx, httpPackage, genealogies);
       forward2InnerServerUseSender(
-              HBSPackage.Builder.withDefaultHeader()
+              NetworkPacket.Builder.withDefaultHeader()
                       .msgType(100).writeStr(genealogies.toString()),
               "hall",
               "",3);
       QueueMessageSender.publish("hall", "test", genealogies.toString());
    }
 
-    @Override
-    public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
-        return null;
-    }
+   @Override
+   public Object threadKey(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
+      return null;
+   }
 }
 ```
 
@@ -262,4 +260,4 @@ public class IndexAction extends HttpServerMessageDispatcher {
 28. 注册接口？
 29. ~~接口权限控制？~~
 30. ~~做一个im群组聊天室，测试框架完善度~~
-31. 让内部服务客户端发送同步消息（客户端发送等待服务端返回消息）
+31. ~~让内部服务客户端发送同步消息（客户端发送等待服务端返回消息）~~

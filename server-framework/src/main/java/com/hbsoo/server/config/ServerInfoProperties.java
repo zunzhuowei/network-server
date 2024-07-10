@@ -11,8 +11,8 @@ import java.util.Map;
 @ConfigurationProperties(prefix = "hbsoo.server")
 public final class ServerInfoProperties {
 
-    private List<ServerInfo> innerServers;
-    private Map<String, Object> outerServer;
+    private List<ServerInfo> insideServers;
+    private Map<String, Object> outsideServer;
     private Map<String, Object> threadPoolSize;
     private Integer id;
 
@@ -32,19 +32,19 @@ public final class ServerInfoProperties {
         this.id = id;
     }
 
-    public List<ServerInfo> getInnerServers() {
-        return innerServers;
+    public List<ServerInfo> getInsideServers() {
+        return insideServers;
     }
 
-    public void setInnerServers(List<ServerInfo> innerServers) {
-        this.innerServers = innerServers;
+    public void setInsideServers(List<ServerInfo> insideServers) {
+        this.insideServers = insideServers;
     }
 
-    public Map<String, Object> getOuterServer() {
-        return outerServer;
+    public Map<String, Object> getOutsideServer() {
+        return outsideServer;
     }
 
-    public void setOuterServer(Map<String, Object> outerServer) {
-        this.outerServer = outerServer;
+    public void setOutsideServer(Map<String, Object> outsideServer) {
+        this.outsideServer = outsideServer;
     }
 }

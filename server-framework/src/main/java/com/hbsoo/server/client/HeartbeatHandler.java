@@ -1,7 +1,7 @@
 package com.hbsoo.server.client;
 
-import com.hbsoo.server.message.HBSMessageType;
-import com.hbsoo.server.message.entity.HBSPackage;
+import com.hbsoo.server.message.MessageType;
+import com.hbsoo.server.message.entity.NetworkPacket;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -30,8 +30,8 @@ public final class HeartbeatHandler extends ChannelInboundHandlerAdapter {
             IdleStateEvent event = (IdleStateEvent) evt;
             if (event.state() == IdleState.ALL_IDLE) {
                 // 发送心跳包
-                byte[] msg = HBSPackage.Builder.withDefaultHeader()
-                        .msgType(HBSMessageType.Inner.HEARTBEAT).buildPackage();
+                byte[] msg = NetworkPacket.Builder.withDefaultHeader()
+                        .msgType(MessageType.Inside.HEARTBEAT).buildPackage();
                 ByteBuf buf = Unpooled.wrappedBuffer(msg);
                 ctx.writeAndFlush(buf).sync();
                 //System.out.println("Sent heartbeat to server");

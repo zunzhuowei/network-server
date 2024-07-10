@@ -1,11 +1,12 @@
 package com.hbsoo.gateway.action;
 
 import com.hbsoo.gateway.queue.MessageQueueTest;
-import com.hbsoo.server.message.HBSMessageType;
-import com.hbsoo.server.message.entity.HBSPackage;
+import com.hbsoo.server.message.MessageType;
+import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.server.DefaultServerMessageDispatcher;
 import com.hbsoo.server.netty.AttributeKeyConstants;
-import com.hbsoo.server.session.OuterUserSessionManager;
+import com.hbsoo.server.session.OutsideUserSessionManager;
+import com.hbsoo.server.session.UserSession;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import org.slf4j.Logger;
@@ -24,23 +25,28 @@ public class WebsocketTcpUdpMessageRoutingAction extends DefaultServerMessageDis
     private static final Logger logger = LoggerFactory.getLogger(MessageQueueTest.class);
 
     @Autowired
-    private OuterUserSessionManager outerUserSessionManager;
+    private OutsideUserSessionManager outsideUserSessionManager;
 
     @Override
-    public void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
+    public void handle(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
         int msgType = decoder.getMsgType();
         Object threadKey = threadKey(ctx, decoder);
 
         decoder.resetBodyReadOffset();
         Long userId = AttributeKeyConstants.getAttr(ctx.channel(), AttributeKeyConstants.idAttr);
-        HBSPackage.Decoder decoder1;
-        if (Objects.isNull(userId)) {
-            decoder1 = decoder.toBuilder().writeStr(ctx.channel().id().asLongText()).toDecoder();
+        UserSession userSession;
+        if (Objects.nonNull(userId)) {
+            userSession = outsideUserSessionManager.getUserSession(userId);
+            if (Objects.isNull(userSession)) {
+                userSession = new UserSession(ctx.channel().id().asLongText());
+            }
         } else {
-            decoder1 = decoder.toBuilder().writeLong(userId).toDecoder();
+            userSession = new UserSession(ctx.channel().id().asLongText());
         }
-        HBSPackage.Builder builder = HBSPackage.Builder.withDefaultHeader()
-                .msgType(HBSMessageType.Inner.GATEWAY_ROUTING_WEBSOCKET_TCP_UDP_TO_INNER_SERVER)
+
+        NetworkPacket.Decoder decoder1 = decoder.toBuilder().insertObj2FirstField(userSession).toDecoder();
+        NetworkPacket.Builder builder = NetworkPacket.Builder.withDefaultHeader()
+                .msgType(MessageType.Inside.GATEWAY_ROUTING_WEBSOCKET_TCP_UDP_TO_INNER_SERVER)
                 .writeBytes(decoder1.getHeader())
                 .writeBytes(decoder1.readAllTheRestBodyData());
         if (msgType < 1000) {
@@ -60,10 +66,10 @@ public class WebsocketTcpUdpMessageRoutingAction extends DefaultServerMessageDis
     }
 
     @Override
-    public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
+    public Object threadKey(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
         if (ctx.channel() instanceof NioDatagramChannel) {
-            String sendHost = decoder.skipGetStr(HBSPackage.DecodeSkip.INT);
-            int sendPort = decoder.skipGetInt(HBSPackage.DecodeSkip.INT, HBSPackage.DecodeSkip.STRING);
+            String sendHost = decoder.skipGetStr(NetworkPacket.DecodeSkip.INT);
+            int sendPort = decoder.skipGetInt(NetworkPacket.DecodeSkip.INT, NetworkPacket.DecodeSkip.STRING);
             return sendHost + ":" + sendPort;
         }
         return ctx.channel().id().asLongText();

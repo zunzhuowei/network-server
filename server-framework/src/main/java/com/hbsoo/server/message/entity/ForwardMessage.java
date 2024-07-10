@@ -47,7 +47,7 @@ public final class ForwardMessage {
      */
     private Boolean useAvailableServer = false;
 
-    public ForwardMessage(Long id, HBSPackage.Builder builder, Date expireDate, Date forwardDate,
+    public ForwardMessage(Long id, NetworkPacket.Builder builder, Date expireDate, Date forwardDate,
                           String toServerType, Object forwardKey) {
         this.id = id;
         this.originMessage = builder.buildPackage();
@@ -58,7 +58,7 @@ public final class ForwardMessage {
         this.belongServerId = NowServer.getServerInfo().getId();
     }
 
-    public ForwardMessage(Long id, HBSPackage.Builder builder, long expireTime, long forwardTime,
+    public ForwardMessage(Long id, NetworkPacket.Builder builder, long expireTime, long forwardTime,
                           String toServerType, Object forwardKey) {
         this.id = id;
         this.originMessage = builder.buildPackage();
@@ -69,7 +69,7 @@ public final class ForwardMessage {
         this.belongServerId = NowServer.getServerInfo().getId();
     }
 
-    public ForwardMessage(Long id, HBSPackage.Builder builder, int delayTime,
+    public ForwardMessage(Long id, NetworkPacket.Builder builder, int delayTime,
                           String toServerType, Object forwardKey) {
         this.id = id;
         this.originMessage = builder.buildPackage();
@@ -80,7 +80,7 @@ public final class ForwardMessage {
         this.belongServerId = NowServer.getServerInfo().getId();
     }
 
-    public ForwardMessage(Long id, HBSPackage.Builder builder, Date expireDate, int delayTime,
+    public ForwardMessage(Long id, NetworkPacket.Builder builder, Date expireDate, int delayTime,
                           String toServerType, Object forwardKey) {
         this.id = id;
         this.originMessage = builder.buildPackage();

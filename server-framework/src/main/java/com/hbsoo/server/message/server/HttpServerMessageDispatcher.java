@@ -3,11 +3,11 @@ package com.hbsoo.server.message.server;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.hbsoo.server.NowServer;
-import com.hbsoo.server.message.entity.HBSPackage;
+import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.entity.HttpPackage;
-import com.hbsoo.server.session.OuterUserSessionManager;
+import com.hbsoo.server.session.OutsideUserSessionManager;
 import com.hbsoo.server.session.UserSession;
-import com.hbsoo.server.session.UserSessionProtocol;
+import com.hbsoo.server.session.OutsideUserProtocol;
 import com.hbsoo.server.utils.SnowflakeIdGenerator;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -31,7 +31,7 @@ public abstract class HttpServerMessageDispatcher extends ServerMessageDispatche
     @Autowired
     private SnowflakeIdGenerator snowflakeIdGenerator;
     @Autowired
-    private OuterUserSessionManager outerUserSessionManager;
+    private OutsideUserSessionManager outsideUserSessionManager;
 
     /**
      * 处理消息，http
@@ -39,7 +39,7 @@ public abstract class HttpServerMessageDispatcher extends ServerMessageDispatche
     public abstract void handle(ChannelHandlerContext ctx, HttpPackage httpPackage);
 
     @Override
-    public void handle(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
+    public void handle(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
     }
 
     public void responseJson(ChannelHandlerContext ctx, HttpPackage httpPackage, Object obj) {
@@ -76,9 +76,9 @@ public abstract class HttpServerMessageDispatcher extends ServerMessageDispatche
                          byte[] bytes, String contentType,
                          GenericFutureListener<? extends Future<? super Void>> future) {
         // 如果是内部服务转发过来的消息则转发回去
-        String outerUserId = httpPackage.getHeaders().get("outerUserId");
-        if (StringUtils.hasLength(outerUserId)) {
-            outerUserSessionManager.sendMsg2User(UserSessionProtocol.http, bytes, contentType, Long.parseLong(outerUserId));
+        String outsideUserId = httpPackage.getHeaders().get("outsideUserId");
+        if (StringUtils.hasLength(outsideUserId)) {
+            outsideUserSessionManager.sendMsg2User(OutsideUserProtocol.HTTP, bytes, contentType, Long.parseLong(outsideUserId));
             return;
         }
         DefaultFullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
@@ -104,7 +104,7 @@ public abstract class HttpServerMessageDispatcher extends ServerMessageDispatche
         userSession.setBelongServer(NowServer.getServerInfo());
         userSession.setChannel(ctx.channel());
         userSession.setUdp(false);
-        outerUserSessionManager.login(id, userSession);
+        outsideUserSessionManager.login(id, userSession);
 
         HttpHeaders headers = httpPackage.getHeaders();
         Map<String, String> headersMap = new HashMap<>();
@@ -112,9 +112,9 @@ public abstract class HttpServerMessageDispatcher extends ServerMessageDispatche
             String value = headers.get(name);
             headersMap.put(name, value);
         }
-        headersMap.put("outerUserId", userSession.getId().toString());
+        headersMap.put("outsideUserId", userSession.getId().toString());
         Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-        HBSPackage.Builder msgBuilder = HBSPackage.Builder
+        NetworkPacket.Builder msgBuilder = NetworkPacket.Builder
                 .withDefaultHeader()
                 .msgType(msgType)
                 .writeStr(gson.toJson(userSession))

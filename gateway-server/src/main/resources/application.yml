@@ -4,31 +4,31 @@ hbsoo:
     tcpHeader: THBS
     udpHeader: UHBS
     threadPoolSize:
-      innerClient: 5
-      innerServer: 10
-      outerServer: 20
-    outerServer:
+      insideClient: 5
+      insideServer: 10
+      outsideServer: 20
+    outsideServer:
       enable: true
       port: 5555
       protocol: "TCP,UDP,WEBSOCKET,HTTP"
-    innerServers:
+    insideServers:
       - host: 192.168.1.104
         port: 6000
         type: gateway
-        clientAmount: 1
+        clientSize: 1
         weight: 10
         id: 1000
 
       - host: 192.168.1.104
         port: 6003
         type: hall
-        clientAmount: 1
+        clientSize: 1
         id: 2000
 
       - host: 192.168.1.104
         port: 6006
         type: room
-        clientAmount: 1
+        clientSize: 1
         id: 3000
 # 配置日志输入级别
 logging:

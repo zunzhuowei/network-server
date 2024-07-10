@@ -1,6 +1,6 @@
 package com.hbsoo.server.client;
 
-import com.hbsoo.server.message.client.InnerClientMessageDispatcher;
+import com.hbsoo.server.message.client.InsideClientMessageDispatcher;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -11,10 +11,10 @@ import java.io.IOException;
 
 public final class TcpClientHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
-    private final InnerClientMessageDispatcher dispatcher;
+    private final InsideClientMessageDispatcher dispatcher;
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    public TcpClientHandler(InnerClientMessageDispatcher dispatcher) {
+    public TcpClientHandler(InsideClientMessageDispatcher dispatcher) {
         this.dispatcher = dispatcher;
     }
 

@@ -2,8 +2,8 @@ package com.hbsoo.server.config;
 
 import com.hbsoo.server.NowServer;
 import com.hbsoo.server.client.TcpClient;
-import com.hbsoo.server.message.entity.HBSPackage;
-import com.hbsoo.server.session.InnerClientSessionManager;
+import com.hbsoo.server.message.entity.NetworkPacket;
+import com.hbsoo.server.session.InsideClientSessionManager;
 import org.springframework.beans.factory.config.ConstructorArgumentValues;
 import org.springframework.beans.factory.support.AbstractBeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
@@ -29,25 +29,25 @@ public final class SpringBeanDefinitionRegistrar implements ImportBeanDefinition
 
     @Override
     public void registerBeanDefinitions(AnnotationMetadata annotationMetadata, BeanDefinitionRegistry beanDefinitionRegistry) {
-        List<ServerInfo> innerServers = new ArrayList<>();
+        List<ServerInfo> insideServers = new ArrayList<>();
         // 解析配置文件中的内网服务器配置
         MutablePropertySources sources = ((AbstractEnvironment) environment).getPropertySources();
         for (PropertySource<?> source : sources) {
             if (source instanceof EnumerablePropertySource) {
                 final String[] names = ((EnumerablePropertySource) source).getPropertyNames();
                 List<String> collect = Arrays.stream(names)
-                        .filter(name -> name.startsWith("hbsoo.server.innerServers"))
+                        .filter(name -> name.startsWith("hbsoo.server.insideServers"))
                         .collect(Collectors.toList());
                 if (collect.isEmpty()) {
                     continue;
                 }
                 for (int i = 0; i < collect.size(); i++) {
-                    String hostKey = "hbsoo.server.innerServers[" + i + "].host";
-                    String portKey = "hbsoo.server.innerServers[" + i + "].port";
-                    String typeKey = "hbsoo.server.innerServers[" + i + "].type";
-                    String idKey = "hbsoo.server.innerServers[" + i + "].id";
-                    String clientAmountKey = "hbsoo.server.innerServers[" + i + "].clientAmount";
-                    String weightKey = "hbsoo.server.innerServers[" + i + "].weight";
+                    String hostKey = "hbsoo.server.insideServers[" + i + "].host";
+                    String portKey = "hbsoo.server.insideServers[" + i + "].port";
+                    String typeKey = "hbsoo.server.insideServers[" + i + "].type";
+                    String idKey = "hbsoo.server.insideServers[" + i + "].id";
+                    String clientSizeKey = "hbsoo.server.insideServers[" + i + "].clientSize";
+                    String weightKey = "hbsoo.server.insideServers[" + i + "].weight";
                     ServerInfo serverInfo = new ServerInfo();
                     if (StringUtils.hasText(environment.getProperty(hostKey))) {
                         serverInfo.setHost(environment.getProperty(hostKey));
@@ -61,14 +61,14 @@ public final class SpringBeanDefinitionRegistrar implements ImportBeanDefinition
                     if (StringUtils.hasText(environment.getProperty(idKey))) {
                         serverInfo.setId(Integer.parseInt(environment.getProperty(idKey)));
                     }
-                    if (StringUtils.hasText(environment.getProperty(clientAmountKey))) {
-                        serverInfo.setClientAmount(Integer.parseInt(environment.getProperty(clientAmountKey)));
+                    if (StringUtils.hasText(environment.getProperty(clientSizeKey))) {
+                        serverInfo.setClientSize(Integer.parseInt(environment.getProperty(clientSizeKey)));
                     }
                     if (StringUtils.hasText(environment.getProperty(weightKey))) {
                         serverInfo.setWeight(Integer.parseInt(environment.getProperty(weightKey)));
                     }
                     if (serverInfo.getPort() > 0) {
-                        innerServers.add(serverInfo);
+                        insideServers.add(serverInfo);
                         NowServer.addServerType(serverInfo.getType());
                     }
                 }
@@ -77,14 +77,14 @@ public final class SpringBeanDefinitionRegistrar implements ImportBeanDefinition
         // 获取当前服务器id
         String serverIdStr = environment.getProperty("hbsoo.server.id");
         Integer id = Integer.parseInt(serverIdStr);//当前服务器id
-        Optional<ServerInfo> optional = innerServers.stream().filter(e -> e.getId().equals(id)).findFirst();
+        Optional<ServerInfo> optional = insideServers.stream().filter(e -> e.getId().equals(id)).findFirst();
         ServerInfo fromServerInfo = optional.get();//当前服务器信息
 
         //填充当前服务器信息
         NowServer.setServerInfo(fromServerInfo);
         // 初始化数据
         for (String serverType : NowServer.getServerTypes()) {
-            InnerClientSessionManager.clientsMap.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
+            InsideClientSessionManager.clientsMap.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
             //InnerServerSessionManager.clientsMap.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
         }
 
@@ -94,7 +94,7 @@ public final class SpringBeanDefinitionRegistrar implements ImportBeanDefinition
             if (!(tcpHeader.getBytes(StandardCharsets.UTF_8).length % 2 == 0)) {
                 throw new RuntimeException("tcp header.length % 2 must equal 0");
             }
-            HBSPackage.setTcpHeader(tcpHeader.getBytes(StandardCharsets.UTF_8));
+            NetworkPacket.setTcpHeader(tcpHeader.getBytes(StandardCharsets.UTF_8));
         }
         String udpHeader = environment.getProperty("hbsoo.server.udpHeader");
         if (StringUtils.hasText(udpHeader)) {
@@ -102,11 +102,11 @@ public final class SpringBeanDefinitionRegistrar implements ImportBeanDefinition
                 System.exit(-1);
                 throw new RuntimeException("udp header.length % 2 must equal 0");
             }
-            HBSPackage.setUdpHeader(udpHeader.getBytes(StandardCharsets.UTF_8));
+            NetworkPacket.setUdpHeader(udpHeader.getBytes(StandardCharsets.UTF_8));
         }
 
         // 注册内网客户端
-        for (ServerInfo toServer : innerServers) {
+        for (ServerInfo toServer : insideServers) {
             // 当前服务器不需要链接自己
             if (toServer.getId().equals(id)) {
                 continue;
@@ -114,7 +114,7 @@ public final class SpringBeanDefinitionRegistrar implements ImportBeanDefinition
             // 添加到当前服务器集合中
             NowServer.addInnerServer(toServer);
 
-            Integer clientAmount = toServer.getClientAmount();
+            Integer clientAmount = toServer.getClientSize();
             //每个服务器使用五个客户端链接
             for (int i = 0; i < (Objects.isNull(clientAmount) ? 3 : clientAmount); i++) {
                 AbstractBeanDefinition beanDefinition = BeanDefinitionBuilder.rootBeanDefinition(TcpClient.class).getBeanDefinition();
@@ -128,7 +128,7 @@ public final class SpringBeanDefinitionRegistrar implements ImportBeanDefinition
                 constructorArgumentValues.addIndexedArgumentValue(2, 3);
                 constructorArgumentValues.addIndexedArgumentValue(3, i);
                 beanDefinition.setConstructorArgumentValues(constructorArgumentValues);
-                String beanName = "innerClient:" + fromServerInfo.getId() + " to " + toServer.getId() + "#" + i;
+                String beanName = "insideClient:" + fromServerInfo.getId() + " to " + toServer.getId() + "#" + i;
                 beanDefinitionRegistry.registerBeanDefinition(beanName, beanDefinition);
             }
         }

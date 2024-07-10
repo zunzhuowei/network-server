@@ -2,9 +2,9 @@ package com.hbsoo.message.queue;
 
 import com.hbsoo.server.NowServer;
 import com.hbsoo.server.config.ServerInfo;
-import com.hbsoo.server.message.HBSMessageType;
-import com.hbsoo.server.message.entity.HBSPackage;
-import com.hbsoo.server.session.InnerClientSessionManager;
+import com.hbsoo.server.message.MessageType;
+import com.hbsoo.server.message.entity.NetworkPacket;
+import com.hbsoo.server.session.InsideClientSessionManager;
 import com.hbsoo.server.utils.SnowflakeIdGenerator;
 import com.hbsoo.server.utils.SpringBeanFactory;
 import org.slf4j.Logger;
@@ -39,14 +39,14 @@ public final class QueueMessageSender {
         }
         SnowflakeIdGenerator snowflakeIdGenerator = SpringBeanFactory.getBean(SnowflakeIdGenerator.class);
         long msgId = snowflakeIdGenerator.generateId();
-        HBSPackage.Builder builder = HBSPackage.Builder.withDefaultHeader()
+        NetworkPacket.Builder builder = NetworkPacket.Builder.withDefaultHeader()
                 .writeLong(msgId)
                 .writeStr(objJson)
                 .writeStr(topic)
                 .writeStr(NowServer.getServerInfo().getType())
                 .writeInt(NowServer.getServerInfo().getId())
-                .msgType(HBSMessageType.Inner.PUBLISH);
-        InnerClientSessionManager.forwardMsg2ServerByTypeAndKeyUseSender(builder, queueServerTypeName, msgId);
+                .msgType(MessageType.Inside.PUBLISH);
+        InsideClientSessionManager.forwardMsg2ServerByTypeAndKeyUseSender(builder, queueServerTypeName, msgId);
     }
 
 }

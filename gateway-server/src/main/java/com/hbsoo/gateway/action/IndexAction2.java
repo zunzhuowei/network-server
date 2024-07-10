@@ -3,9 +3,9 @@ package com.hbsoo.gateway.action;
 import com.hbsoo.database.utils.TransactionUtils;
 import com.hbsoo.gateway.entity.User;
 import com.hbsoo.gateway.service.IUserService;
-import com.hbsoo.server.annotation.OuterServerMessageHandler;
+import com.hbsoo.server.annotation.OutsideMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
-import com.hbsoo.server.message.entity.HBSPackage;
+import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.entity.HttpPackage;
 import com.hbsoo.server.message.server.HttpServerMessageDispatcher;
 import io.netty.channel.ChannelHandlerContext;
@@ -19,7 +19,7 @@ import java.util.List;
 /**
  * Created by zun.wei on 2024/6/15.
  */
-@OuterServerMessageHandler(value = 0, uri = "/index2", protocol = Protocol.HTTP)
+@OutsideMessageHandler(value = 0, uri = "/index2", protocol = Protocol.HTTP)
 public class IndexAction2 extends HttpServerMessageDispatcher {
 
 
@@ -73,7 +73,7 @@ public class IndexAction2 extends HttpServerMessageDispatcher {
     }
 
     @Override
-    public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
+    public Object threadKey(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
         return null;
     }
 }

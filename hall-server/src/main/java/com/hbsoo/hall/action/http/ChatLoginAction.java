@@ -1,8 +1,8 @@
 package com.hbsoo.hall.action.http;
 
-import com.hbsoo.server.annotation.OuterServerMessageHandler;
+import com.hbsoo.server.annotation.OutsideMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
-import com.hbsoo.server.message.entity.HBSPackage;
+import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.entity.HttpPackage;
 import com.hbsoo.server.message.server.HttpServerMessageDispatcher;
 import io.netty.channel.ChannelHandlerContext;
@@ -10,12 +10,11 @@ import org.springframework.core.io.ClassPathResource;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 
 /**
  * Created by zun.wei on 2024/6/15.
  */
-@OuterServerMessageHandler(value = 0, uri = "/hall/login", protocol = Protocol.HTTP)
+@OutsideMessageHandler(value = 0, uri = "/hall/login", protocol = Protocol.HTTP)
 public class ChatLoginAction extends HttpServerMessageDispatcher {
 
 
@@ -34,7 +33,7 @@ public class ChatLoginAction extends HttpServerMessageDispatcher {
     }
 
     @Override
-    public Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder) {
+    public Object threadKey(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
         return null;
     }
 

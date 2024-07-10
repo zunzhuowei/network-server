@@ -1,9 +1,9 @@
 package com.hbsoo.message.queue;
 
 import com.hbsoo.message.queue.entity.CallbackMessage;
-import com.hbsoo.server.message.HBSMessageType;
-import com.hbsoo.server.message.entity.HBSPackage;
-import com.hbsoo.server.session.InnerClientSessionManager;
+import com.hbsoo.server.message.MessageType;
+import com.hbsoo.server.message.entity.NetworkPacket;
+import com.hbsoo.server.session.InsideClientSessionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,14 +68,14 @@ public interface TransactionQueueMessageSenderHandler extends TransactionQueueMe
             Long msgId1 = callbackMessage.getMsgId();
             logger.info("executeRollback msgId:{}, topic:{}, objJson:{}, serverType:{}, serverId:{}, mqServerId:{}, mqServerType:{}",
                     msgId1, topic, objJson, serverType, serverId, mqServerId, mqServerType);
-            HBSPackage.Builder builder = HBSPackage.Builder.withDefaultHeader()
+            NetworkPacket.Builder builder = NetworkPacket.Builder.withDefaultHeader()
                     .writeLong(msgId1)
                     .writeStr(topic)
                     .writeStr(objJson)
                     .writeStr(serverType)
                     .writeInt(serverId)
-                    .msgType(HBSMessageType.Inner.TRANSACTION_ROLLBACK);
-            InnerClientSessionManager.forwardMsg2ServerByTypeAndIdUseSender(builder, mqServerId, mqServerType);
+                    .msgType(MessageType.Inside.TRANSACTION_ROLLBACK);
+            InsideClientSessionManager.forwardMsg2ServerByTypeAndIdUseSender(builder, mqServerId, mqServerType);
         }
     }
 

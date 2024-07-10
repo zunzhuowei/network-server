@@ -1,6 +1,6 @@
 package com.hbsoo.server.message.server;
 
-import com.hbsoo.server.message.entity.HBSPackage;
+import com.hbsoo.server.message.entity.NetworkPacket;
 import io.netty.channel.ChannelHandlerContext;
 
 /**
@@ -13,7 +13,7 @@ public interface ServerMessageHandler<T> {
      * 如果返回的值是null，则随机选取线程执行;
      * @param decoder 如果http请求，值是null
      */
-    Object threadKey(ChannelHandlerContext ctx, HBSPackage.Decoder decoder);
+    Object threadKey(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder);
 
     /**
      * 处理消息

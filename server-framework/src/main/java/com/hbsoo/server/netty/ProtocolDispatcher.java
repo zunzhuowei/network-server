@@ -1,6 +1,6 @@
 package com.hbsoo.server.netty;
 
-import com.hbsoo.server.message.entity.HBSPackage;
+import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.server.ServerMessageHandler;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -86,7 +86,7 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<Object
         switch (protocolType) {
             case TCP: {
                 ctx.pipeline().addLast(new LengthFieldBasedFrameDecoder
-                        (maxFrameLength, HBSPackage.TCP_HEADER.length, 4, 0, 0));
+                        (maxFrameLength, NetworkPacket.TCP_HEADER.length, 4, 0, 0));
                 ctx.pipeline().addLast(new TcpServerHandler(handler));
                 ctx.pipeline().remove(this);
                 ctx.fireChannelRead(msg.retain());
@@ -94,7 +94,7 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<Object
             }
             case UDP: {
                 ctx.pipeline().addLast(new LengthFieldBasedFrameDecoder
-                        (maxFrameLength, HBSPackage.UDP_HEADER.length, 4, 0, 0));
+                        (maxFrameLength, NetworkPacket.UDP_HEADER.length, 4, 0, 0));
                 ctx.pipeline().addLast(new UdpServerHandler(handler));
                 ctx.pipeline().remove(this);
                 ctx.fireChannelRead(msg.retain());
@@ -155,17 +155,17 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<Object
             return ProtocolType.UNKNOWN;
         }
         int readableBytes = msg.readableBytes();
-        if (readableBytes >= HBSPackage.TCP_HEADER.length) {
-            byte[] tcpHeader = new byte[HBSPackage.TCP_HEADER.length];
+        if (readableBytes >= NetworkPacket.TCP_HEADER.length) {
+            byte[] tcpHeader = new byte[NetworkPacket.TCP_HEADER.length];
             msg.getBytes(0, tcpHeader);
-            if (Arrays.equals(tcpHeader, HBSPackage.TCP_HEADER)) {
+            if (Arrays.equals(tcpHeader, NetworkPacket.TCP_HEADER)) {
                 return ProtocolType.TCP;
             }
         }
-        if (readableBytes >= HBSPackage.UDP_HEADER.length) {
-            byte[] udpHeader = new byte[HBSPackage.UDP_HEADER.length];
+        if (readableBytes >= NetworkPacket.UDP_HEADER.length) {
+            byte[] udpHeader = new byte[NetworkPacket.UDP_HEADER.length];
             msg.getBytes(0, udpHeader);
-            if (Arrays.equals(udpHeader, HBSPackage.UDP_HEADER)) {
+            if (Arrays.equals(udpHeader, NetworkPacket.UDP_HEADER)) {
                 return ProtocolType.UDP;
             }
         }
