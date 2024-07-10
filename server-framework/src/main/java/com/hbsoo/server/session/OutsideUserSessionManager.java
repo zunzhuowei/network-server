@@ -210,12 +210,12 @@ public final class OutsideUserSessionManager {
      * 发送消息到用户
      *
      * @param protocol     用户协议类型
-     * @param innerPackage 消息, HBSPackage.Builder#buildPackage()
+     * @param insidePackage 消息, HBSPackage.Builder#buildPackage()
      * @param ids          用户id
      * @param contentType  内容类型，针对http协议使用。
      */
-    public void sendMsg2User(OutsideUserProtocol protocol, byte[] innerPackage, String contentType, Long... ids) {
-        if (Objects.isNull(innerPackage) || Objects.isNull(protocol)) {
+    public void sendMsg2User(OutsideUserProtocol protocol, byte[] insidePackage, String contentType, Long... ids) {
+        if (Objects.isNull(insidePackage) || Objects.isNull(protocol)) {
             return;
         }
         for (Long id : ids) {
@@ -234,7 +234,7 @@ public final class OutsideUserSessionManager {
                             .writeLong(id)//用户id
                             .writeStr(protocol.name())//用户协议类型
                             .writeStr(contentType == null ? "" : contentType)
-                            .writeBytes(innerPackage);//转发的消息
+                            .writeBytes(insidePackage);//转发的消息
 
                     //重试三次
                     long msgId = snowflakeIdGenerator.generateId();
@@ -243,10 +243,6 @@ public final class OutsideUserSessionManager {
                             userSession.getBelongServer().getType(), null);
                     forwardMessage.setToServerId(userSession.getBelongServer().getId());
                     forwardMessageSender.send(forwardMessage);
-
-                    //InnerClientSessionManager.sendMsg2ServerByServerTypeAndId(redirectPackage,
-                    //        userSession.getBelongServer().getId(),
-                    //        userSession.getBelongServer().getType());
                     continue;
                 }
                 if (!channel.isActive()) {
@@ -255,22 +251,22 @@ public final class OutsideUserSessionManager {
                 // 用他登录的服务器管道发送消息
                 switch (protocol) {
                     case BINARY_WEBSOCKET: {
-                        BinaryWebSocketFrame socketFrame = new BinaryWebSocketFrame(Unpooled.wrappedBuffer(innerPackage));
+                        BinaryWebSocketFrame socketFrame = new BinaryWebSocketFrame(Unpooled.wrappedBuffer(insidePackage));
                         channel.writeAndFlush(socketFrame);
                         break;
                     }
                     case TEXT_WEBSOCKET: {
-                        TextWebSocketFrame socketFrame = new TextWebSocketFrame(new String(innerPackage, StandardCharsets.UTF_8));
+                        TextWebSocketFrame socketFrame = new TextWebSocketFrame(new String(insidePackage, StandardCharsets.UTF_8));
                         channel.writeAndFlush(socketFrame);
                         break;
                     }
                     case TCP: {
-                        channel.writeAndFlush(Unpooled.wrappedBuffer(innerPackage));
+                        channel.writeAndFlush(Unpooled.wrappedBuffer(insidePackage));
                         break;
                     }
                     case UDP: {
                         DatagramPacket packet = new DatagramPacket(
-                                Unpooled.wrappedBuffer(innerPackage),
+                                Unpooled.wrappedBuffer(insidePackage),
                                 new InetSocketAddress(userSession.getUdpHost(),
                                         userSession.getUdpPort())
                         );
@@ -278,7 +274,7 @@ public final class OutsideUserSessionManager {
                         break;
                     }
                     case HTTP: {
-                        response(channel, innerPackage, contentType);
+                        response(channel, insidePackage, contentType);
                         logout(id);
                         break;
                     }

@@ -52,15 +52,15 @@ interface CommonDispatcher {
 
     /**
      * 组装协议分发
-     * @param serverMessageHandler 1.InnerServerMessageHandler; OuterServerMessageHandler
-     * @param <T> com.hbsoo.server.annotation.InnerServerMessageHandler | com.hbsoo.server.annotation.OuterServerMessageHandler
+     * @param serverMessageHandler 1.InsideServerMessageHandler; OutsideServerMessageHandler
+     * @param <T> com.hbsoo.server.annotation.InsideServerMessageHandler | com.hbsoo.server.annotation.OutsideServerMessageHandler
      */
     default <T extends Annotation> void assembleDispatchers(Class<T> serverMessageHandler) {
         for (Protocol protocol : Protocol.values()) {
             dispatchers().computeIfAbsent(protocol, k -> new ConcurrentHashMap<>());
         }
-        Map<String, Object> innerHandlers = SpringBeanFactory.getBeansWithAnnotation(serverMessageHandler);
-        innerHandlers.values().stream()
+        Map<String, Object> insideHandlers = SpringBeanFactory.getBeansWithAnnotation(serverMessageHandler);
+        insideHandlers.values().stream()
                 .filter(handler -> handler instanceof ServerMessageDispatcher)
                 .map(handler -> (ServerMessageDispatcher) handler)
                 .forEach(handler -> {
@@ -72,11 +72,10 @@ interface CommonDispatcher {
                     if (annotation == null) {
                         return;
                     }
-                    boolean inner = annotation instanceof InsideServerMessageHandler;
-                    //boolean outer = annotation instanceof OuterServerMessageHandler;
-                    Protocol protocol = inner ? ((InsideServerMessageHandler) annotation).protocol() : ((OutsideMessageHandler) annotation).protocol();
-                    String uri = inner ? ((InsideServerMessageHandler) annotation).uri() : ((OutsideMessageHandler) annotation).uri();
-                    int msgType = inner ? ((InsideServerMessageHandler) annotation).value() : ((OutsideMessageHandler) annotation).value();
+                    boolean inside = annotation instanceof InsideServerMessageHandler;
+                    Protocol protocol = inside ? ((InsideServerMessageHandler) annotation).protocol() : ((OutsideMessageHandler) annotation).protocol();
+                    String uri = inside ? ((InsideServerMessageHandler) annotation).uri() : ((OutsideMessageHandler) annotation).uri();
+                    int msgType = inside ? ((InsideServerMessageHandler) annotation).value() : ((OutsideMessageHandler) annotation).value();
                     if (handler instanceof HttpServerMessageDispatcher) {
                         if (protocol != Protocol.HTTP || "".equals(uri)) {
                             throw new RuntimeException("http message handler must type in protocol and uri !");
@@ -177,8 +176,8 @@ interface CommonDispatcher {
         if (ctx.channel() instanceof NioDatagramChannel) {
             return;
         }
-        Boolean isInnerClient = ctx.channel().attr(AttributeKeyConstants.isInnerClientAttr).get();
-        if (isInnerClient == null || !isInnerClient) {
+        Boolean isInsideClient = ctx.channel().attr(AttributeKeyConstants.isInsideClientAttr).get();
+        if (isInsideClient == null || !isInsideClient) {
             ctx.close();
         }
     }
@@ -315,8 +314,8 @@ interface CommonDispatcher {
                 String _404 = "404";
                 WebSocketFrame response = isText ? new TextWebSocketFrame(_404) : new BinaryWebSocketFrame(Unpooled.wrappedBuffer(_404.getBytes()));
                 ctx.writeAndFlush(response).sync();
-                Boolean isInnerClient = ctx.channel().attr(AttributeKeyConstants.isInnerClientAttr).get();
-                if (isInnerClient == null || !isInnerClient) {
+                Boolean isInsideClient = ctx.channel().attr(AttributeKeyConstants.isInsideClientAttr).get();
+                if (isInsideClient == null || !isInsideClient) {
                     ctx.close();
                 }
             } catch (InterruptedException e) {

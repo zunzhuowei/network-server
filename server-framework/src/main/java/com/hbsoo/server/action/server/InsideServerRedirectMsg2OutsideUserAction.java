@@ -27,10 +27,10 @@ public class InsideServerRedirectMsg2OutsideUserAction extends ServerMessageDisp
         long id = decoder.readLong();
         String protocolStr = decoder.readStr();
         String contentType = decoder.readStr();
-        byte[] innerPackage = decoder.readBytes();
+        byte[] insidePackage = decoder.readBytes();
         OutsideUserProtocol protocol = OutsideUserProtocol.valueOf(protocolStr);
-        logger.debug("InsideServerRedirectMsg2OutsideUserAction id:{} protocol:{}", id, protocol);
-        outsideUserSessionManager.sendMsg2User(protocol, innerPackage, contentType, id);
+        logger.debug("id:{} protocol:{}", id, protocol);
+        outsideUserSessionManager.sendMsg2User(protocol, insidePackage, contentType, id);
     }
 
 

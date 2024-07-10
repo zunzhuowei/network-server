@@ -50,11 +50,11 @@ public class WebsocketTcpUdpMessageRoutingAction extends DefaultServerMessageDis
                 .writeBytes(decoder1.getHeader())
                 .writeBytes(decoder1.readAllTheRestBodyData());
         if (msgType < 1000) {
-            forward2InnerServer(builder, "hall", threadKey);
+            forward2InsideServer(builder, "hall", threadKey);
             return;
         }
         if (msgType < 2000) {
-            forward2InnerServer(builder, "room", threadKey);
+            forward2InsideServer(builder, "room", threadKey);
             return;
         }
         if (!(ctx.channel() instanceof NioDatagramChannel)) {

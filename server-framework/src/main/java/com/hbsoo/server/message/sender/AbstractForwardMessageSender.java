@@ -84,8 +84,8 @@ public abstract class AbstractForwardMessageSender implements ForwardMessageSend
                     }
                 });
             } else {
-                List<ServerInfo> innerServers = NowServer.getInnerServers();
-                boolean match = innerServers.parallelStream().anyMatch(e -> e.getType().equals(toServerType));
+                List<ServerInfo> insideServers = NowServer.getInsideServers();
+                boolean match = insideServers.parallelStream().anyMatch(e -> e.getType().equals(toServerType));
                 if (!match) {
                     logger.debug("serverType is not exist, toServerType:{}, forwardKey:{}!", toServerType, forwardKey);
                     return;

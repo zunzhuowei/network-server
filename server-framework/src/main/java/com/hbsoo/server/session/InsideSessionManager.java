@@ -20,8 +20,8 @@ class InsideSessionManager {
     // 使用slf4j作为日志记录工具
     private static final Logger logger = LoggerFactory.getLogger(InsideSessionManager.class);
 
-    public static void innerLogin(String serverType, Integer serverId, Channel channel, int index,
-                                  Supplier<Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>>> clientsMapSupplier) {
+    public static void login(String serverType, Integer serverId, Channel channel, int index,
+                             Supplier<Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>>> clientsMapSupplier) {
         Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = clientsMapSupplier.get();
         ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>> serverTypeMap = clientsMap.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
         ConcurrentHashMap<Integer, Channel> clients = serverTypeMap.computeIfAbsent(serverId, k -> new ConcurrentHashMap<>());
@@ -31,8 +31,8 @@ class InsideSessionManager {
         }
         clients.put(index, channel);
     }
-    public static void innerLogout(String serverType, Integer serverId,
-                                   Supplier<Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>>> clientsMapSupplier) {
+    public static void logout(String serverType, Integer serverId,
+                              Supplier<Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>>> clientsMapSupplier) {
         Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = clientsMapSupplier.get();
         ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>> serverTypeMap = clientsMap.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
         ConcurrentHashMap<Integer, Channel> clients = serverTypeMap.computeIfAbsent(serverId, k -> new ConcurrentHashMap<>());
@@ -43,8 +43,8 @@ class InsideSessionManager {
     /**
      * 根据channel退出登录
      */
-    public static void innerLogoutWithChannel(Channel channel,
-                                              Supplier<Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>>> clientsMapSupplier) {
+    public static void logoutWithChannel(Channel channel,
+                                         Supplier<Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>>> clientsMapSupplier) {
         Map<String, ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Channel>>> clientsMap = clientsMapSupplier.get();
         clientsMap.values().forEach(servers -> {
             servers.values().forEach(server -> {
@@ -196,21 +196,21 @@ class InsideSessionManager {
             return null;
         }
         //当前服务器客户端登录到的其他服务器
-        List<ServerInfo> innerServers = NowServer.getInnerServers().stream()
+        List<ServerInfo> insideServers = NowServer.getInsideServers().stream()
                 .filter(serverInfo -> serverInfo.getType().equals(serverType))
                 .collect(Collectors.toList());
-        boolean useWeight = innerServers.stream().anyMatch(serverInfo -> serverInfo.getWeight() > 0);
+        boolean useWeight = insideServers.stream().anyMatch(serverInfo -> serverInfo.getWeight() > 0);
         if (useWeight) {
             //根据权重比例随机选择一个服务器
-            innerServers.sort(Comparator.comparingInt(ServerInfo::getWeight));
-            int weightSum = innerServers.stream()
+            insideServers.sort(Comparator.comparingInt(ServerInfo::getWeight));
+            int weightSum = insideServers.stream()
                     .map(ServerInfo::getWeight)
                     .mapToInt(Integer::intValue)
                     .sum();
             int randomWeight = new Random().nextInt(weightSum);
             int weightOffset = 0;
-            for (int i = 0; i < innerServers.size(); i++) {
-                ServerInfo serverInfo = innerServers.get(i);
+            for (int i = 0; i < insideServers.size(); i++) {
+                ServerInfo serverInfo = insideServers.get(i);
                 int weight = serverInfo.getWeight();
                 if (randomWeight < weight + weightOffset) {
                     //根据服务器id获取客户端

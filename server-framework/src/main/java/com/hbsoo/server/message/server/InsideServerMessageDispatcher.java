@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class InsideServerMessageDispatcher extends ServerMessageDispatcher implements CommonDispatcher  {
 
-    private static final Map<Protocol, ConcurrentHashMap<Integer, ServerMessageDispatcher>> innerServerDispatchers = new ConcurrentHashMap<>();
+    private static final Map<Protocol, ConcurrentHashMap<Integer, ServerMessageDispatcher>> insideServerDispatchers = new ConcurrentHashMap<>();
 
     @Qualifier("insideServerThreadPoolScheduler")
     @Autowired
@@ -50,7 +50,7 @@ public final class InsideServerMessageDispatcher extends ServerMessageDispatcher
 
     @Override
     public Map<Protocol, ConcurrentHashMap<Integer, ServerMessageDispatcher>> dispatchers() {
-        return innerServerDispatchers;
+        return insideServerDispatchers;
     }
 
     @Override

@@ -99,7 +99,7 @@ hbsoo:
       - host: 192.168.1.104
         port: 6000
         type: gateway #Inside server type,that's namespace customized
-        clientSize: 1 #Connect to inner server client size
+        clientSize: 1 #Connect to inside server client size
         weight: 10 #Inside server weight
         id: 1000 #Inside server id; At least one id in the list of insideServers is associated with the current node id
       - host: 192.168.1.104
@@ -128,7 +128,7 @@ public class IndexAction extends HttpServerMessageDispatcher {
       final List<Genealogy> genealogies = genealogyService.listAll();
       //System.out.println("genealogies = " + genealogies);
       responseJson(ctx, httpPackage, genealogies);
-      forward2InnerServerUseSender(
+      forward2InsideServerUseSender(
               NetworkPacket.Builder.withDefaultHeader()
                       .msgType(100).writeStr(genealogies.toString()),
               "hall",
@@ -161,7 +161,7 @@ public class LoginChatRoomAction extends ServerMessageDispatcher {
       NetworkPacket.Builder builder = decoder.toBuilder().writeInt(userId).writeStr(Permission.USER.name());
       builder.sendTcpTo(ctx.channel());
       //forward to room server
-      forward2InnerServerUseSender(builder, "room", userId);
+      forward2insideServerUseSender(builder, "room", userId);
    }
 
    @Override
@@ -197,7 +197,7 @@ public class IndexAction extends HttpServerMessageDispatcher {
       final List<Genealogy> genealogies = genealogyService.listAll();
       //System.out.println("genealogies = " + genealogies);
       responseJson(ctx, httpPackage, genealogies);
-      forward2InnerServerUseSender(
+      forward2insideServerUseSender(
               NetworkPacket.Builder.withDefaultHeader()
                       .msgType(100).writeStr(genealogies.toString()),
               "hall",

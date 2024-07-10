@@ -37,7 +37,7 @@ public final class InsideClientMessageDispatcher extends ClientMessageDispatcher
 
     private static final Logger logger = LoggerFactory.getLogger(InsideClientMessageDispatcher.class);
 
-    private static final Map<Protocol, ConcurrentHashMap<Integer, ClientMessageDispatcher>> innerClientDispatchers = new ConcurrentHashMap<>();
+    private static final Map<Protocol, ConcurrentHashMap<Integer, ClientMessageDispatcher>> insideClientDispatchers = new ConcurrentHashMap<>();
 
     @Autowired
     protected DelayThreadPoolScheduler delayThreadPoolScheduler;
@@ -50,10 +50,10 @@ public final class InsideClientMessageDispatcher extends ClientMessageDispatcher
     @PostConstruct
     protected void init() {
         for (Protocol protocol : Protocol.values()) {
-            innerClientDispatchers.computeIfAbsent(protocol, k -> new ConcurrentHashMap<>());
+            insideClientDispatchers.computeIfAbsent(protocol, k -> new ConcurrentHashMap<>());
         }
-        Map<String, Object> innerHandlers = SpringBeanFactory.getBeansWithAnnotation(InsideClientMessageHandler.class);
-        innerHandlers.values().stream()
+        Map<String, Object> insideHandlers = SpringBeanFactory.getBeansWithAnnotation(InsideClientMessageHandler.class);
+        insideHandlers.values().stream()
         .filter(handler -> handler instanceof ClientMessageDispatcher)
         .map(handler -> (ClientMessageDispatcher) handler)
         .forEach(handler -> {
@@ -63,7 +63,7 @@ public final class InsideClientMessageDispatcher extends ClientMessageDispatcher
             if (protocol == Protocol.HTTP) {
                 throw new RuntimeException("un support http protocol!");
             }
-            innerClientDispatchers.get(protocol).putIfAbsent(msgType, handler);
+            insideClientDispatchers.get(protocol).putIfAbsent(msgType, handler);
         });
 
     }
@@ -124,7 +124,7 @@ public final class InsideClientMessageDispatcher extends ClientMessageDispatcher
             syncMessage.getCountDownLatch().countDown();
             return;
         }
-        ClientMessageDispatcher dispatcher = innerClientDispatchers.get(protocol).get(msgType);
+        ClientMessageDispatcher dispatcher = insideClientDispatchers.get(protocol).get(msgType);
         if (Objects.isNull(dispatcher)) {
             final String s = ctx.channel().id().asShortText();
             logger.warn("消息类型未注册：" + msgType + ",channelID:" + s + ",protocol:" + protocol.name());
@@ -207,7 +207,7 @@ public final class InsideClientMessageDispatcher extends ClientMessageDispatcher
             // BinaryWebSocketFrame
             NetworkPacket.Decoder decoder = NetworkPacket.Decoder.withDefaultHeader().readPackageBody(received);
             int msgType = decoder.readMsgType();
-            ClientMessageDispatcher dispatcher = innerClientDispatchers.get(Protocol.WEBSOCKET).get(msgType);
+            ClientMessageDispatcher dispatcher = insideClientDispatchers.get(Protocol.WEBSOCKET).get(msgType);
             if (Objects.isNull(dispatcher)) {
                 try {
                     String _404 = "404";

@@ -48,11 +48,11 @@ public abstract class ClientMessageDispatcher implements InsideClientMessageHand
      */
     private void redirectMessageOrg(ChannelHandlerContext ctx, Object msg) {
         try {
-            boolean outerHandler = this.getClass().isAnnotationPresent(com.hbsoo.server.annotation.InsideClientMessageHandler.class);
-            if (outerHandler) {
+            boolean outsideHandler = this.getClass().isAnnotationPresent(com.hbsoo.server.annotation.InsideClientMessageHandler.class);
+            if (outsideHandler) {
                 com.hbsoo.server.annotation.InsideClientMessageHandler handler = this.getClass().getAnnotation(com.hbsoo.server.annotation.InsideClientMessageHandler.class);
-                InsideClientMessageDispatcher innerClientMessageDispatcher = SpringBeanFactory.getBean(InsideClientMessageDispatcher.class);
-                innerClientMessageDispatcher.onMessage(ctx, msg, handler.protocol());
+                InsideClientMessageDispatcher insideClientMessageDispatcher = SpringBeanFactory.getBean(InsideClientMessageDispatcher.class);
+                insideClientMessageDispatcher.onMessage(ctx, msg, handler.protocol());
             }
         } finally {
             int i = ReferenceCountUtil.refCnt(msg);

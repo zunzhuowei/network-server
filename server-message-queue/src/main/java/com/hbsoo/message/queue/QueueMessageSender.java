@@ -27,12 +27,12 @@ public final class QueueMessageSender {
      * @param objJson 消息内容，建议json格式数据。
      */
     public static void publish(String queueServerTypeName, String topic, String objJson) {
-        List<ServerInfo> innerServers = NowServer.getInnerServers();
-        if (innerServers.isEmpty()) {
-            logger.warn("innerServers is empty");
+        List<ServerInfo> insideServers = NowServer.getInsideServers();
+        if (insideServers.isEmpty()) {
+            logger.warn("insideServers is empty");
             return;
         }
-        boolean exist = innerServers.stream().anyMatch(serverInfo -> serverInfo.getType().equals(queueServerTypeName));
+        boolean exist = insideServers.stream().anyMatch(serverInfo -> serverInfo.getType().equals(queueServerTypeName));
         if (!exist) {
             logger.warn("queueServerTypeName is not exist:{}", queueServerTypeName);
             return;

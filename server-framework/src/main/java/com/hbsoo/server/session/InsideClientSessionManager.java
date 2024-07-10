@@ -41,16 +41,16 @@ public final class InsideClientSessionManager {
      */
     public static Map<Long, SyncMessage> syncMsgMap = new ConcurrentHashMap<>();
 
-    public static void innerLogin(String serverType, Integer serverId, Channel channel, int index) {
-        InsideSessionManager.innerLogin(serverType, serverId, channel, index, () -> clientsMap);
+    public static void login(String serverType, Integer serverId, Channel channel, int index) {
+        InsideSessionManager.login(serverType, serverId, channel, index, () -> clientsMap);
     }
 
-    public static void innerLogout(String serverType, Integer serverId) {
-        InsideSessionManager.innerLogout(serverType, serverId, () -> clientsMap);
+    public static void logout(String serverType, Integer serverId) {
+        InsideSessionManager.logout(serverType, serverId, () -> clientsMap);
     }
 
-    public static void innerLogoutWithChannel(Channel channel) {
-        InsideSessionManager.innerLogoutWithChannel(channel, () -> clientsMap);
+    public static void logoutWithChannel(Channel channel) {
+        InsideSessionManager.logoutWithChannel(channel, () -> clientsMap);
     }
 
     /**

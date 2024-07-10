@@ -32,25 +32,25 @@ public final class ChannelInactiveHandler extends ChannelInboundHandlerAdapter {
         // 注销登录
         Long id = ctx.channel().attr(AttributeKeyConstants.idAttr).get();
         if (Objects.nonNull(id)) {
-            Boolean isInnerClient = ctx.channel().attr(AttributeKeyConstants.isInnerClientAttr).get();
-            if (Objects.isNull(isInnerClient)) {
+            Boolean isInsideClient = ctx.channel().attr(AttributeKeyConstants.isInsideClientAttr).get();
+            if (Objects.isNull(isInsideClient)) {
                 OutsideUserSessionManager manager = SpringBeanFactory.getBean(OutsideUserSessionManager.class);
                 //防止客户端重连的时候，旧的客户端被踢出时，把新的客户端踢出。
                 UserSession userSession = manager.getUserSession(id);
                 if (Objects.nonNull(userSession)) {
                     if (ctx.channel().id() == userSession.getChannel().id()) {
-                        logger.debug("Outer channelInactive id = " + id);
+                        logger.debug("Outside channelInactive id = " + id);
                         manager.logoutAndSyncAllServer(id);
                     } else {
-                        logger.debug("Outer channelInactive1 id = " + id);
+                        logger.debug("Outside channelInactive1 id = " + id);
                     }
                 } else {
-                    logger.debug("Outer channelInactive2 id = " + id);
+                    logger.debug("Outside channelInactive2 id = " + id);
                     manager.logoutAndSyncAllServer(id);
                 }
             } else {
-                logger.debug("Inner channelInactive id = " + id);
-                InsideClientSessionManager.innerLogoutWithChannel(ctx.channel());
+                logger.debug("Inside channelInactive id = " + id);
+                InsideClientSessionManager.logoutWithChannel(ctx.channel());
             }
         }
         ProtocolDispatcher.channels.remove(ctx.channel());

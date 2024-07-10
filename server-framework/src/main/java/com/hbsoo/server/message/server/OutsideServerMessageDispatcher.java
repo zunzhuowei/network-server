@@ -21,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class OutsideServerMessageDispatcher extends ServerMessageDispatcher implements CommonDispatcher {
 
     private static final Logger logger = LoggerFactory.getLogger(OutsideServerMessageDispatcher.class);
-    private static final Map<Protocol, ConcurrentHashMap<Integer, ServerMessageDispatcher>> outerServerDispatchers = new ConcurrentHashMap<>();
+    private static final Map<Protocol, ConcurrentHashMap<Integer, ServerMessageDispatcher>> outsideServerDispatchers = new ConcurrentHashMap<>();
 
     @Qualifier("outsideServerThreadPoolScheduler")
     @Autowired(required = false)
@@ -53,7 +53,7 @@ public final class OutsideServerMessageDispatcher extends ServerMessageDispatche
 
     @Override
     public Map<Protocol, ConcurrentHashMap<Integer, ServerMessageDispatcher>> dispatchers() {
-        return outerServerDispatchers;
+        return outsideServerDispatchers;
     }
 
     @Override

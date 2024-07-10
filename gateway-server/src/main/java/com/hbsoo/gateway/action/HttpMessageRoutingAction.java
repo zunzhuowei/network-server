@@ -20,11 +20,11 @@ public class HttpMessageRoutingAction extends DefaultHttpServerDispatcher {
         final int index = uri.indexOf("?");
         String path = index < 0 ? uri : uri.substring(0, index);
         if (StringUtils.startsWith(path, "/hall")) {
-            forwardOuterHttpMsg2InnerServer(ctx, httpPackage, "hall", MessageType.Inside.GATEWAY_ROUTING_HTTP_TO_INNER_SERVER);
+            forwardOutsideHttpMsg2InsideServer(ctx, httpPackage, "hall", MessageType.Inside.GATEWAY_ROUTING_HTTP_TO_INNER_SERVER);
             return;
         }
         if (StringUtils.startsWith(path, "/room")) {
-            forwardOuterHttpMsg2InnerServer(ctx, httpPackage, "room", MessageType.Inside.GATEWAY_ROUTING_HTTP_TO_INNER_SERVER);
+            forwardOutsideHttpMsg2InsideServer(ctx, httpPackage, "room", MessageType.Inside.GATEWAY_ROUTING_HTTP_TO_INNER_SERVER);
             return;
         }
         responseHtml(ctx, httpPackage, "404");

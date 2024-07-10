@@ -19,7 +19,7 @@ public interface AttributeKeyConstants {
     /**
      * 是否为内部客户端
      */
-    AttributeKey<Boolean> isInnerClientAttr = AttributeKey.valueOf("isInnerClient");
+    AttributeKey<Boolean> isInsideClientAttr = AttributeKey.valueOf("isInsideClient");
     /**
      * 用户权限属性
      */

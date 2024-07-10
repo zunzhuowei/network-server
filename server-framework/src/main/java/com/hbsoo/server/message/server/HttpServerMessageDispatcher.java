@@ -94,7 +94,7 @@ public abstract class HttpServerMessageDispatcher extends ServerMessageDispatche
     }
 
 
-    protected void forwardOuterHttpMsg2InnerServer(ChannelHandlerContext ctx, HttpPackage httpPackage, String serverType, int msgType) {
+    protected void forwardOutsideHttpMsg2InsideServer(ChannelHandlerContext ctx, HttpPackage httpPackage, String serverType, int msgType) {
         String uri = httpPackage.getUri();
         int index = uri.indexOf("?");
         String path = index < 0 ? uri : uri.substring(0, index);
@@ -124,7 +124,7 @@ public abstract class HttpServerMessageDispatcher extends ServerMessageDispatche
                 .writeStr(gson.toJson(httpPackage.getParameters()))
                 .writeBytes(httpPackage.getBody() == null ? new byte[0] : httpPackage.getBody())
                 .writeStr(gson.toJson(headersMap));
-        forward2InnerServer(msgBuilder, serverType, ctx.channel().id().asLongText());
+        forward2InsideServer(msgBuilder, serverType, ctx.channel().id().asLongText());
     }
 
 }

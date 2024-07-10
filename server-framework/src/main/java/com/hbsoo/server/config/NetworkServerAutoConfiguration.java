@@ -53,10 +53,10 @@ public class NetworkServerAutoConfiguration {
     @Bean(initMethod = "start", destroyMethod = "stop")
     @ConditionalOnProperty(prefix = "hbsoo.server.outsideServer", name = "enable", havingValue = "true")
     public NetworkServer outsideServer() {
-        Map<String, Object> outerServer = serverInfoProperties.getOutsideServer();
-        Object port = outerServer.get("port");
-        String protocolsStr = Objects.isNull(outerServer.get("protocol"))
-                ? "TCP,UDP,WEBSOCKET,HTTP" : outerServer.get("protocol").toString();
+        Map<String, Object> outsideServer = serverInfoProperties.getOutsideServer();
+        Object port = outsideServer.get("port");
+        String protocolsStr = Objects.isNull(outsideServer.get("protocol"))
+                ? "TCP,UDP,WEBSOCKET,HTTP" : outsideServer.get("protocol").toString();
         HashSet<String> protocols = new HashSet<>(Arrays.asList(protocolsStr.split(",")));
         OutsideServerMessageDispatcher handler = SpringBeanFactory.getBean(OutsideServerMessageDispatcher.class);
         return new NetworkServer("OS", Integer.parseInt(port.toString()),
@@ -68,9 +68,9 @@ public class NetworkServerAutoConfiguration {
      */
     @Bean(initMethod = "start", destroyMethod = "stop")
     public NetworkServer insideServer() {
-        List<ServerInfo> innerServers = serverInfoProperties.getInsideServers();
+        List<ServerInfo> insideServers = serverInfoProperties.getInsideServers();
         Integer id = serverInfoProperties.getId();
-        Optional<ServerInfo> optional = innerServers.stream().filter(e -> e.getId().equals(id)).findFirst();
+        Optional<ServerInfo> optional = insideServers.stream().filter(e -> e.getId().equals(id)).findFirst();
         ServerInfo serverInfo = optional.get();
         int port = serverInfo.getPort();
         InsideServerMessageDispatcher handler = SpringBeanFactory.getBean(InsideServerMessageDispatcher.class);
@@ -87,9 +87,9 @@ public class NetworkServerAutoConfiguration {
         final Map<String, Object> threadPoolSize = serverInfoProperties.getThreadPoolSize();
         String poolName = "IC-biz-pool";
         if (threadPoolSize != null) {
-            final Object innerClient = threadPoolSize.get("insideClient");
-            if (innerClient != null) {
-                return new ThreadPoolScheduler(poolName, Integer.parseInt(innerClient.toString()));
+            final Object insideClient = threadPoolSize.get("insideClient");
+            if (insideClient != null) {
+                return new ThreadPoolScheduler(poolName, Integer.parseInt(insideClient.toString()));
             }
         }
         int CPU_COUNT = Runtime.getRuntime().availableProcessors();
@@ -104,9 +104,9 @@ public class NetworkServerAutoConfiguration {
         final Map<String, Object> threadPoolSize = serverInfoProperties.getThreadPoolSize();
         String poolName = "IS-biz-pool";
         if (threadPoolSize != null) {
-            final Object innerServer = threadPoolSize.get("insideServer");
-            if (innerServer != null) {
-                return new ThreadPoolScheduler(poolName, Integer.parseInt(innerServer.toString()));
+            final Object insideServer = threadPoolSize.get("insideServer");
+            if (insideServer != null) {
+                return new ThreadPoolScheduler(poolName, Integer.parseInt(insideServer.toString()));
             }
         }
         int processors = Runtime.getRuntime().availableProcessors();
@@ -122,9 +122,9 @@ public class NetworkServerAutoConfiguration {
         final Map<String, Object> threadPoolSize = serverInfoProperties.getThreadPoolSize();
         String poolName = "OS-biz-pool";
         if (threadPoolSize != null) {
-            final Object outerServer = threadPoolSize.get("outsideServer");
-            if (outerServer != null) {
-                return new ThreadPoolScheduler(poolName, Integer.parseInt(outerServer.toString()));
+            final Object outsideServer = threadPoolSize.get("outsideServer");
+            if (outsideServer != null) {
+                return new ThreadPoolScheduler(poolName, Integer.parseInt(outsideServer.toString()));
             }
         }
         int processors = Runtime.getRuntime().availableProcessors();
@@ -153,9 +153,9 @@ public class NetworkServerAutoConfiguration {
      */
     @Bean
     public OutsideUserSessionManager outsideSessionManager() {
-        List<ServerInfo> innerServers = serverInfoProperties.getInsideServers();
+        List<ServerInfo> insideServers = serverInfoProperties.getInsideServers();
         Integer id = serverInfoProperties.getId();
-        Optional<ServerInfo> optional = innerServers.stream().filter(e -> e.getId().equals(id)).findFirst();
+        Optional<ServerInfo> optional = insideServers.stream().filter(e -> e.getId().equals(id)).findFirst();
         ServerInfo serverInfo = optional.get();
         return new OutsideUserSessionManager(serverInfo);
     }

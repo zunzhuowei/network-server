@@ -33,7 +33,7 @@ public class IndexAction extends HttpServerMessageDispatcher {
         //System.out.println("genealogies = " + genealogies);
         responseJson(ctx, httpPackage, genealogies);
 
-        forward2InnerServerUseSender(
+        forward2InsideServerUseSender(
                 NetworkPacket.Builder.withDefaultHeader()
                         .msgType(100).writeStr(genealogies.toString()),
                 "hall",

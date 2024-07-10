@@ -23,7 +23,7 @@ public class InsideClientLoginAction extends ClientMessageDispatcher {
         int id = decoder.readInt();
         String loginServerTypeStr = decoder.readStr();
         int index = decoder.readInt();
-        InsideClientSessionManager.innerLogin(loginServerTypeStr, id, ctx.channel(), index);
+        InsideClientSessionManager.login(loginServerTypeStr, id, ctx.channel(), index);
         logger.info("服务器返回的登录消息：InsideClientLoginAction login success,serverType[{}],id[{}],index[{}]", loginServerTypeStr, id, index);
 
     }

@@ -28,7 +28,7 @@ public class LoginChatRoomAction extends ServerMessageDispatcher {
         NetworkPacket.Builder builder = decoder.toBuilder().writeInt(userId).writeStr(Permission.USER.name());
         builder.sendTcpTo(ctx.channel());
         //加入房间
-        forward2InnerServerUseSender(builder, "room", userId);
+        forward2InsideServerUseSender(builder, "room", userId);
     }
 
     @Override

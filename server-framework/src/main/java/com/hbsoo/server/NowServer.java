@@ -24,7 +24,7 @@ public final class NowServer {
     /**
      * 当前服务器链接的所有内网服务器
      */
-    private final static List<ServerInfo> innerServers = new CopyOnWriteArrayList<>();
+    private final static List<ServerInfo> insideServers = new CopyOnWriteArrayList<>();
 
     public static ServerInfo getServerInfo() {
         return SERVER_INFO;
@@ -46,10 +46,10 @@ public final class NowServer {
         return serverTypes;
     }
 
-    public static void addInnerServer(ServerInfo serverInfo) {
-        innerServers.add(serverInfo);
+    public static void addInsideServer(ServerInfo serverInfo) {
+        insideServers.add(serverInfo);
     }
-    public static List<ServerInfo> getInnerServers() {
-        return innerServers;
+    public static List<ServerInfo> getInsideServers() {
+        return insideServers;
     }
 }

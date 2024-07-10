@@ -36,10 +36,10 @@ public class ReceiveChatRoomMessageAction extends ServerMessageDispatcher {
         String message = decoder.readStr();
         ChatRoom chatRoom = ChatRoomManager.getChatRoom("first-chatroom");
         //测试发送同步消息
-        NetworkPacket.Decoder result = request2Server(decoder.toBuilder(), 10, (builder) -> forward2InnerServer(builder, "gateway", userId));
+        NetworkPacket.Decoder result = request2Server(decoder.toBuilder(), 10, (builder) -> forward2InsideServer(builder, "gateway", userId));
         System.out.println("result = " + result.readStr());
         if (Objects.isNull(chatRoom)) {
-            forward2AllInnerServerByTypeUseSender(decoder.toBuilder(), "room");
+            forward2AllInsideServerByTypeUseSender(decoder.toBuilder(), "room");
             return;
         }
         chatRoom.addRecentMsg(userId + ":" + message);

@@ -58,7 +58,7 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
      * @param key        键值，用于计算消息应该发送到哪个服务器。
      *                   同时，键值的哈希值被用于决定客户端的选择。
      */
-    public void forward2InnerServer(NetworkPacket.Builder msgBuilder, String serverType, Object key) {
+    public void forward2InsideServer(NetworkPacket.Builder msgBuilder, String serverType, Object key) {
         InsideClientSessionManager.forwardMsg2ServerByTypeAndKey(msgBuilder, serverType, key);
     }
 
@@ -66,8 +66,8 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
      * 延迟转发到【其他内网服务器】的消息处理器中，
      * @param delaySecond 延迟时间（秒）
      */
-    public void forward2InnerServer(NetworkPacket.Builder msgBuilder, String serverType, Object key, int delaySecond) {
-        delayThreadPoolScheduler.schedule(() -> forward2InnerServer(msgBuilder, serverType, key), delaySecond, TimeUnit.SECONDS);
+    public void forward2InsideServer(NetworkPacket.Builder msgBuilder, String serverType, Object key, int delaySecond) {
+        delayThreadPoolScheduler.schedule(() -> forward2InsideServer(msgBuilder, serverType, key), delaySecond, TimeUnit.SECONDS);
     }
     /**
      * 消息转发到【其他内网服务器】的消息处理器中，
@@ -77,7 +77,7 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
      * @param serverType 服务器类型
      * @param serverId  服务器id。
      */
-    public void forward2InnerServer(NetworkPacket.Builder msgBuilder, int serverId, String serverType) {
+    public void forward2InsideServer(NetworkPacket.Builder msgBuilder, int serverId, String serverType) {
         InsideClientSessionManager.forwardMsg2ServerByTypeAndId(msgBuilder, serverId, serverType);
     }
 
@@ -86,58 +86,58 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
      *
      * @param delaySecond 延迟时间（秒）
      */
-    public void forward2InnerServer(NetworkPacket.Builder msgBuilder, int serverId, String serverType, int delaySecond) {
-        delayThreadPoolScheduler.schedule(() -> forward2InnerServer(msgBuilder, serverId, serverType), delaySecond, TimeUnit.SECONDS);
+    public void forward2InsideServer(NetworkPacket.Builder msgBuilder, int serverId, String serverType, int delaySecond) {
+        delayThreadPoolScheduler.schedule(() -> forward2InsideServer(msgBuilder, serverId, serverType), delaySecond, TimeUnit.SECONDS);
     }
 
-    public void forward2AllInnerServerByType(NetworkPacket.Builder msgBuilder, String serverType) {
+    public void forward2AllInsideServerByType(NetworkPacket.Builder msgBuilder, String serverType) {
         InsideClientSessionManager.forwardMsg2ServerByTypeAll(msgBuilder, serverType);
     }
 
-    public void forward2AllInnerServerByType(NetworkPacket.Builder msgBuilder, String serverType, int delaySecond) {
-        delayThreadPoolScheduler.schedule(() -> forward2AllInnerServerByType(msgBuilder, serverType), delaySecond, TimeUnit.SECONDS);
+    public void forward2AllInsideServerByType(NetworkPacket.Builder msgBuilder, String serverType, int delaySecond) {
+        delayThreadPoolScheduler.schedule(() -> forward2AllInsideServerByType(msgBuilder, serverType), delaySecond, TimeUnit.SECONDS);
     }
 
-    public void forward2AllInnerServerByTypeUseSender(NetworkPacket.Builder msgBuilder, String serverType) {
+    public void forward2AllInsideServerByTypeUseSender(NetworkPacket.Builder msgBuilder, String serverType) {
         InsideClientSessionManager.forwardMsg2AllServerByTypeUseSender(msgBuilder, serverType);
     }
 
-    public void forward2AllInnerServerByTypeUseSender(NetworkPacket.Builder msgBuilder, String serverType, int delaySecond) {
-        delayThreadPoolScheduler.schedule(() -> forward2AllInnerServerByTypeUseSender(msgBuilder, serverType), delaySecond, TimeUnit.SECONDS);
+    public void forward2AllInsideServerByTypeUseSender(NetworkPacket.Builder msgBuilder, String serverType, int delaySecond) {
+        delayThreadPoolScheduler.schedule(() -> forward2AllInsideServerByTypeUseSender(msgBuilder, serverType), delaySecond, TimeUnit.SECONDS);
     }
 
     /**
      * 消息转发到【其他内网服务器】的消息处理器中，
      * 使用sender发送，保证发送失败时候重发消息；
-     * {@link ServerMessageDispatcher#forward2InnerServer}
+     * {@link ServerMessageDispatcher#forward2InsideServer}
      */
-    public void forward2InnerServerUseSender(NetworkPacket.Builder msgBuilder, String serverType, Object key) {
+    public void forward2InsideServerUseSender(NetworkPacket.Builder msgBuilder, String serverType, Object key) {
         InsideClientSessionManager.forwardMsg2ServerByTypeAndKeyUseSender(msgBuilder, serverType, key);
     }
     /**
      * 消息转发到【其他内网服务器】的消息处理器中，
      * 使用sender发送，保证发送失败时候重发消息；
-     * {@link ServerMessageDispatcher#forward2InnerServer}
+     * {@link ServerMessageDispatcher#forward2InsideServer}
      */
-    public void forward2InnerServerUseSender(NetworkPacket.Builder msgBuilder, String serverType, Object key, int delaySecond) {
-        delayThreadPoolScheduler.schedule(() -> forward2InnerServerUseSender(msgBuilder, serverType, key), delaySecond, TimeUnit.SECONDS);
+    public void forward2InsideServerUseSender(NetworkPacket.Builder msgBuilder, String serverType, Object key, int delaySecond) {
+        delayThreadPoolScheduler.schedule(() -> forward2InsideServerUseSender(msgBuilder, serverType, key), delaySecond, TimeUnit.SECONDS);
     }
     /**
      * 消息转发到【其他内网服务器】的消息处理器中，
      * 使用sender发送，保证发送失败时候重发消息；
-     * {@link ServerMessageDispatcher#forward2InnerServer}
+     * {@link ServerMessageDispatcher#forward2InsideServer}
      */
-    public void forward2InnerServerUseSender(NetworkPacket.Builder msgBuilder, int serverId, String serverType) {
+    public void forward2InsideServerUseSender(NetworkPacket.Builder msgBuilder, int serverId, String serverType) {
         InsideClientSessionManager.forwardMsg2ServerByTypeAndIdUseSender(msgBuilder, serverId, serverType);
     }
 
     /**
      * 消息转发到【其他内网服务器】的消息处理器中，
      * 使用sender发送，保证发送失败时候重发消息；
-     * {@link ServerMessageDispatcher#forward2InnerServer}
+     * {@link ServerMessageDispatcher#forward2InsideServer}
      */
-    public void forward2InnerServerUseSender(NetworkPacket.Builder msgBuilder, int serverId, String serverType, int delaySecond) {
-        delayThreadPoolScheduler.schedule(() -> forward2InnerServerUseSender(msgBuilder, serverId, serverType), delaySecond, TimeUnit.SECONDS);
+    public void forward2InsideServerUseSender(NetworkPacket.Builder msgBuilder, int serverId, String serverType, int delaySecond) {
+        delayThreadPoolScheduler.schedule(() -> forward2InsideServerUseSender(msgBuilder, serverId, serverType), delaySecond, TimeUnit.SECONDS);
     }
     /**
      * 消息重定向到【当前服务器】中的其他消息处理器中，与当前处理器【相同协议】
@@ -174,14 +174,14 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
         //final byte[] buildPackage = msgBuilder.buildPackage();
         //ByteBuf buf = Unpooled.wrappedBuffer(buildPackage);
         try {
-            boolean outerHandler = this.getClass().isAnnotationPresent(OutsideMessageHandler.class);
-            if (outerHandler) {
+            boolean outsideHandler = this.getClass().isAnnotationPresent(OutsideMessageHandler.class);
+            if (outsideHandler) {
                 OutsideMessageHandler handler = this.getClass().getAnnotation(OutsideMessageHandler.class);
                 redirectAndSwitchProtocolOrg(ctx, ProtocolType.valueOf("OUTSIDE_" + handler.protocol().name()), msg);
                 return;
             }
-            boolean innerHandler = this.getClass().isAnnotationPresent(InsideServerMessageHandler.class);
-            if (innerHandler) {
+            boolean insideHandler = this.getClass().isAnnotationPresent(InsideServerMessageHandler.class);
+            if (insideHandler) {
                 InsideServerMessageHandler handler = this.getClass().getAnnotation(InsideServerMessageHandler.class);
                 redirectAndSwitchProtocolOrg(ctx, ProtocolType.valueOf("INSIDE_" + handler.protocol().name()), msg);
             }

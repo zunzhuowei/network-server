@@ -35,7 +35,7 @@ public class InsideServerSyncOutsideUserLoginAction extends ServerMessageDispatc
         int belongServerPort = decoder.readInt();
         String belongServerType = decoder.readStr();
         String permissionStr = decoder.readStr();
-        logger.debug("InsideServerSyncOutsideUserLoginAction id:{} belongServerId:{} belongServerHost:{} belongServerPort:{} belongServerType:{},permissionStr:{}",
+        logger.debug("id:{} belongServerId:{} belongServerHost:{} belongServerPort:{} belongServerType:{},permissionStr:{}",
                 id, belongServerId, belongServerHost, belongServerPort, belongServerType, permissionStr);
         UserSession userSession = new UserSession();
         userSession.setId(id);

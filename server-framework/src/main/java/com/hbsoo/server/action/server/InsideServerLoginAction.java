@@ -35,7 +35,7 @@ public class InsideServerLoginAction extends ServerMessageDispatcher {
         String loginServerTypeStr = decoder.readStr();//当前服务器类型
         //把id放入属性中
         ctx.channel().attr(AttributeKeyConstants.idAttr).set((long) serverId);
-        ctx.channel().attr(AttributeKeyConstants.isInnerClientAttr).set(true);
+        ctx.channel().attr(AttributeKeyConstants.isInsideClientAttr).set(true);
         NetworkPacket.Builder.withDefaultHeader()
                 .msgType(MessageType.Inside.LOGIN)
                 .writeInt(id)//当前服务器id
@@ -60,7 +60,6 @@ public class InsideServerLoginAction extends ServerMessageDispatcher {
                         .writeStr(gson.toJson(userSession.getPermissions()))
                         .sendTcpTo(ctx.channel());
                 //必须用连接的客户端推送，否则可能对方客户端链接了但是服务端还未启动完成，导致无法收到消息
-                //forward2InnerServerUseSender(builder, serverTypeStr, serverId);
             });
         }
     }

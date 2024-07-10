@@ -85,7 +85,6 @@ public final class SpringBeanDefinitionRegistrar implements ImportBeanDefinition
         // 初始化数据
         for (String serverType : NowServer.getServerTypes()) {
             InsideClientSessionManager.clientsMap.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
-            //InnerServerSessionManager.clientsMap.computeIfAbsent(serverType, k -> new ConcurrentHashMap<>());
         }
 
         // 初始化消息头
@@ -112,7 +111,7 @@ public final class SpringBeanDefinitionRegistrar implements ImportBeanDefinition
                 continue;
             }
             // 添加到当前服务器集合中
-            NowServer.addInnerServer(toServer);
+            NowServer.addInsideServer(toServer);
 
             Integer clientAmount = toServer.getClientSize();
             //每个服务器使用五个客户端链接
