@@ -3,8 +3,8 @@ package com.hbsoo.server.message.server;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.hbsoo.server.NowServer;
+import com.hbsoo.server.message.entity.HttpPacket;
 import com.hbsoo.server.message.entity.NetworkPacket;
-import com.hbsoo.server.message.entity.HttpPackage;
 import com.hbsoo.server.session.OutsideUserSessionManager;
 import com.hbsoo.server.session.UserSession;
 import com.hbsoo.server.session.OutsideUserProtocol;
@@ -36,47 +36,47 @@ public abstract class HttpServerMessageDispatcher extends ServerMessageDispatche
     /**
      * 处理消息，http
      */
-    public abstract void handle(ChannelHandlerContext ctx, HttpPackage httpPackage);
+    public abstract void handle(ChannelHandlerContext ctx, HttpPacket httpPacket);
 
     @Override
     public void handle(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
     }
 
-    public void responseJson(ChannelHandlerContext ctx, HttpPackage httpPackage, Object obj) {
+    public void responseJson(ChannelHandlerContext ctx, HttpPacket httpPacket, Object obj) {
         Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
         String jsonStr = gson.toJson(obj);
-        response(ctx, httpPackage, jsonStr.getBytes(CharsetUtil.UTF_8), "application/json; charset=UTF-8", null);
+        response(ctx, httpPacket, jsonStr.getBytes(CharsetUtil.UTF_8), "application/json; charset=UTF-8", null);
     }
 
-    public void responseHtml(ChannelHandlerContext ctx, HttpPackage httpPackage, String html) {
-        response(ctx, httpPackage, html.getBytes(StandardCharsets.UTF_8), "text/html; charset=UTF-8", null);
+    public void responseHtml(ChannelHandlerContext ctx, HttpPacket httpPacket, String html) {
+        response(ctx, httpPacket, html.getBytes(StandardCharsets.UTF_8), "text/html; charset=UTF-8", null);
     }
 
-    public void responseXml(ChannelHandlerContext ctx, HttpPackage httpPackage, String xml) {
-        response(ctx, httpPackage, xml.getBytes(StandardCharsets.UTF_8), "text/xml; charset=UTF-8", null);
+    public void responseXml(ChannelHandlerContext ctx, HttpPacket httpPacket, String xml) {
+        response(ctx, httpPacket, xml.getBytes(StandardCharsets.UTF_8), "text/xml; charset=UTF-8", null);
     }
 
-    public void responseText(ChannelHandlerContext ctx, HttpPackage httpPackage, String text) {
-        response(ctx, httpPackage, text.getBytes(StandardCharsets.UTF_8), "text/plain; charset=UTF-8", null);
+    public void responseText(ChannelHandlerContext ctx, HttpPacket httpPacket, String text) {
+        response(ctx, httpPacket, text.getBytes(StandardCharsets.UTF_8), "text/plain; charset=UTF-8", null);
     }
 
-    public void responseJpeg(ChannelHandlerContext ctx, HttpPackage httpPackage, byte[] bytes) {
-        response(ctx, httpPackage, bytes, "image/jpeg", null);
+    public void responseJpeg(ChannelHandlerContext ctx, HttpPacket httpPacket, byte[] bytes) {
+        response(ctx, httpPacket, bytes, "image/jpeg", null);
     }
 
-    public void responseGif(ChannelHandlerContext ctx, HttpPackage httpPackage, byte[] bytes) {
-        response(ctx, httpPackage, bytes, "image/gif", null);
+    public void responseGif(ChannelHandlerContext ctx, HttpPacket httpPacket, byte[] bytes) {
+        response(ctx, httpPacket, bytes, "image/gif", null);
     }
 
-    public void responsePng(ChannelHandlerContext ctx, HttpPackage httpPackage, byte[] bytes) {
-        response(ctx, httpPackage, bytes, "image/png", null);
+    public void responsePng(ChannelHandlerContext ctx, HttpPacket httpPacket, byte[] bytes) {
+        response(ctx, httpPacket, bytes, "image/png", null);
     }
 
-    public void response(ChannelHandlerContext ctx, HttpPackage httpPackage,
+    public void response(ChannelHandlerContext ctx, HttpPacket httpPacket,
                          byte[] bytes, String contentType,
                          GenericFutureListener<? extends Future<? super Void>> future) {
         // 如果是内部服务转发过来的消息则转发回去
-        String outsideUserId = httpPackage.getHeaders().get("outsideUserId");
+        String outsideUserId = httpPacket.getHeaders().get("outsideUserId");
         if (StringUtils.hasLength(outsideUserId)) {
             outsideUserSessionManager.sendMsg2User(OutsideUserProtocol.HTTP, bytes, contentType, Long.parseLong(outsideUserId));
             return;
@@ -94,8 +94,8 @@ public abstract class HttpServerMessageDispatcher extends ServerMessageDispatche
     }
 
 
-    protected void forwardOutsideHttpMsg2InsideServer(ChannelHandlerContext ctx, HttpPackage httpPackage, String serverType, int msgType) {
-        String uri = httpPackage.getUri();
+    protected void forwardOutsideHttpMsg2InsideServer(ChannelHandlerContext ctx, HttpPacket httpPacket, String serverType, int msgType) {
+        String uri = httpPacket.getUri();
         int index = uri.indexOf("?");
         String path = index < 0 ? uri : uri.substring(0, index);
         long id = snowflakeIdGenerator.generateId();
@@ -106,7 +106,7 @@ public abstract class HttpServerMessageDispatcher extends ServerMessageDispatche
         userSession.setUdp(false);
         outsideUserSessionManager.login(id, userSession);
 
-        HttpHeaders headers = httpPackage.getHeaders();
+        HttpHeaders headers = httpPacket.getHeaders();
         Map<String, String> headersMap = new HashMap<>();
         for (String name : headers.names()) {
             String value = headers.get(name);
@@ -120,9 +120,9 @@ public abstract class HttpServerMessageDispatcher extends ServerMessageDispatche
                 .writeStr(gson.toJson(userSession))
                 .writeStr(uri)
                 .writeStr(path)
-                .writeStr(httpPackage.getMethod())
-                .writeStr(gson.toJson(httpPackage.getParameters()))
-                .writeBytes(httpPackage.getBody() == null ? new byte[0] : httpPackage.getBody())
+                .writeStr(httpPacket.getMethod())
+                .writeStr(gson.toJson(httpPacket.getParameters()))
+                .writeBytes(httpPacket.getBody() == null ? new byte[0] : httpPacket.getBody())
                 .writeStr(gson.toJson(headersMap));
         forward2InsideServer(msgBuilder, serverType, ctx.channel().id().asLongText());
     }

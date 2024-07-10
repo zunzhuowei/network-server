@@ -124,10 +124,10 @@ public class IndexAction extends HttpServerMessageDispatcher {
     private IGenealogyService genealogyService;
 
    @Override
-   public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) {
+   public void handle(ChannelHandlerContext ctx, HttpPackage httpPacket) {
       final List<Genealogy> genealogies = genealogyService.listAll();
       //System.out.println("genealogies = " + genealogies);
-      responseJson(ctx, httpPackage, genealogies);
+      responseJson(ctx, httpPacket, genealogies);
       forward2InsideServerUseSender(
               NetworkPacket.Builder.withDefaultHeader()
                       .msgType(100).writeStr(genealogies.toString()),
@@ -193,10 +193,10 @@ public class IndexAction extends HttpServerMessageDispatcher {
    private IGenealogyService genealogyService;
 
    @Override
-   public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) {
+   public void handle(ChannelHandlerContext ctx, HttpPackage httpPacket) {
       final List<Genealogy> genealogies = genealogyService.listAll();
       //System.out.println("genealogies = " + genealogies);
-      responseJson(ctx, httpPackage, genealogies);
+      responseJson(ctx, httpPacket, genealogies);
       forward2insideServerUseSender(
               NetworkPacket.Builder.withDefaultHeader()
                       .msgType(100).writeStr(genealogies.toString()),

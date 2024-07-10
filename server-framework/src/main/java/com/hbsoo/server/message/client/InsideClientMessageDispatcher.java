@@ -5,7 +5,7 @@ import com.hbsoo.server.annotation.InsideClientMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.entity.SyncMessage;
-import com.hbsoo.server.message.entity.TextWebSocketPackage;
+import com.hbsoo.server.message.entity.TextWebSocketPacket;
 import com.hbsoo.server.session.InsideClientSessionManager;
 import com.hbsoo.server.utils.DelayThreadPoolScheduler;
 import com.hbsoo.server.utils.SpringBeanFactory;
@@ -199,7 +199,7 @@ public final class InsideClientMessageDispatcher extends ClientMessageDispatcher
             if (isText) {
                 String jsonStr = new String(received);
                 Gson gson = new Gson();
-                final TextWebSocketPackage socketPackage = gson.fromJson(jsonStr, TextWebSocketPackage.class);
+                final TextWebSocketPacket socketPackage = gson.fromJson(jsonStr, TextWebSocketPacket.class);
                 final int msgType = socketPackage.getMsgType();
                 //把文本消息，转成json格式
                 received = NetworkPacket.Builder.withDefaultHeader().msgType(msgType).writeStr(jsonStr).buildPackage();

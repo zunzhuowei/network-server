@@ -7,8 +7,8 @@ import com.hbsoo.message.queue.QueueMessageSender;
 import com.hbsoo.permisson.PermissionAuth;
 import com.hbsoo.server.annotation.OutsideMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
+import com.hbsoo.server.message.entity.HttpPacket;
 import com.hbsoo.server.message.entity.NetworkPacket;
-import com.hbsoo.server.message.entity.HttpPackage;
 import com.hbsoo.server.message.server.HttpServerMessageDispatcher;
 import io.netty.channel.ChannelHandlerContext;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,10 +28,10 @@ public class IndexAction extends HttpServerMessageDispatcher {
     private IGenealogyService genealogyService;
 
     @Override
-    public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) {
+    public void handle(ChannelHandlerContext ctx, HttpPacket httpPacket) {
         final List<Genealogy> genealogies = genealogyService.listAll();
         //System.out.println("genealogies = " + genealogies);
-        responseJson(ctx, httpPackage, genealogies);
+        responseJson(ctx, httpPacket, genealogies);
 
         forward2InsideServerUseSender(
                 NetworkPacket.Builder.withDefaultHeader()

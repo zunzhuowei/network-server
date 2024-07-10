@@ -6,8 +6,8 @@ import com.hbsoo.server.annotation.OutsideMessageHandler;
 import com.hbsoo.server.annotation.Permission;
 import com.hbsoo.server.annotation.Protocol;
 import com.hbsoo.server.message.MessageType;
+import com.hbsoo.server.message.entity.HttpPacket;
 import com.hbsoo.server.message.entity.NetworkPacket;
-import com.hbsoo.server.message.entity.HttpPackage;
 import com.hbsoo.server.message.server.HttpServerMessageDispatcher;
 import com.hbsoo.server.session.OutsideUserSessionManager;
 import com.hbsoo.server.session.UserSession;
@@ -97,14 +97,14 @@ public class PermissionAspect {
         ChannelHandlerContext context = Objects.isNull(args[0]) ? null : (ChannelHandlerContext) args[0];
         //http
         if (protocol == Protocol.HTTP) {
-            HttpPackage httpPackage = Objects.isNull(args[1]) ? null : (HttpPackage) args[1];
-            if (Objects.isNull(httpPackage)) {
+            HttpPacket httpPacket = Objects.isNull(args[1]) ? null : (HttpPacket) args[1];
+            if (Objects.isNull(httpPacket)) {
                 return true;
             }
-            String authentication = httpPackage.getHeaders().get("Authentication");
+            String authentication = httpPacket.getHeaders().get("Authentication");
             if (checkJwtPermission(permissions, authentication)) return true;
             ((HttpServerMessageDispatcher) point.getTarget())
-                    .responseHtml(context, httpPackage, "<h1>权限不足</h1>");
+                    .responseHtml(context, httpPacket, "<h1>权限不足</h1>");
             return false;
         }
         //UDP特殊处理

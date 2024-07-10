@@ -4,9 +4,9 @@ import com.google.gson.Gson;
 import com.hbsoo.server.annotation.InsideServerMessageHandler;
 import com.hbsoo.server.annotation.OutsideMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
+import com.hbsoo.server.message.entity.HttpPacket;
 import com.hbsoo.server.message.entity.NetworkPacket;
-import com.hbsoo.server.message.entity.HttpPackage;
-import com.hbsoo.server.message.entity.TextWebSocketPackage;
+import com.hbsoo.server.message.entity.TextWebSocketPacket;
 import com.hbsoo.server.netty.AttributeKeyConstants;
 import com.hbsoo.server.session.OutsideUserSessionManager;
 import com.hbsoo.server.session.OutsideUserProtocol;
@@ -279,7 +279,7 @@ interface CommonDispatcher {
             if (isText) {
                 String jsonStr = new String(received);
                 Gson gson = new Gson();
-                final TextWebSocketPackage socketPackage = gson.fromJson(jsonStr, TextWebSocketPackage.class);
+                final TextWebSocketPacket socketPackage = gson.fromJson(jsonStr, TextWebSocketPacket.class);
                 final int msgType = socketPackage.getMsgType();
                 //把文本消息，转成json格式
                 received = NetworkPacket.Builder.withDefaultHeader().msgType(msgType).writeStr(jsonStr).buildPackage();
@@ -335,7 +335,7 @@ interface CommonDispatcher {
      */
     default void handleHttp(ChannelHandlerContext ctx, FullHttpRequest msg) {
         final String path;
-        HttpPackage httpPackage = new HttpPackage();
+        HttpPacket httpPacket = new HttpPacket();
         try {
             final String uri = msg.uri();
             final HttpMethod method = msg.method();
@@ -347,16 +347,16 @@ interface CommonDispatcher {
             final Map<String, List<String>> parameters = decoder.parameters();
             final ByteBuf content = msg.content();
             final boolean readable = content.isReadable();
-            httpPackage.setHeaders(headers);
-            httpPackage.setParameters(parameters);
-            httpPackage.setPath(path);
-            httpPackage.setUri(uri);
-            httpPackage.setFullHttpRequest(msg);
-            httpPackage.setMethod(method.name());
+            httpPacket.setHeaders(headers);
+            httpPacket.setParameters(parameters);
+            httpPacket.setPath(path);
+            httpPacket.setUri(uri);
+            httpPacket.setFullHttpRequest(msg);
+            httpPacket.setMethod(method.name());
             if (readable) {
                 byte[] received = new byte[content.readableBytes()];
                 content.readBytes(received);
-                httpPackage.setBody(received);
+                httpPacket.setBody(received);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -374,7 +374,7 @@ interface CommonDispatcher {
             Object threadKey = dispatcher.threadKey(ctx, null);
             //decoder.resetBodyReadOffset();//重置读取位置
             threadPoolScheduler().execute(threadKey, () -> {
-                dispatcher.handle(ctx, httpPackage);
+                dispatcher.handle(ctx, httpPacket);
                 //ctx.close();
             });
             return;
@@ -385,7 +385,7 @@ interface CommonDispatcher {
                 Object threadKey = messageDispatcher.threadKey(ctx, null);
                 //decoder.resetBodyReadOffset();//重置读取位置
                 threadPoolScheduler().execute(threadKey, () -> {
-                    messageDispatcher.handle(ctx, httpPackage);
+                    messageDispatcher.handle(ctx, httpPacket);
                     //ctx.close();
                 });
                 break;

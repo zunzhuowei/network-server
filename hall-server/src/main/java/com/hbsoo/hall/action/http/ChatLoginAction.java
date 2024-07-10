@@ -3,7 +3,7 @@ package com.hbsoo.hall.action.http;
 import com.hbsoo.server.annotation.OutsideMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
 import com.hbsoo.server.message.entity.NetworkPacket;
-import com.hbsoo.server.message.entity.HttpPackage;
+import com.hbsoo.server.message.entity.HttpPacket;
 import com.hbsoo.server.message.server.HttpServerMessageDispatcher;
 import io.netty.channel.ChannelHandlerContext;
 import org.springframework.core.io.ClassPathResource;
@@ -19,13 +19,13 @@ public class ChatLoginAction extends HttpServerMessageDispatcher {
 
 
     @Override
-    public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) {
+    public void handle(ChannelHandlerContext ctx, HttpPacket httpPacket) {
         ClassPathResource classPathResource = new ClassPathResource("pages/login.html");
         try (InputStream inputStream = classPathResource.getInputStream()){
             final int available = inputStream.available();
             byte[] bytes = new byte[available];
             inputStream.read(bytes);
-            responseHtml(ctx, httpPackage, new String(bytes));
+            responseHtml(ctx, httpPacket, new String(bytes));
         } catch (IOException e) {
             e.printStackTrace();
         }

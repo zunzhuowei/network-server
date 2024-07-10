@@ -6,7 +6,7 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.RateLimiter;
 import com.hbsoo.server.message.MessageType;
 import com.hbsoo.server.message.entity.NetworkPacket;
-import com.hbsoo.server.message.entity.HttpPackage;
+import com.hbsoo.server.message.entity.HttpPacket;
 import com.hbsoo.server.message.server.HttpServerMessageDispatcher;
 import com.hbsoo.server.netty.AttributeKeyConstants;
 import io.netty.channel.ChannelHandlerContext;
@@ -191,9 +191,9 @@ public final class AccessLimitAspect {
                     .msgType(MessageType.Outside.TOO_MANY_REQUESTS)
                     .sendUdpTo(context.channel(), sendHost, sendPort);
         } else if (target instanceof HttpServerMessageDispatcher) {
-            HttpPackage httpPackage = (HttpPackage) args[1];
+            HttpPacket httpPacket = (HttpPacket) args[1];
             ((HttpServerMessageDispatcher) target)
-                    .responseHtml(context, httpPackage, "<h1>429</h1>");
+                    .responseHtml(context, httpPacket, "<h1>429</h1>");
         } else {
             NetworkPacket.Builder.withDefaultHeader()
                     .msgType(MessageType.Outside.TOO_MANY_REQUESTS)

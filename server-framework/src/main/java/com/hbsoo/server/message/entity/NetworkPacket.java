@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * 消息包
  * 包结构：header(4 byte) + packageBodyLen(4bytes int) + body(msgType(4bytes int) + (n-4))
+ * TODO header + msgId + packetType + bodyLen + body + msgType
  * Created by zun.wei on 2024/6/4.
  */
 public final class NetworkPacket {

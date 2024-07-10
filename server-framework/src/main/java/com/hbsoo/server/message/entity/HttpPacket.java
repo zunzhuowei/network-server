@@ -10,7 +10,7 @@ import java.util.Map;
 /**
  * Created by zun.wei on 2024/6/7.
  */
-public final class HttpPackage {
+public final class HttpPacket {
 
     String uri;
     HttpHeaders headers;

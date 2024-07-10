@@ -1,7 +1,7 @@
 package com.hbsoo.hall.action.http;
 
 import com.hbsoo.server.message.entity.NetworkPacket;
-import com.hbsoo.server.message.entity.HttpPackage;
+import com.hbsoo.server.message.entity.HttpPacket;
 import com.hbsoo.server.message.server.DefaultHttpServerDispatcher;
 import io.netty.channel.ChannelHandlerContext;
 import org.springframework.core.io.ClassPathResource;
@@ -18,21 +18,21 @@ public class StaticFilesAction extends DefaultHttpServerDispatcher {
 
 
     @Override
-    public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) {
-        String path = httpPackage.getPath();
+    public void handle(ChannelHandlerContext ctx, HttpPacket httpPacket) {
+        String path = httpPacket.getPath();
         if (isStaticResource(path)) {
             ClassPathResource classPathResource = new ClassPathResource(path);
             try (InputStream inputStream = classPathResource.getInputStream()) {
                 final int available = inputStream.available();
                 byte[] bytes = new byte[available];
                 inputStream.read(bytes);
-                responseHtml(ctx, httpPackage, new String(bytes));
+                responseHtml(ctx, httpPacket, new String(bytes));
             } catch (IOException e) {
                 e.printStackTrace();
-                responseHtml(ctx, httpPackage, "404");
+                responseHtml(ctx, httpPacket, "404");
             }
         } else {
-            responseHtml(ctx, httpPackage, "404");
+            responseHtml(ctx, httpPacket, "404");
         }
     }
 

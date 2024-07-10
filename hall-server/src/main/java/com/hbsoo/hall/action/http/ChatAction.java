@@ -3,7 +3,7 @@ package com.hbsoo.hall.action.http;
 import com.hbsoo.server.annotation.OutsideMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
 import com.hbsoo.server.message.entity.NetworkPacket;
-import com.hbsoo.server.message.entity.HttpPackage;
+import com.hbsoo.server.message.entity.HttpPacket;
 import com.hbsoo.server.message.server.HttpServerMessageDispatcher;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.QueryStringDecoder;
@@ -24,8 +24,8 @@ public class ChatAction extends HttpServerMessageDispatcher {
 
 
     @Override
-    public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) {
-        byte[] body = httpPackage.getBody();
+    public void handle(ChannelHandlerContext ctx, HttpPacket httpPacket) {
+        byte[] body = httpPacket.getBody();
         String page = "pages/chat.html";
         String username = null;
         boolean success = true;
@@ -51,7 +51,7 @@ public class ChatAction extends HttpServerMessageDispatcher {
             if (success) {
                 html = StringUtils.replace(html, "{{username}}", username);
             }
-            responseHtml(ctx, httpPackage, html);
+            responseHtml(ctx, httpPacket, html);
         } catch (IOException e) {
             e.printStackTrace();
         }

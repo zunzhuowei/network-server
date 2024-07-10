@@ -6,7 +6,7 @@ import com.hbsoo.gateway.service.IUserService;
 import com.hbsoo.server.annotation.OutsideMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
 import com.hbsoo.server.message.entity.NetworkPacket;
-import com.hbsoo.server.message.entity.HttpPackage;
+import com.hbsoo.server.message.entity.HttpPacket;
 import com.hbsoo.server.message.server.HttpServerMessageDispatcher;
 import io.netty.channel.ChannelHandlerContext;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +29,7 @@ public class IndexAction2 extends HttpServerMessageDispatcher {
     private TransactionUtils transactionUtils;
 
     @Override
-    public void handle(ChannelHandlerContext ctx, HttpPackage httpPackage) {
+    public void handle(ChannelHandlerContext ctx, HttpPacket httpPacket) {
         final List<User> users = userService.listAll();
         System.out.println("users = " + users);
         TransactionStatus transactionStatus = transactionUtils.begin(TransactionDefinition.ISOLATION_READ_UNCOMMITTED);
@@ -68,7 +68,7 @@ public class IndexAction2 extends HttpServerMessageDispatcher {
                 transactionUtils.rollback(transactionStatus);
             //}).start();*/
         }
-        responseJson(ctx, httpPackage, user);
+        responseJson(ctx, httpPacket, user);
 
     }
 
