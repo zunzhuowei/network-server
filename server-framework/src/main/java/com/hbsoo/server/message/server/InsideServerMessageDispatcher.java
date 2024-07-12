@@ -2,10 +2,12 @@ package com.hbsoo.server.message.server;
 
 import com.hbsoo.server.annotation.InsideServerMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
+import com.hbsoo.server.message.entity.ExpandBody;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.utils.SpringBeanFactory;
 import com.hbsoo.server.utils.ThreadPoolScheduler;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.http.FullHttpRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 
@@ -41,6 +43,10 @@ public final class InsideServerMessageDispatcher extends ServerMessageDispatcher
 
     public void onMessage(ChannelHandlerContext ctx, Object msg, Protocol protocol) {
         handleMessage(ctx, msg, protocol);
+    }
+
+    public void onHttpMessage(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest, ExpandBody expandBody) {
+        handleHttp(ctx, fullHttpRequest, expandBody);
     }
 
     @Override

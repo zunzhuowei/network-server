@@ -67,7 +67,7 @@ public abstract class AbstractForwardMessageSender implements ForwardMessageSend
             if (channel != null) {
                 NetworkPacket.Decoder decoder = NetworkPacket.Decoder
                         .withHeader(NetworkPacket.TCP_HEADER)
-                        .readPackageBody(originMessage);
+                        .parsePacket(originMessage);
                 int msgType = decoder.getMsgType();
                 NetworkPacket.Builder builder = decoder.toBuilder().msgType(msgType);
                 builder.sendTcpTo(channel, future -> {

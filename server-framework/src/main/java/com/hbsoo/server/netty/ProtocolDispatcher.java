@@ -86,7 +86,7 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<Object
         switch (protocolType) {
             case TCP: {
                 ctx.pipeline().addLast(new LengthFieldBasedFrameDecoder
-                        (maxFrameLength, NetworkPacket.TCP_HEADER.length, 4, 0, 0));
+                        (maxFrameLength, NetworkPacket.TCP_HEADER.length, 4, 8, 0));
                 ctx.pipeline().addLast(new TcpServerHandler(handler));
                 ctx.pipeline().remove(this);
                 ctx.fireChannelRead(msg.retain());
@@ -94,7 +94,7 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<Object
             }
             case UDP: {
                 ctx.pipeline().addLast(new LengthFieldBasedFrameDecoder
-                        (maxFrameLength, NetworkPacket.UDP_HEADER.length, 4, 0, 0));
+                        (maxFrameLength, NetworkPacket.UDP_HEADER.length, 4, 8, 0));
                 ctx.pipeline().addLast(new UdpServerHandler(handler));
                 ctx.pipeline().remove(this);
                 ctx.fireChannelRead(msg.retain());

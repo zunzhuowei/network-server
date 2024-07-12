@@ -1,8 +1,13 @@
 var router = {};
 router.route = function (msgType, dataView) {
-    console.log("msgType -----::" + msgType);
     var dataParser = new DataParser(dataView);
-    var result = router['route_' + msgType](dataParser);
+    try {
+        var result = router['route_' + msgType](dataParser);
+    }catch (e) {
+        console.log("msgType -----::" + msgType);
+        throw e;
+    }
+
     //var time = (new Date()).Format("yyyy-MM-dd hh:mm:ss");
     //if (msgType === 10006) { //心跳
     //    var num = $('#heartbeat').text();

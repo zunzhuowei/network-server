@@ -76,7 +76,8 @@ var sender;
             this.dataView.setUint8(1, this.textEncoder.encode("H"));
             this.dataView.setUint8(2, this.textEncoder.encode("B"));
             this.dataView.setUint8(3, this.textEncoder.encode("S"));
-            this.dataView.setUint32(4, this.position - 8, this.littleEndian); // body len
+            this.dataView.setUint32(4, this.position - 16, this.littleEndian); // body len
+            this.dataView.setUint32(4+4, this.position - 16, this.littleEndian); // rawBody len
             return this.dataView.buffer.slice(0, this.position);
         },
         buildHead(msgType, bufferLen) {
@@ -88,6 +89,7 @@ var sender;
             this.dataView = new DataView(buf);
             this.buildInt32(0);//header
             this.buildInt32(0);//bodyLen
+            this.buildInt32(0);//rawBodyLen
             this.buildInt32(msgType);//msgType
             return this;
         },

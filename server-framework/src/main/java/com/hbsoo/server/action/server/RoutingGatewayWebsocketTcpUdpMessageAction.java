@@ -3,6 +3,7 @@ package com.hbsoo.server.action.server;
 import com.hbsoo.server.annotation.InsideServerMessageHandler;
 import com.hbsoo.server.message.MessageType;
 import com.hbsoo.server.message.ProtocolType;
+import com.hbsoo.server.message.entity.ExpandBody;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.server.ServerMessageDispatcher;
 import io.netty.channel.ChannelHandlerContext;
@@ -18,16 +19,22 @@ public class RoutingGatewayWebsocketTcpUdpMessageAction extends ServerMessageDis
 
     @Override
     public void handle(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
-        byte[] header = decoder.readBytes();
-        byte[] body = decoder.readBytes();
-        byte[] _package = new byte[header.length + body.length + 4];
-        System.arraycopy(header, 0, _package, 0, header.length);//写入header
-        System.arraycopy(toHH(body.length), 0, _package, header.length, 4);//写入消息长度
-        System.arraycopy(body, 0, _package, header.length + 4, body.length);//写入消息体
-        NetworkPacket.Decoder d = NetworkPacket.Decoder
-                .withHeader(header)
-                .readPackageBody(_package);
-        redirectAndSwitchProtocol(ctx, ProtocolType.OUTSIDE_WEBSOCKET, d);
+        //byte[] header = decoder.readBytes();
+        //byte[] body = decoder.readBytes();
+        //byte[] _package = new byte[header.length + body.length + 4];
+        //System.arraycopy(header, 0, _package, 0, header.length);//写入header
+        //System.arraycopy(toHH(body.length), 0, _package, header.length, 4);//写入消息长度
+        //System.arraycopy(body, 0, _package, header.length + 4, body.length);//写入消息体
+        //NetworkPacket.Decoder d = NetworkPacket.Decoder
+        //        .withHeader(header)
+        //        .parsePacket(_package);
+        //redirectAndSwitchProtocol(ctx, ProtocolType.OUTSIDE_WEBSOCKET, d);
+        ExpandBody expandBody = decoder.readExpandBody();
+        int msgType = decoder.readExpandBodyMode().readInt();
+        byte[] header = decoder.getHeader();
+        decoder.resetBodyReadOffset();
+        NetworkPacket.Builder builder = decoder.toBuilder(header).msgType(msgType);
+        redirectAndSwitchProtocol(ctx, ProtocolType.OUTSIDE_WEBSOCKET, builder);
     }
 
     @Override

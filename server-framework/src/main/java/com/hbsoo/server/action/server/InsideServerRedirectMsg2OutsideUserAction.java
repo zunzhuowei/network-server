@@ -4,9 +4,11 @@ import com.hbsoo.server.annotation.InsideServerMessageHandler;
 import com.hbsoo.server.message.MessageType;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.server.ServerMessageDispatcher;
+import com.hbsoo.server.netty.ProtocolDispatcher;
 import com.hbsoo.server.session.OutsideUserSessionManager;
 import com.hbsoo.server.session.OutsideUserProtocol;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,18 +26,28 @@ public class InsideServerRedirectMsg2OutsideUserAction extends ServerMessageDisp
 
     @Override
     public void handle(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
-        long id = decoder.readLong();
         String protocolStr = decoder.readStr();
-        String contentType = decoder.readStr();
-        byte[] insidePackage = decoder.readBytes();
         OutsideUserProtocol protocol = OutsideUserProtocol.valueOf(protocolStr);
+        if (protocol == OutsideUserProtocol.HTTP) {
+            String userChannelId = decoder.readStr();
+            String contentType = decoder.readStr();
+            byte[] insidePackage = decoder.readBytes();
+            logger.debug("userChannelId:{} protocol:{}", userChannelId, protocol);
+            ProtocolDispatcher.channels.parallelStream()
+                    .filter(channel -> channel.id().asLongText().equals(userChannelId))
+                    .findFirst()
+                    .ifPresent(channel -> outsideUserSessionManager.response(channel, insidePackage, contentType));
+            return;
+        }
+        long id = decoder.readLong();
+        byte[] insidePackage = decoder.readBytes();
         logger.debug("id:{} protocol:{}", id, protocol);
-        outsideUserSessionManager.sendMsg2User(protocol, insidePackage, contentType, id);
+        outsideUserSessionManager.sendMsg2User(protocol, insidePackage, id);
     }
 
 
     @Override
     public Object threadKey(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
-        return decoder.skipGetLong(NetworkPacket.DecodeSkip.INT);
+        return null;
     }
 }

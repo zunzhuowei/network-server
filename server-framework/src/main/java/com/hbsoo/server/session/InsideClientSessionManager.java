@@ -1,5 +1,6 @@
 package com.hbsoo.server.session;
 
+import com.hbsoo.server.message.entity.ExpandBody;
 import com.hbsoo.server.message.entity.ForwardMessage;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.entity.SyncMessage;
@@ -255,8 +256,6 @@ public final class InsideClientSessionManager {
 
     /**
      * 根据消息类型和键值向特定服务器发送消息。
-     * 【注意】:方法会在消息体尾部追加消息ID。
-     * 服务端接收到消息后，响应结果时使用channel返回，需要将消息ID也追加到消息体尾部。
      */
     public static NetworkPacket.Decoder requestServerByTypeAndId(NetworkPacket.Builder msgBuilder, int serverId, String serverType)
             throws InterruptedException, TimeoutException {
@@ -265,8 +264,6 @@ public final class InsideClientSessionManager {
 
     /**
      * 请求服务器，并等待服务器响应返回值；
-     * 【注意】:方法会在消息体【尾部追加消息ID】。
-     * 服务端接收到消息后，响应结果时【必须使用channel】返回，需要【将消息ID也追加到消息体尾部】。
      * @param msgBuilder 消息内容
      * @param waitSeconds 等待相应结果时间秒数
      * @param forwardMsg2ServerFunction 消息发送函数
@@ -274,11 +271,14 @@ public final class InsideClientSessionManager {
      */
     public static NetworkPacket.Decoder requestServer(NetworkPacket.Builder msgBuilder, int waitSeconds, Consumer<NetworkPacket.Builder> forwardMsg2ServerFunction)
             throws InterruptedException {
-        SnowflakeIdGenerator snowflakeIdGenerator = SpringBeanFactory.getBean(SnowflakeIdGenerator.class);
-        long generateId = snowflakeIdGenerator.generateId();
+        NetworkPacket.Decoder decoder = msgBuilder.toDecoder();
+        if (!decoder.hasExpandBody()) {
+            throw new RuntimeException("消息体没有扩展体ExpandBody，服务端响应时根据msgId设置结果！");
+        }
+        ExpandBody expandBody = decoder.readExpandBody();
+        long msgId = expandBody.getMsgId();
         try {
-            msgBuilder.writeLong(generateId);
-            SyncMessage syncMessage = syncMsgMap.computeIfAbsent(generateId, k -> new SyncMessage(new CountDownLatch(1)));
+            SyncMessage syncMessage = syncMsgMap.computeIfAbsent(msgId, k -> new SyncMessage(new CountDownLatch(1)));
             forwardMsg2ServerFunction.accept(msgBuilder);
             CountDownLatch latch = syncMessage.getCountDownLatch();
             //阻塞等待结果
@@ -286,9 +286,10 @@ public final class InsideClientSessionManager {
             if (await) {
                 return syncMessage.getDecoder();
             }
+            logger.warn("等待响应超时，msgId:{},是不是因为服务端响应结果时没有设置ExpandBody", msgId);
             return null;
         } finally {
-            syncMsgMap.remove(generateId);
+            syncMsgMap.remove(msgId);
         }
     }
 

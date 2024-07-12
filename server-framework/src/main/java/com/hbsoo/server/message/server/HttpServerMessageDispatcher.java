@@ -3,6 +3,7 @@ package com.hbsoo.server.message.server;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.hbsoo.server.NowServer;
+import com.hbsoo.server.message.entity.ExpandBody;
 import com.hbsoo.server.message.entity.HttpPacket;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.session.OutsideUserSessionManager;
@@ -76,9 +77,12 @@ public abstract class HttpServerMessageDispatcher extends ServerMessageDispatche
                          byte[] bytes, String contentType,
                          GenericFutureListener<? extends Future<? super Void>> future) {
         // 如果是内部服务转发过来的消息则转发回去
-        String outsideUserId = httpPacket.getHeaders().get("outsideUserId");
-        if (StringUtils.hasLength(outsideUserId)) {
-            outsideUserSessionManager.sendMsg2User(OutsideUserProtocol.HTTP, bytes, contentType, Long.parseLong(outsideUserId));
+        ExpandBody expandBody = httpPacket.getExpandBody();
+        String fromServerType = expandBody.getFromServerType();
+        int fromServerId = expandBody.getFromServerId();
+        if (!NowServer.getServerInfo().getType().equals(fromServerType)
+                || !(fromServerId == NowServer.getServerInfo().getId())) {
+            outsideUserSessionManager.httpResponse(bytes, contentType, expandBody);
             return;
         }
         DefaultFullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
@@ -98,32 +102,25 @@ public abstract class HttpServerMessageDispatcher extends ServerMessageDispatche
         String uri = httpPacket.getUri();
         int index = uri.indexOf("?");
         String path = index < 0 ? uri : uri.substring(0, index);
-        long id = snowflakeIdGenerator.generateId();
-        UserSession userSession = new UserSession();
-        userSession.setId(id);
-        userSession.setBelongServer(NowServer.getServerInfo());
-        userSession.setChannel(ctx.channel());
-        userSession.setUdp(false);
-        outsideUserSessionManager.login(id, userSession);
-
+        ExpandBody expandBody = httpPacket.getExpandBody();
         HttpHeaders headers = httpPacket.getHeaders();
         Map<String, String> headersMap = new HashMap<>();
         for (String name : headers.names()) {
             String value = headers.get(name);
             headersMap.put(name, value);
         }
-        headersMap.put("outsideUserId", userSession.getId().toString());
         Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
         NetworkPacket.Builder msgBuilder = NetworkPacket.Builder
                 .withDefaultHeader()
                 .msgType(msgType)
-                .writeStr(gson.toJson(userSession))
                 .writeStr(uri)
                 .writeStr(path)
                 .writeStr(httpPacket.getMethod())
                 .writeStr(gson.toJson(httpPacket.getParameters()))
                 .writeBytes(httpPacket.getBody() == null ? new byte[0] : httpPacket.getBody())
-                .writeStr(gson.toJson(headersMap));
+                .writeStr(gson.toJson(headersMap))
+                .writeExpandBodyMode()
+                .writeObj(expandBody);
         forward2InsideServer(msgBuilder, serverType, ctx.channel().id().asLongText());
     }
 

@@ -30,6 +30,6 @@ public class InsideClientLoginAction extends ClientMessageDispatcher {
 
     @Override
     public Object threadKey(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
-        return decoder.skipGetInt(NetworkPacket.DecodeSkip.INT, NetworkPacket.DecodeSkip.INT);
+        return null;
     }
 }

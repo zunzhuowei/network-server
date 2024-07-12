@@ -31,7 +31,7 @@ public class ReceiveChatRoomMessageAction extends ServerMessageDispatcher {
 
     @Override
     public void handle(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
-        UserSession userSession = decoder.readUserSession();
+        UserSession userSession = decoder.readExpandBody().getUserSession();
         Long userId = userSession.getId();
         String message = decoder.readStr();
         ChatRoom chatRoom = ChatRoomManager.getChatRoom("first-chatroom");

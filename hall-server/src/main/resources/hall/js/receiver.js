@@ -27,8 +27,8 @@ var receiver;
 // 消息解析者
 function MsgParser(data) {
     this.data = data;
-    this.msgType = function () {//header + bodyLen
-        return this.dataView.getInt32(4 + 4, socketBuilder.littleEndian);
+    this.msgType = function () {//header + bodyLen + rawBodyLen
+        return this.dataView.getInt32(12, socketBuilder.littleEndian);
     };
     this.dataView = function () {
         return this.dataView = new DataView(this.data);
@@ -38,7 +38,7 @@ function MsgParser(data) {
 // 拆包工具类
 function DataParser(dv, position) {
     this.dataView = dv;
-    this.position = position === undefined ? 12 : position; //header + bodyLen + msgType
+    this.position = position === undefined ? 16 : position; //header + bodyLen + rawBodyLen + msgType
     this.textDecoder = new TextDecoder();
 
     this.getStr = function getStr() {

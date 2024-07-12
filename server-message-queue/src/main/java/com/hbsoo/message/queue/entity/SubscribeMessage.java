@@ -58,18 +58,10 @@ public final class SubscribeMessage implements NetworkPacketEntity<SubscribeMess
 
     @Override
     public SubscribeMessage deserialize(NetworkPacket.Decoder decoder) {
-        String serverType = decoder.readStr();
-        int serverId = decoder.readInt();
-        String topic = decoder.readStr();
-        try {
-            this.setTopic(topic);
-            this.setServerType(serverType);
-            this.setServerId(serverId);
-            return this;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
+        this.serverType = decoder.readStr();
+        this.serverId = decoder.readInt();
+        this.topic = decoder.readStr();
+        return this;
     }
 
 }

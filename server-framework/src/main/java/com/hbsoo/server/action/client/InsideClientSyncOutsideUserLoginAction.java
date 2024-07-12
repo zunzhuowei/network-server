@@ -54,6 +54,6 @@ public class InsideClientSyncOutsideUserLoginAction extends ClientMessageDispatc
 
     @Override
     public Object threadKey(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
-        return decoder.skipGetLong(NetworkPacket.DecodeSkip.INT);
+        return decoder.skipGetLong();
     }
 }

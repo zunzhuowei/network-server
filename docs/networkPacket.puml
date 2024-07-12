@@ -1,0 +1,66 @@
+@startuml
+json ClientPacket {
+"header":{" byte[]  " : "  [customize bytes]"},
+"bodyLen":{" int  " : "  [4 bytes]"},
+"rawBodyLen":{" int  " : "  [4 bytes]"},
+"msgType":{" int  " : "  [4 bytes]"},
+"body": [
+    {" boolean  " : "  [1 byte]"},
+    {" byte  " : "  [1 byte]"},
+    {" short  " : "  [2 bytes]"},
+    {" int  " : "  [4 bytes]"},
+    {" long  " : "  [8 bytes]"},
+    {" float  " : "  [4 bytes]"},
+    {" double  " : "  [8 bytes]"},
+    {" string  " : "  [int 4 bytes + strLen bytes]"},
+    {" byte[]  " : "  [int 4 bytes + bytes]"}
+ ]
+}
+
+json NetworkPacket {
+"header":{" byte[]  " : "  [customize bytes]"},
+"bodyLen":{" int  " : "  [4 bytes]"},
+"rawBodyLen":{" int  " : "  [4 bytes]"},
+"msgType":{" int  " : "  [4 bytes]"},
+"body": {
+    "rawBody":
+    [
+        {" boolean  " : "  [1 byte]"},
+        {" byte  " : "  [1 byte]"},
+        {" short  " : "  [2 bytes]"},
+        {" int  " : "  [4 bytes]"},
+        {" long  " : "  [8 bytes]"},
+        {" float  " : "  [4 bytes]"},
+        {" double  " : "  [8 bytes]"},
+        {" string  " : "  [int 4 bytes + strLen bytes]"},
+        {" byte[]  " : "  [int 4 bytes + bytes]"}
+    ],
+     "expandBody":
+     {
+        "msgId":{" long  " : "  [8 bytes]"},
+        ' 0:tcp,1:udp,2:binary_websocket,3:text_websocket,4:http
+        "protocolType": {" byte  " : "  [1 byte]"},
+        "fromServerId  " : {" int  " : "  [4 bytes]"},
+        "fromServerType  " :   {" string  " : "  [int 4 bytes + strLen bytes]"},
+        "userChannelId  " :   {" string  " : "  [int 4 bytes + strLen bytes]"},
+        "isLogin" : {" byte  " : "  [1 byte]"},
+         "userId":{" long  " : "  [8 bytes]"},
+        "userSession" : "  UserSession "
+     }
+ }
+}
+
+json UserSession {
+    "id": {" long  " : "  [8 bytes]"},
+    "belongServer.host": {" string  " : "  [int 4 bytes + strLen bytes]"},
+    "belongServer.port": {" int  " : "  [4 bytes]"},
+    "belongServer.type": {" string  " : "  [int 4 bytes + strLen bytes]"},
+    "belongServer.id": {" int  " : "  [4 bytes]"},
+    "belongServer.weight": {" int  " : "  [4 bytes]"},
+    "belongServer.clientSize": {" int  " : "  [4 bytes]"},
+    "isUdp": {" byte  " : "  [1 byte]"},
+    "udpHost": {" string  " : "  [int 4 bytes + strLen bytes]"},
+    "udpPort": {" int  " : "  [4 bytes]"},
+    "channelId": {" string  " : "  [int 4 bytes + strLen bytes]"}
+}
+@enduml

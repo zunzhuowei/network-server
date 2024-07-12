@@ -6,6 +6,7 @@ import com.hbsoo.server.annotation.OutsideMessageHandler;
 import com.hbsoo.server.annotation.Permission;
 import com.hbsoo.server.annotation.Protocol;
 import com.hbsoo.server.message.MessageType;
+import com.hbsoo.server.message.entity.ExpandBody;
 import com.hbsoo.server.message.entity.HttpPacket;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.server.HttpServerMessageDispatcher;
@@ -129,19 +130,23 @@ public class PermissionAspect {
                 return true;
             }
             NetworkPacket.Decoder decoder = (NetworkPacket.Decoder) args[1];
-            UserSession userSession = decoder.readUserSession();
-            if (Objects.isNull(userSession) || userSession.getId() == 0L) {
-                logger.debug("ChannelId:{}未登录，无法获取session信息", userSession.getChannelId());
-                return false;
-            }
-            // 重置读取位置
-            decoder.resetBodyReadOffset();
-            decoder.readMsgType();
-            Set<String> userSessionPermissions = userSession.getPermissions();
-            for (String p : permissions) {
-                if (userSessionPermissions.contains(p)) {
-                    return true;
+            ExpandBody expandBody = decoder.readExpandBody();
+            if (expandBody.isLogin()) {
+                UserSession userSession = expandBody.getUserSession();
+                if (Objects.isNull(userSession) || userSession.getId() == 0L) {
+                    logger.debug("ChannelId:{}未登录，无法获取session信息", userSession.getChannelId());
+                    return false;
                 }
+                // 重置读取位置
+                decoder.resetBodyReadOffset();
+                Set<String> userSessionPermissions = userSession.getPermissions();
+                for (String p : permissions) {
+                    if (userSessionPermissions.contains(p)) {
+                        return true;
+                    }
+                }
+            } else {
+                logger.debug("未登录，无法获取session信息，{}", expandBody);
             }
         }
         if (protocol == Protocol.TCP) {

@@ -1,15 +1,19 @@
 package com.hbsoo.server.message.server;
 
 import com.google.gson.Gson;
+import com.hbsoo.server.NowServer;
 import com.hbsoo.server.annotation.InsideServerMessageHandler;
 import com.hbsoo.server.annotation.OutsideMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
+import com.hbsoo.server.message.entity.ExpandBody;
 import com.hbsoo.server.message.entity.HttpPacket;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.entity.TextWebSocketPacket;
 import com.hbsoo.server.netty.AttributeKeyConstants;
 import com.hbsoo.server.session.OutsideUserSessionManager;
 import com.hbsoo.server.session.OutsideUserProtocol;
+import com.hbsoo.server.session.UserSession;
+import com.hbsoo.server.utils.SnowflakeIdGenerator;
 import com.hbsoo.server.utils.SpringBeanFactory;
 import com.hbsoo.server.utils.ThreadPoolScheduler;
 import io.netty.buffer.ByteBuf;
@@ -127,7 +131,7 @@ interface CommonDispatcher {
             byte[] bytes = builder.buildPackage();
             NetworkPacket.Decoder decoder = NetworkPacket.Decoder
                     .withHeader(builder.getHeader())
-                    .readPackageBody(bytes);
+                    .parsePacket(bytes);
             dispatcher(ctx, protocol, decoder);
             return;
         }
@@ -188,12 +192,15 @@ interface CommonDispatcher {
      */
     default void handleTcp(ChannelHandlerContext ctx, ByteBuf msg) {
         try {
-            Integer bodyLen = getBodyLen(msg, Protocol.TCP);
-            if (bodyLen == null) return;
-            byte[] received = new byte[bodyLen + (NetworkPacket.TCP_HEADER.length + 4)];
+            //Integer bodyLen = getBodyLen(msg, Protocol.TCP);
+            //if (bodyLen == null) return;
+            //byte[] received = new byte[bodyLen + (NetworkPacket.TCP_HEADER.length + 4)];
+            byte[] received = new byte[msg.readableBytes()];
             msg.readBytes(received);
-            NetworkPacket.Decoder decoder = NetworkPacket.Decoder.withDefaultHeader().readPackageBody(received);
-            dispatcher(ctx, Protocol.TCP, decoder);
+            NetworkPacket.Decoder decoder = NetworkPacket.Decoder.withDefaultHeader().parsePacket(received);
+            NetworkPacket.Builder builder = decoder.toBuilder();
+            fillExpandBody(ctx, (byte) 0, decoder, builder, null, 0);
+            dispatcher(ctx, Protocol.TCP, builder.toDecoder());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -205,20 +212,12 @@ interface CommonDispatcher {
     default void handleUdp(ChannelHandlerContext ctx, DatagramPacket datagramPacket) {
         try {
             ByteBuf msg = datagramPacket.content();
-            Integer bodyLen = getBodyLen(msg, Protocol.UDP);
-            if (bodyLen == null) return;
-            byte[] received = new byte[bodyLen + (NetworkPacket.UDP_HEADER.length + 4)];
+            byte[] received = new byte[msg.readableBytes()];
             msg.readBytes(received);
-            NetworkPacket.Decoder decoder = NetworkPacket.Decoder.withHeader(NetworkPacket.UDP_HEADER).readPackageBody(received);
-            byte[] bodyData = decoder.readAllTheRestBodyData();
-            // 把发送地址包装起来
-            NetworkPacket.Decoder wrapper = NetworkPacket.Builder.withHeader(NetworkPacket.UDP_HEADER)
-                    .msgType(decoder.getMsgType())//消息类型
-                    .writeStr(datagramPacket.sender().getHostString())//发送端地址
-                    .writeInt(datagramPacket.sender().getPort())//发送端端口
-                    .writeBytes(bodyData)//消息体
-                    .toDecoder();
-            dispatcher(ctx, Protocol.UDP, wrapper);
+            NetworkPacket.Decoder decoder = NetworkPacket.Decoder.withHeader(NetworkPacket.UDP_HEADER).parsePacket(received);
+            NetworkPacket.Builder builder = decoder.toBuilder();
+            fillExpandBody(ctx, (byte) 1, decoder, builder, datagramPacket.sender().getHostString(), datagramPacket.sender().getPort());
+            dispatcher(ctx, Protocol.UDP, builder.toDecoder());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -274,37 +273,43 @@ interface CommonDispatcher {
             final ByteBuf msg = webSocketFrame.content();
             byte[] received = new byte[msg.readableBytes()];
             msg.readBytes(received);
+            NetworkPacket.Decoder decoder;
             //TextWebSocketFrame
             boolean isText = webSocketFrame instanceof TextWebSocketFrame;
             if (isText) {
                 String jsonStr = new String(received);
                 Gson gson = new Gson();
-                final TextWebSocketPacket socketPackage = gson.fromJson(jsonStr, TextWebSocketPacket.class);
-                final int msgType = socketPackage.getMsgType();
+                TextWebSocketPacket socketPackage = gson.fromJson(jsonStr, TextWebSocketPacket.class);
+                int msgType = socketPackage.getMsgType();
                 //把文本消息，转成json格式
-                received = NetworkPacket.Builder.withDefaultHeader().msgType(msgType).writeStr(jsonStr).buildPackage();
+                //received = NetworkPacket.Builder.withDefaultHeader().msgType(msgType).writeStr(jsonStr).buildPackage();
+                NetworkPacket.Builder builder = NetworkPacket.Builder.withDefaultHeader().msgType(msgType).writeStr(jsonStr);
+                decoder = builder.toDecoder();
             }
             // BinaryWebSocketFrame
-            NetworkPacket.Decoder decoder = NetworkPacket.Decoder.withDefaultHeader().readPackageBody(received);
-            int msgType = decoder.readMsgType();
+            else {
+                decoder = NetworkPacket.Decoder.withDefaultHeader().parsePacket(received);
+            }
+            NetworkPacket.Builder builder = decoder.toBuilder();
+            fillExpandBody(ctx, webSocketFrame instanceof TextWebSocketFrame ? (byte) 3 : (byte) 2, decoder, builder, null, 0);
+            NetworkPacket.Decoder newDecoder = builder.toDecoder();
+            int msgType = newDecoder.readMsgType();
             ServerMessageDispatcher dispatcher = dispatchers().get(Protocol.WEBSOCKET).get(msgType);
             if (Objects.nonNull(dispatcher)) {
-                Object threadKey = dispatcher.threadKey(ctx, decoder);
-                decoder.resetBodyReadOffset();//重置读取位置
-                decoder.readMsgType();//消息类型
+                Object threadKey = dispatcher.threadKey(ctx, newDecoder);
+                newDecoder.resetBodyReadOffset();//重置读取位置
                 threadPoolScheduler().execute(threadKey, () -> {
-                    dispatcher.handle(ctx, decoder);
+                    dispatcher.handle(ctx, newDecoder);
                 });
                 return;
             }
             Map<String, DefaultServerMessageDispatcher> beans = SpringBeanFactory.getBeansOfType(DefaultServerMessageDispatcher.class);
             if (!beans.isEmpty()) {
                 for (DefaultServerMessageDispatcher messageDispatcher : beans.values()) {
-                    Object threadKey = messageDispatcher.threadKey(ctx, decoder);
-                    decoder.resetBodyReadOffset();//重置读取位置
-                    decoder.readMsgType();//消息类型
+                    Object threadKey = messageDispatcher.threadKey(ctx, newDecoder);
+                    newDecoder.resetBodyReadOffset();//重置读取位置
                     threadPoolScheduler().execute(threadKey, () -> {
-                        messageDispatcher.handle(ctx, decoder);
+                        messageDispatcher.handle(ctx, newDecoder);
                     });
                     break;
                 }
@@ -333,7 +338,7 @@ interface CommonDispatcher {
      * @param ctx
      * @param msg
      */
-    default void handleHttp(ChannelHandlerContext ctx, FullHttpRequest msg) {
+    default void handleHttp(ChannelHandlerContext ctx, FullHttpRequest msg, ExpandBody... expandBody) {
         final String path;
         HttpPacket httpPacket = new HttpPacket();
         try {
@@ -358,6 +363,17 @@ interface CommonDispatcher {
                 content.readBytes(received);
                 httpPacket.setBody(received);
             }
+            if (expandBody == null || expandBody.length == 0) {
+                expandBody = new ExpandBody[1];
+                expandBody[0] = new ExpandBody();
+                SnowflakeIdGenerator snowflakeIdGenerator = SpringBeanFactory.getBean(SnowflakeIdGenerator.class);
+                expandBody[0].setMsgId(snowflakeIdGenerator.generateId());
+                expandBody[0].setProtocolType((byte) 4);
+                expandBody[0].setFromServerId(NowServer.getServerInfo().getId());
+                expandBody[0].setFromServerType(NowServer.getServerInfo().getType());
+                expandBody[0].setUserChannelId(ctx.channel().id().asLongText());
+            }
+            httpPacket.setExpandBody(expandBody[0]);
         } catch (Exception e) {
             e.printStackTrace();
             try {
@@ -393,7 +409,7 @@ interface CommonDispatcher {
             return;
         }
         //内部转发头部会有用户id字段
-        String outsideUserId = msg.headers().get("outsideUserId");
+        /*String outsideUserId = msg.headers().get("outsideUserId");
         if (StringUtils.hasLength(outsideUserId)) {
             OutsideUserSessionManager sessionManager = SpringBeanFactory.getBean(OutsideUserSessionManager.class);
             sessionManager.sendMsg2User(
@@ -403,10 +419,39 @@ interface CommonDispatcher {
                     Long.parseLong(outsideUserId)
             );
             return;
-        }
+        }*/
         // 404
         DefaultFullHttpResponse response = new DefaultFullHttpResponse(msg.protocolVersion(), HttpResponseStatus.NOT_FOUND);
         ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+    }
+
+    default void fillExpandBody(ChannelHandlerContext ctx, byte protocolType, NetworkPacket.Decoder decoder,
+                                NetworkPacket.Builder builder, String senderHost, int senderPort) {
+        Boolean isInsideClient = AttributeKeyConstants.getAttr(ctx.channel(), AttributeKeyConstants.isInsideClientAttr);
+        boolean hasExpandBody = decoder.hasExpandBody();
+        if (!hasExpandBody && isInsideClient == null) {
+            Long userId = AttributeKeyConstants.getAttr(ctx.channel(), AttributeKeyConstants.idAttr);
+            SnowflakeIdGenerator snowflakeIdGenerator = SpringBeanFactory.getBean(SnowflakeIdGenerator.class);
+            ExpandBody expandBody = new ExpandBody();
+            expandBody.setMsgId(snowflakeIdGenerator.generateId());
+            expandBody.setProtocolType(protocolType);
+            expandBody.setFromServerId(NowServer.getServerInfo().getId());
+            expandBody.setFromServerType(NowServer.getServerInfo().getType());
+            expandBody.setUserChannelId(ctx.channel().id().asLongText());
+            boolean isLogin = Objects.nonNull(userId);
+            expandBody.setLogin(isLogin);
+            if (isLogin) {
+                expandBody.setUserId(userId);
+                OutsideUserSessionManager bean = SpringBeanFactory.getBean(OutsideUserSessionManager.class);
+                UserSession userSession = bean.getUserSession(userId);
+                expandBody.setUserSession(userSession);
+            }
+            if (expandBody.getProtocolType() == 1) {
+                expandBody.setSenderHost(senderHost);
+                expandBody.setSenderPort(senderPort);
+            }
+            expandBody.serializable(builder);
+        }
     }
 
 }

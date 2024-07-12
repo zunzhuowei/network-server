@@ -1,13 +1,19 @@
 package com.hbsoo.server.message.client;
 
 import com.google.gson.Gson;
+import com.hbsoo.server.NowServer;
 import com.hbsoo.server.annotation.InsideClientMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
+import com.hbsoo.server.message.entity.ExpandBody;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.entity.SyncMessage;
 import com.hbsoo.server.message.entity.TextWebSocketPacket;
+import com.hbsoo.server.netty.AttributeKeyConstants;
 import com.hbsoo.server.session.InsideClientSessionManager;
+import com.hbsoo.server.session.OutsideUserSessionManager;
+import com.hbsoo.server.session.UserSession;
 import com.hbsoo.server.utils.DelayThreadPoolScheduler;
+import com.hbsoo.server.utils.SnowflakeIdGenerator;
 import com.hbsoo.server.utils.SpringBeanFactory;
 import com.hbsoo.server.utils.ThreadPoolScheduler;
 import io.netty.buffer.ByteBuf;
@@ -103,7 +109,7 @@ public final class InsideClientMessageDispatcher extends ClientMessageDispatcher
             byte[] bytes = builder.buildPackage();
             NetworkPacket.Decoder decoder = NetworkPacket.Decoder
                     .withHeader(builder.getHeader())
-                    .readPackageBody(bytes);
+                    .parsePacket(bytes);
             dispatcher(ctx, protocol, decoder);
             return;
         }
@@ -118,11 +124,16 @@ public final class InsideClientMessageDispatcher extends ClientMessageDispatcher
     void dispatcher(ChannelHandlerContext ctx, Protocol protocol, NetworkPacket.Decoder decoder) {
         int msgType = decoder.readMsgType();
         //如果是同步消息,服务端返回的结果交给客户端处理
-        SyncMessage syncMessage = InsideClientSessionManager.syncMsgMap.get(decoder.getLastLong());
-        if (Objects.nonNull(syncMessage)) {
-            syncMessage.setDecoder(decoder);
-            syncMessage.getCountDownLatch().countDown();
-            return;
+        boolean hasExpandBody = decoder.hasExpandBody();
+        if (hasExpandBody) {
+            ExpandBody expandBody = decoder.readExpandBody();
+            SyncMessage syncMessage = InsideClientSessionManager.syncMsgMap.get(expandBody.getMsgId());
+            if (Objects.nonNull(syncMessage)) {
+                decoder.resetBodyReadOffset();
+                syncMessage.setDecoder(decoder);
+                syncMessage.getCountDownLatch().countDown();
+                return;
+            }
         }
         ClientMessageDispatcher dispatcher = insideClientDispatchers.get(protocol).get(msgType);
         if (Objects.isNull(dispatcher)) {
@@ -133,7 +144,6 @@ public final class InsideClientMessageDispatcher extends ClientMessageDispatcher
         }
         Object threadKey = dispatcher.threadKey(ctx, decoder);
         decoder.resetBodyReadOffset();//重置读取位置
-        decoder.readMsgType();//消息类型
         threadPoolScheduler.execute(threadKey , () -> {
             dispatcher.handle(ctx, decoder);
         });
@@ -141,23 +151,32 @@ public final class InsideClientMessageDispatcher extends ClientMessageDispatcher
 
     void handle(ChannelHandlerContext ctx, ByteBuf msg, Protocol protocol) {
         try {
-            Integer bodyLen = getBodyLen(msg, protocol);
-            if (bodyLen == null) return;
-            int headerLength = protocol == Protocol.TCP ? NetworkPacket.TCP_HEADER.length : NetworkPacket.UDP_HEADER.length;
-            byte[] received = new byte[headerLength + 4 + bodyLen];
-            msg.readBytes(received);
-            NetworkPacket.Decoder decoder = protocol == Protocol.TCP
-                    ? NetworkPacket.Decoder.withDefaultHeader().readPackageBody(received)
-                    : NetworkPacket.Decoder.withHeader(NetworkPacket.UDP_HEADER).readPackageBody(received);
+//            Integer bodyLen = getBodyLen(msg, protocol);
+//            if (bodyLen == null) return;
+//            int headerLength = protocol == Protocol.TCP ? NetworkPacket.TCP_HEADER.length : NetworkPacket.UDP_HEADER.length;
+//            byte[] received = new byte[headerLength + 4 + bodyLen];
+//            msg.readBytes(received);
+//            NetworkPacket.Decoder decoder = protocol == Protocol.TCP
+//                    ? NetworkPacket.Decoder.withDefaultHeader().parsePacket(received)
+//                    : NetworkPacket.Decoder.withHeader(NetworkPacket.UDP_HEADER).parsePacket(received);
+//
+//            dispatcher(ctx, protocol, decoder);
 
-            dispatcher(ctx, protocol, decoder);
+            byte[] received = new byte[msg.readableBytes()];
+            msg.readBytes(received);
+            NetworkPacket.Decoder decoder = NetworkPacket.Decoder
+                    .withHeader(protocol == Protocol.TCP ? NetworkPacket.TCP_HEADER : NetworkPacket.UDP_HEADER)
+                    .parsePacket(received);
+            NetworkPacket.Builder builder = decoder.toBuilder();
+            fillExpandBody(ctx, protocol== Protocol.TCP ? (byte) 0 : (byte) 1, decoder, builder, null, 0);
+            dispatcher(ctx, protocol, builder.toDecoder());
         } catch (Exception e) {
             e.printStackTrace();
             ctx.close();
         }
     }
 
-    Integer getBodyLen(ByteBuf msg, Protocol protocol) {
+/*    Integer getBodyLen(ByteBuf msg, Protocol protocol) {
         int readableBytes = msg.readableBytes();
         int headerLength = protocol == Protocol.TCP ? NetworkPacket.TCP_HEADER.length : NetworkPacket.UDP_HEADER.length;
         byte[] headerBytes = new byte[headerLength];
@@ -187,7 +206,7 @@ public final class InsideClientMessageDispatcher extends ClientMessageDispatcher
             return null;
         }
         return bodyLen;
-    }
+    }*/
 
     void handleWebsocket(ChannelHandlerContext ctx, WebSocketFrame webSocketFrame) {
         try {
@@ -205,7 +224,7 @@ public final class InsideClientMessageDispatcher extends ClientMessageDispatcher
                 received = NetworkPacket.Builder.withDefaultHeader().msgType(msgType).writeStr(jsonStr).buildPackage();
             }
             // BinaryWebSocketFrame
-            NetworkPacket.Decoder decoder = NetworkPacket.Decoder.withDefaultHeader().readPackageBody(received);
+            NetworkPacket.Decoder decoder = NetworkPacket.Decoder.withDefaultHeader().parsePacket(received);
             int msgType = decoder.readMsgType();
             ClientMessageDispatcher dispatcher = insideClientDispatchers.get(Protocol.WEBSOCKET).get(msgType);
             if (Objects.isNull(dispatcher)) {
@@ -231,5 +250,32 @@ public final class InsideClientMessageDispatcher extends ClientMessageDispatcher
         }
     }
 
-
+    void fillExpandBody(ChannelHandlerContext ctx, byte protocolType, NetworkPacket.Decoder decoder,
+                                NetworkPacket.Builder builder, String senderHost, int senderPort) {
+        Boolean isInsideClient = AttributeKeyConstants.getAttr(ctx.channel(), AttributeKeyConstants.isInsideClientAttr);
+        boolean hasExpandBody = decoder.hasExpandBody();
+        if (!hasExpandBody && isInsideClient == null) {
+            Long userId = AttributeKeyConstants.getAttr(ctx.channel(), AttributeKeyConstants.idAttr);
+            SnowflakeIdGenerator snowflakeIdGenerator = SpringBeanFactory.getBean(SnowflakeIdGenerator.class);
+            ExpandBody expandBody = new ExpandBody();
+            expandBody.setMsgId(snowflakeIdGenerator.generateId());
+            expandBody.setProtocolType(protocolType);
+            expandBody.setFromServerId(NowServer.getServerInfo().getId());
+            expandBody.setFromServerType(NowServer.getServerInfo().getType());
+            expandBody.setUserChannelId(ctx.channel().id().asLongText());
+            boolean isLogin = Objects.nonNull(userId);
+            expandBody.setLogin(isLogin);
+            if (isLogin) {
+                expandBody.setUserId(userId);
+                OutsideUserSessionManager bean = SpringBeanFactory.getBean(OutsideUserSessionManager.class);
+                UserSession userSession = bean.getUserSession(userId);
+                expandBody.setUserSession(userSession);
+            }
+            if (expandBody.getProtocolType() == 1) {
+                expandBody.setSenderHost(senderHost);
+                expandBody.setSenderPort(senderPort);
+            }
+            expandBody.serializable(builder);
+        }
+    }
 }

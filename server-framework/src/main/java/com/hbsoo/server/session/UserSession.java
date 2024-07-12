@@ -114,6 +114,10 @@ public final class UserSession implements NetworkPacketEntity<UserSession> {
 
     @Override
     public void serializable(NetworkPacket.Builder builder) {
+        boolean writeRawBody = builder.isWriteRawBody();
+        if (writeRawBody) {
+            builder.writeExpandBodyMode();
+        }
         builder.writeLong(this.id == null ? 0 : this.id)
                 .writeStr(this.belongServer == null ? "" : this.belongServer.getHost())
                 .writeInt(this.belongServer == null ? 0 : this.belongServer.getPort())
@@ -128,11 +132,18 @@ public final class UserSession implements NetworkPacketEntity<UserSession> {
                 .writeInt(this.permissions.size())
                 .writeStr(this.permissions.toArray(new String[0]))
                 ;
+        if (writeRawBody) {
+            builder.writeRawBodyMode();
+        }
     }
 
     @Override
     public UserSession deserialize(NetworkPacket.Decoder decoder) {
-       this.id = decoder.readLong();
+        boolean readRawBody = decoder.isReadRawBody();
+        if (readRawBody) {
+            decoder.readExpandBodyMode();
+        }
+        this.id = decoder.readLong();
         this.belongServer = new ServerInfo();
         this.belongServer.setHost(decoder.readStr());
         this.belongServer.setPort(decoder.readInt());
@@ -147,6 +158,9 @@ public final class UserSession implements NetworkPacketEntity<UserSession> {
         int permissionSize = decoder.readInt();
         for (int i = 0; i < permissionSize; i++) {
             this.permissions.add(decoder.readStr());
+        }
+        if (readRawBody) {
+            decoder.readRawBodyMode();
         }
         return this;
     }

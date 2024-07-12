@@ -1,5 +1,6 @@
 package com.hbsoo.server;
 
+import com.hbsoo.server.message.entity.NetworkPacket;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -31,6 +32,9 @@ public class TcpClient {
             Channel ch = b.connect("localhost", 5555).sync().channel();
             //ByteBuf buf = Unpooled.copiedBuffer("THBSHello, TCP Server!".getBytes());
             //ch.writeAndFlush(buf).sync();
+            NetworkPacket.Builder.withHeader(NetworkPacket.TCP_HEADER)
+                    .msgType(1).writeStr("Hello, UDP Server!")
+                    .sendTcpTo(ch);
             ch.closeFuture().sync();
         } finally {
             group.shutdownGracefully();

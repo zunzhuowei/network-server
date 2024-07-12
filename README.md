@@ -171,6 +171,10 @@ public class LoginChatRoomAction extends ServerMessageDispatcher {
 }
 ```
 
+7. Client side network packet and server side network packet as follows
+
+![images](docs/pngs/networkPacket.png)
+
 ### How to develop
 
 1. You must had installed JDK 1.8+ and Maven 3.x
@@ -261,3 +265,4 @@ public class IndexAction extends HttpServerMessageDispatcher {
 29. ~~接口权限控制？~~
 30. ~~做一个im群组聊天室，测试框架完善度~~
 31. ~~让内部服务客户端发送同步消息（客户端发送等待服务端返回消息）~~
+32. ~~重构NetworkPacket，body部分改成rawBody、expandBody，方便扩展~~

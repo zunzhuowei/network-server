@@ -3,6 +3,7 @@ package com.hbsoo.server.message.server;
 import com.hbsoo.server.annotation.InsideServerMessageHandler;
 import com.hbsoo.server.annotation.OutsideMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
+import com.hbsoo.server.message.entity.ExpandBody;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.ProtocolType;
 import com.hbsoo.server.message.sender.ForwardMessageSender;
@@ -214,21 +215,17 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
         redirectAndSwitchProtocolOrg(ctx, protocolType, decoder);
     }
 
-    public void redirectAndSwitch2OuterHttp(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) {
-        redirectAndSwitchProtocolOrg(ctx, ProtocolType.OUTSIDE_HTTP, fullHttpRequest);
-    }
-
     public void redirectAndSwitch2OuterHttp(ChannelHandlerContext ctx, HttpRequestParser parser) {
         FullHttpRequest httpRequest = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,
                 HttpMethod.valueOf(parser.getMethod()), parser.getUri());
         httpRequest.content().writeBytes(parser.getBody());
-        UserSession userSession = parser.getUserSession();
+        ExpandBody expandBody = parser.getExpandBody();
         Map<String, String> headers = parser.getHeaders();
         for (String key : headers.keySet()) {
             httpRequest.headers().set(key, headers.get(key));
         }
-        outsideUserSessionManager.login(userSession.getId(), userSession);
-        redirectAndSwitch2OuterHttp(ctx, httpRequest);
+        OutsideServerMessageDispatcher outsideServerMessageDispatcher = SpringBeanFactory.getBean(OutsideServerMessageDispatcher.class);
+        outsideServerMessageDispatcher.onHttpMessage(ctx, httpRequest, expandBody);
     }
 
     /**
@@ -254,9 +251,6 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
                 case OUTSIDE_WEBSOCKET:
                     outsideServerMessageDispatcher.onMessage(ctx, customMsg, Protocol.WEBSOCKET);
                     break;
-                case OUTSIDE_HTTP:
-                    outsideServerMessageDispatcher.onMessage(ctx, customMsg, Protocol.HTTP);
-                    break;
             }
         } finally {
             ReferenceCountUtil.release(customMsg);
@@ -265,8 +259,6 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
 
     /**
      * 请求服务器，并等待服务器响应返回值；
-     * 【注意】:方法会在消息体【尾部追加消息ID】。
-     * 服务端接收到消息后，响应结果时【必须使用channel】返回，需要【将消息ID也追加到消息体尾部】。
      * @param builder 消息内容
      * @param waitSeconds 等待相应结果时间秒数
      * @param forwardMsg2ServerFunction 消息发送函数

@@ -1,6 +1,8 @@
 package com.hbsoo.hall.action.websocket;
 
+import com.hbsoo.permisson.PermissionAuth;
 import com.hbsoo.server.annotation.OutsideMessageHandler;
+import com.hbsoo.server.message.entity.ExpandBody;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.server.ServerMessageDispatcher;
 import com.hbsoo.server.session.OutsideUserSessionManager;
@@ -14,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 /**
  * Created by zun.wei on 2024/6/15.
  */
+@PermissionAuth
 @OutsideMessageHandler(99)
 public class HeartBeatAction extends ServerMessageDispatcher {
 
@@ -23,7 +26,8 @@ public class HeartBeatAction extends ServerMessageDispatcher {
 
     @Override
     public void handle(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
-        UserSession userSession = decoder.readUserSession();
+        ExpandBody expandBody = decoder.readExpandBody();
+        UserSession userSession = expandBody.getUserSession();
         Long userId = userSession.getId();
         logger.debug("收到心跳消息:{}", userId);
         outsideUserSessionManager.sendMsg2User(

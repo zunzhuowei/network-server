@@ -2,6 +2,7 @@ package com.hbsoo.gateway.action.inside;
 
 import com.alibaba.fastjson.JSON;
 import com.hbsoo.server.annotation.InsideServerMessageHandler;
+import com.hbsoo.server.message.entity.ExpandBody;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.server.ServerMessageDispatcher;
 import com.hbsoo.server.session.OutsideUserSessionManager;
@@ -21,15 +22,18 @@ public class getUserSessionAction extends ServerMessageDispatcher {
 
     @Override
     public void handle(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
-        UserSession userSession1 = decoder.readUserSession();
+        ExpandBody expandBody = decoder.readExpandBody();
+        UserSession userSession1 = expandBody.getUserSession();
         String message = decoder.readStr();
-        long messageId = decoder.readLong();
+        System.out.println("getUserSessionAction message = " + message);
         UserSession userSession = outsideUserSessionManager.getUserSession(userSession1.getId());
         String jsonString = JSON.toJSONString(userSession);
         NetworkPacket.Builder.withDefaultHeader()
                 .msgType(1001)
                 .writeStr(jsonString)
-                .writeLong(messageId)//消息id必须追加再尾部返回
+                .writeExpandBodyMode()
+                //expandBody 必须写入，根据里面的msgId 找到对应的请求
+                .writeObj(expandBody)
                 .sendTcpTo(ctx.channel());
     }
 

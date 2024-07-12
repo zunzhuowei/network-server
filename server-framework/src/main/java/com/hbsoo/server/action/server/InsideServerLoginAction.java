@@ -67,9 +67,8 @@ public class InsideServerLoginAction extends ServerMessageDispatcher {
     @Override
     public Object threadKey(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
         //服务器id + 客户端编号
-        return decoder.skipGetInt(NetworkPacket.DecodeSkip.INT) +
+        return decoder.skipGetInt() +
                 decoder.skipGetInt(
-                        NetworkPacket.DecodeSkip.INT,
                         NetworkPacket.DecodeSkip.INT,
                         NetworkPacket.DecodeSkip.STRING);
     }

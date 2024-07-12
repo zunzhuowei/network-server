@@ -1,6 +1,7 @@
 package com.hbsoo.server.utils;
 
 import com.google.gson.Gson;
+import com.hbsoo.server.message.entity.ExpandBody;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.session.UserSession;
 
@@ -18,11 +19,10 @@ public final class HttpRequestParser {
     private Map<String, List<String>> parameters;
     private Map<String, String> headers;
     private byte[] body;
-    private UserSession userSession;
+    private ExpandBody expandBody;
 
     public static HttpRequestParser parse(NetworkPacket.Decoder decoder) {
         HttpRequestParser httpRequestParser = new HttpRequestParser();
-        String userSessionStr = decoder.readStr();
         String uri = decoder.readStr();
         String path = decoder.readStr();
         String method = decoder.readStr();
@@ -30,17 +30,20 @@ public final class HttpRequestParser {
         byte[] body = decoder.readBytes();
         String headerStr = decoder.readStr();
         Gson gson = new Gson();
-        UserSession userSession = gson.fromJson(userSessionStr, UserSession.class);
         httpRequestParser.uri = uri;
         httpRequestParser.path = path;
         httpRequestParser.method = method;
         httpRequestParser.parameters = gson.fromJson(parameterStr, Map.class);
         httpRequestParser.body = body;
         httpRequestParser.headers = gson.fromJson(headerStr, Map.class);
-        httpRequestParser.userSession = userSession;
+        httpRequestParser.expandBody = new ExpandBody();
+        httpRequestParser.expandBody.deserialize(decoder);
         return httpRequestParser;
     }
 
+    public ExpandBody getExpandBody() {
+        return expandBody;
+    }
 
     public String getUri() {
         return uri;
@@ -66,7 +69,4 @@ public final class HttpRequestParser {
         return body;
     }
 
-    public UserSession getUserSession() {
-        return userSession;
-    }
 }

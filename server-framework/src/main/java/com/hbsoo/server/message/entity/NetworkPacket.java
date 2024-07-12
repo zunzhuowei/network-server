@@ -13,17 +13,74 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * 消息包
- * 包结构：header(4 byte) + packageBodyLen(4bytes int) + body(msgType(4bytes int) + (n-4))
- * TODO header + msgId + packetType + bodyLen + body + msgType
- * Created by zun.wei on 2024/6/4.
+ json ClientPacket {
+ "header":{" byte[]  " : "  [customize bytes]"},
+ "bodyLen":{" int  " : "  [4 bytes]"},
+ "rawBodyLen":{" int  " : "  [4 bytes]"},
+ "msgType":{" int  " : "  [4 bytes]"},
+ "body": [
+         {" boolean  " : "  [1 byte]"},
+         {" byte  " : "  [1 byte]"},
+         {" short  " : "  [2 bytes]"},
+         {" int  " : "  [4 bytes]"},
+         {" long  " : "  [8 bytes]"},
+         {" float  " : "  [4 bytes]"},
+         {" double  " : "  [8 bytes]"},
+         {" string  " : "  [int 4 bytes + strLen bytes]"},
+         {" byte[]  " : "  [int 4 bytes + bytes]"}
+    ]
+ }
+
+ json NetworkPacket {
+ "header":{" byte[]  " : "  [customize bytes]"},
+ "bodyLen":{" int  " : "  [4 bytes]"},
+ "rawBodyLen":{" int  " : "  [4 bytes]"},
+ "msgType":{" int  " : "  [4 bytes]"},
+ "body": {
+     "rawBody":
+         [
+             {" boolean  " : "  [1 byte]"},
+             {" byte  " : "  [1 byte]"},
+             {" short  " : "  [2 bytes]"},
+             {" int  " : "  [4 bytes]"},
+             {" long  " : "  [8 bytes]"},
+             {" float  " : "  [4 bytes]"},
+             {" double  " : "  [8 bytes]"},
+             {" string  " : "  [int 4 bytes + strLen bytes]"},
+             {" byte[]  " : "  [int 4 bytes + bytes]"}
+         ],
+     "expandBody":
+         {
+             "msgId":{" long  " : "  [8 bytes]"},
+             ' 0:tcp,1:udp,2:binary_websocket,3:text_websocket,4:http
+             "protocolType": {" byte  " : "  [1 byte]"},
+             "fromServerId  " : {" int  " : "  [4 bytes]"},
+             "fromServerType  " :   {" string  " : "  [int 4 bytes + strLen bytes]"},
+             "userChannelId  " :   {" string  " : "  [int 4 bytes + strLen bytes]"},
+             "isLogin" : {" byte  " : "  [1 byte]"},
+             "userId":{" long  " : "  [8 bytes]"},
+             "userSession" : "  UserSession "
+         }
+     }
+ }
+
+ json UserSession {
+ "id": {" long  " : "  [8 bytes]"},
+ "belongServer.host": {" string  " : "  [int 4 bytes + strLen bytes]"},
+ "belongServer.port": {" int  " : "  [4 bytes]"},
+ "belongServer.type": {" string  " : "  [int 4 bytes + strLen bytes]"},
+ "belongServer.id": {" int  " : "  [4 bytes]"},
+ "belongServer.weight": {" int  " : "  [4 bytes]"},
+ "belongServer.clientSize": {" int  " : "  [4 bytes]"},
+ "isUdp": {" byte  " : "  [1 byte]"},
+ "udpHost": {" string  " : "  [int 4 bytes + strLen bytes]"},
+ "udpPort": {" int  " : "  [4 bytes]"},
+ "channelId": {" string  " : "  [int 4 bytes + strLen bytes]"}
+ }
  */
 public final class NetworkPacket {
 
@@ -37,10 +94,12 @@ public final class NetworkPacket {
     }
 
     public static class Builder {
-        private final AtomicInteger packageLength = new AtomicInteger(0);
-        private final List<Byte> bodyByteList = new ArrayList<>();
+        private final AtomicInteger allBodyLength = new AtomicInteger(0);
+        private final List<Byte> rawBodyByteList = new ArrayList<>();
+        private final List<Byte> expandBodyList = new ArrayList<>();
         private final List<Byte> headerByteList = new ArrayList<>();
-        private final List<Byte> msgTypeList = new ArrayList<>();
+        private Integer msgType;
+        private boolean isWriteRawBody = true;
 
         private Builder(byte[] header) {
             if (!(header.length % 2 == 0)) {
@@ -49,7 +108,7 @@ public final class NetworkPacket {
             for (byte aByte : header) {
                 this.headerByteList.add(aByte);
             }
-            this.packageLength.getAndAdd(header.length);
+            //this.packageLength.getAndAdd(header.length);
         }
 
         public static Builder withDefaultHeader() {
@@ -66,14 +125,35 @@ public final class NetworkPacket {
             return buffer.array();
         }
 
+        public Builder writeExpandBodyMode() {
+            this.isWriteRawBody = false;
+            return this;
+        }
+        public Builder writeRawBodyMode() {
+            this.isWriteRawBody = true;
+            return this;
+        }
+
+        public boolean isWriteRawBody() {
+            return isWriteRawBody;
+        }
+
         public Builder writeByte(byte b) {
-            bodyByteList.add(b);
-            packageLength.incrementAndGet();
+            if (isWriteRawBody) {
+                rawBodyByteList.add(b);
+            } else {
+                expandBodyList.add(b);
+            }
+            allBodyLength.incrementAndGet();
             return this;
         }
         public Builder writeBoolean(boolean b) {
-            bodyByteList.add((byte) (b ? 1 : 0));
-            packageLength.incrementAndGet();
+            if (isWriteRawBody) {
+                rawBodyByteList.add((byte) (b ? 1 : 0));
+            } else {
+                expandBodyList.add((byte) (b ? 1 : 0));
+            }
+            allBodyLength.incrementAndGet();
             return this;
         }
 
@@ -82,13 +162,21 @@ public final class NetworkPacket {
             buffer.putInt(bytes.length);
             final byte[] array = buffer.array();
             for (byte b : array) {
-                bodyByteList.add(b);
+                if (isWriteRawBody) {
+                    rawBodyByteList.add(b);
+                } else {
+                    expandBodyList.add(b);
+                }
             }
-            packageLength.getAndAdd(4);
+            allBodyLength.getAndAdd(4);
             for (byte aByte : bytes) {
-                bodyByteList.add(aByte);
+                if (isWriteRawBody) {
+                    rawBodyByteList.add(aByte);
+                } else {
+                    expandBodyList.add(aByte);
+                }
             }
-            packageLength.getAndAdd(bytes.length);
+            allBodyLength.getAndAdd(bytes.length);
             return this;
         }
 
@@ -98,28 +186,19 @@ public final class NetworkPacket {
                 buffer.putShort(aInt);
                 final byte[] array = buffer.array();
                 for (byte b : array) {
-                    bodyByteList.add(b);
+                    if (isWriteRawBody) {
+                        rawBodyByteList.add(b);
+                    } else {
+                        expandBodyList.add(b);
+                    }
                 }
-                packageLength.getAndAdd(2);
+                allBodyLength.getAndAdd(2);
             }
             return this;
         }
 
         public Builder msgType(int msgType) {
-            boolean isFirst = true;
-            if (!msgTypeList.isEmpty()) {
-                isFirst = false;
-                msgTypeList.clear();
-            }
-            final ByteBuffer buffer = ByteBuffer.allocate(4);
-            buffer.putInt(msgType);
-            final byte[] array = buffer.array();
-            for (byte b : array) {
-                msgTypeList.add(b);
-            }
-            if (isFirst) {
-                packageLength.getAndAdd(4);
-            }
+            this.msgType = msgType;
             return this;
         }
 
@@ -129,9 +208,13 @@ public final class NetworkPacket {
                 buffer.putInt(aInt);
                 final byte[] array = buffer.array();
                 for (byte b : array) {
-                    bodyByteList.add(b);
+                    if (isWriteRawBody) {
+                        rawBodyByteList.add(b);
+                    } else {
+                        expandBodyList.add(b);
+                    }
                 }
-                packageLength.getAndAdd(4);
+                allBodyLength.getAndAdd(4);
             }
             return this;
         }
@@ -142,9 +225,13 @@ public final class NetworkPacket {
                 buffer.putFloat(aInt);
                 final byte[] array = buffer.array();
                 for (byte b : array) {
-                    bodyByteList.add(b);
+                    if (isWriteRawBody) {
+                        rawBodyByteList.add(b);
+                    } else {
+                        expandBodyList.add(b);
+                    }
                 }
-                packageLength.getAndAdd(4);
+                allBodyLength.getAndAdd(4);
             }
             return this;
         }
@@ -155,9 +242,13 @@ public final class NetworkPacket {
                 buffer.putLong(aInt);
                 final byte[] array = buffer.array();
                 for (byte b : array) {
-                    bodyByteList.add(b);
+                    if (isWriteRawBody) {
+                        rawBodyByteList.add(b);
+                    } else {
+                        expandBodyList.add(b);
+                    }
                 }
-                packageLength.getAndAdd(8);
+                allBodyLength.getAndAdd(8);
             }
             return this;
         }
@@ -168,9 +259,13 @@ public final class NetworkPacket {
                 buffer.putDouble(aInt);
                 final byte[] array = buffer.array();
                 for (byte b : array) {
-                    bodyByteList.add(b);
+                    if (isWriteRawBody) {
+                        rawBodyByteList.add(b);
+                    } else {
+                        expandBodyList.add(b);
+                    }
                 }
-                packageLength.getAndAdd(8);
+                allBodyLength.getAndAdd(8);
             }
             return this;
         }
@@ -186,13 +281,21 @@ public final class NetworkPacket {
                 buffer.putInt(bytes.length);
                 final byte[] array = buffer.array();
                 for (byte b : array) {
-                    bodyByteList.add(b);
+                    if (isWriteRawBody) {
+                        rawBodyByteList.add(b);
+                    } else {
+                        expandBodyList.add(b);
+                    }
                 }
-                packageLength.getAndAdd(4);
+                allBodyLength.getAndAdd(4);
                 for (byte aByte : bytes) {
-                    bodyByteList.add(aByte);
+                    if (isWriteRawBody) {
+                        rawBodyByteList.add(aByte);
+                    } else {
+                        expandBodyList.add(aByte);
+                    }
                 }
-                packageLength.getAndAdd(bytes.length);
+                allBodyLength.getAndAdd(bytes.length);
             }
             return this;
         }
@@ -202,50 +305,30 @@ public final class NetworkPacket {
             return this;
         }
 
-        /**
-         * 将对象写入到第一个字段
-         */
-        public <T extends NetworkPacketEntity<T>> Builder insertObj2FirstField(T t) {
-            byte[] packets = Builder.withDefaultHeader().msgType(0).writeObj(t).buildPackage();
-            byte[] objBody = new byte[packets.length - TCP_HEADER.length - 8];
-            System.arraycopy(packets, (TCP_HEADER.length + 8), objBody, 0, objBody.length);
-            // 将objBody插入到bodyByteList的首部
-            int index = objBody.length - 1;
-            while (index >= 0) {
-                bodyByteList.add(0, objBody[index]);
-                index --;
-            }
-            packageLength.getAndAdd(objBody.length);
-            return this;
-        }
-
         public byte[] buildPackage() {
             if (headerByteList.isEmpty()) {
                 throw new RuntimeException("package header not set");
             }
-            boolean empty = msgTypeList.isEmpty();
-            if (empty) {
+            if (Objects.isNull(msgType)) {
                 final String name = Thread.currentThread().getName();
                 System.out.println("name = " + name);
                 throw new RuntimeException("msgType not set");
             }
-            int packageLen = packageLength.get();
-            int packageBodyLen = packageLen - headerByteList.size();
-            final ByteBuffer buffer = ByteBuffer.allocate(packageLen + 4);
-            // header +(int) bodyLen + body
-            headerByteList.forEach(buffer::put);
-            buffer.putInt(packageBodyLen);
-            msgTypeList.forEach(buffer::put);
-            bodyByteList.forEach(buffer::put);
-            return buffer.array();
+            int allBodyLen = allBodyLength.get();//包总长度
+            int rawBodyLen = rawBodyByteList.size();//原始包长度
+            //int expandBodyLen = expandBodyList.size();//扩展包长度
+            ByteBuffer targetPacketBuffer = ByteBuffer.allocate(allBodyLen + this.headerByteList.size() + 12);//+12 bodyLen + rawBodyLen + msgType
+            headerByteList.forEach(targetPacketBuffer::put);//header
+            targetPacketBuffer.putInt(allBodyLen);//bodyLen
+            targetPacketBuffer.putInt(rawBodyLen);//rawBodyLen
+            targetPacketBuffer.putInt(this.msgType);//msgType
+            rawBodyByteList.forEach(targetPacketBuffer::put);//rawBody
+            expandBodyList.forEach(targetPacketBuffer::put);//expandBody
+            return targetPacketBuffer.array();
         }
 
         public int msgType() {
-            byte[] msgTypeBytes = new byte[msgTypeList.size()];
-            for (int i = 0; i < msgTypeList.size(); i++) {
-                msgTypeBytes[i] = msgTypeList.get(i);
-            }
-            return ByteBuffer.wrap(msgTypeBytes).order(ByteOrder.BIG_ENDIAN).getInt();
+            return this.msgType;
         }
 
         public void sendTcpTo(Channel channel) {
@@ -294,14 +377,37 @@ public final class NetworkPacket {
 
         public NetworkPacket.Decoder toDecoder() {
             byte[] bytes = buildPackage();
-            return NetworkPacket.Decoder.withHeader(getHeader()).readPackageBody(bytes);
+            return NetworkPacket.Decoder.withHeader(getHeader()).parsePacket(bytes);
         }
     }
 
     public static class Decoder {
         private final byte[] header;
-        private byte[] body;
-        private final AtomicInteger readOffset = new AtomicInteger(0);
+        private int bodyLen;
+        private int rawBodyLen;
+        private int msgType;
+        private byte[] rawBody;
+        private byte[] expandBody;
+        private final AtomicInteger rawBodyReadOffset = new AtomicInteger(0);
+        private final AtomicInteger expandBodyReadOffset = new AtomicInteger(0);
+        private boolean isReadRawBody = true;
+
+        public Decoder readExpandBodyMode() {
+            this.isReadRawBody = false;
+            return this;
+        }
+        public Decoder readRawBodyMode() {
+            this.isReadRawBody = true;
+            return this;
+        }
+
+        public boolean isReadRawBody() {
+            return isReadRawBody;
+        }
+
+        public boolean hasExpandBody() {
+            return expandBody != null;
+        }
 
         private Decoder(byte[] header) {
             if (!(header.length % 2 == 0)) {
@@ -316,38 +422,43 @@ public final class NetworkPacket {
             return new Decoder(bytes);
         }
 
-        public Decoder readPackageBody(byte[] received) {
-            this.body = getPackageBody(received);
-            return this;
-        }
-
-        private byte[] getPackageBody(byte[] received) {
-            if (received.length < this.header.length) {
-                return new byte[]{};
-            }
+        public Decoder parsePacket(byte[] received) {
             byte[] readHeader = new byte[this.header.length];
             System.arraycopy(received, 0, readHeader, 0, this.header.length);
             boolean matchHeader = Arrays.equals(this.header, readHeader);
             if (!matchHeader) {
                 throw new RuntimeException("header not match");
             }
-
             byte[] bodyLenBytes = new byte[4];
-            if (received.length < this.header.length + bodyLenBytes.length) {
-                return new byte[]{};
-            }
-            System.arraycopy(received, this.header.length, bodyLenBytes, 0, bodyLenBytes.length);
+            int readOffset = this.header.length;
+            System.arraycopy(received, readOffset, bodyLenBytes, 0, bodyLenBytes.length);
             int bodyLen = ByteBuffer.wrap(bodyLenBytes).order(ByteOrder.BIG_ENDIAN).getInt();
-            if (bodyLen <= 0) return new byte[]{};
+            readOffset += bodyLenBytes.length;
 
-            byte[] bodyBytes = new byte[bodyLen];
-            if (received.length < this.header.length + bodyLenBytes.length + bodyBytes.length) {
-                System.arraycopy(received, this.header.length + bodyLenBytes.length, bodyBytes, 0,
-                        received.length - (this.header.length + bodyLenBytes.length));
-                return bodyBytes;
+            byte[] rawBodyLenBytes = new byte[4];
+            System.arraycopy(received, readOffset, rawBodyLenBytes, 0, rawBodyLenBytes.length);
+            int rawBodyLen = ByteBuffer.wrap(rawBodyLenBytes).order(ByteOrder.BIG_ENDIAN).getInt();
+            readOffset += rawBodyLenBytes.length;
+
+            byte[] msgTypeBytes = new byte[4];
+            System.arraycopy(received, readOffset, msgTypeBytes, 0, msgTypeBytes.length);
+            int msgType = ByteBuffer.wrap(msgTypeBytes).order(ByteOrder.BIG_ENDIAN).getInt();
+            readOffset += msgTypeBytes.length;
+
+            byte[] rawBodyBytes = new byte[rawBodyLen];
+            System.arraycopy(received, readOffset, rawBodyBytes, 0, rawBodyBytes.length);
+            readOffset += rawBodyBytes.length;
+            if (bodyLen - rawBodyLen > 0) {
+                int expandBodyLen = bodyLen - rawBodyLen;
+                byte[] expandBodyBytes = new byte[expandBodyLen];
+                System.arraycopy(received, readOffset, expandBodyBytes, 0, expandBodyBytes.length);
+                this.expandBody = expandBodyBytes;
             }
-            System.arraycopy(received, this.header.length + bodyLenBytes.length, bodyBytes, 0, bodyBytes.length);
-            return bodyBytes;
+            this.bodyLen = bodyLen;
+            this.rawBodyLen = rawBodyLen;
+            this.msgType = msgType;
+            this.rawBody = rawBodyBytes;
+            return this;
         }
 
         public byte[] getHeader() {
@@ -355,22 +466,25 @@ public final class NetworkPacket {
         }
 
         public Builder toBuilder() {
-            // header +(int) bodyLen + body
-            Builder builder = Builder.withHeader(this.header);
-            byte intBytes = 4;
-            for (byte b : this.body) {
-                if (intBytes > 0) {
-                    builder.msgTypeList.add(b);
-                    builder.packageLength.getAndAdd(1);
-                } else {
-                    builder.writeByte(b);
-                }
-                //防止溢出
-                if (intBytes > 0) {
-                    intBytes--;
+            return toBuilder(this.header);
+        }
+        public Builder toBuilder(byte[] headers) {
+            Builder builder = Builder.withHeader(headers);
+            byte[] expandBody = this.expandBody;
+            byte[] rawBody = this.rawBody;
+            int msgType = this.msgType;
+            int bodyLen = this.bodyLen;
+
+            builder.allBodyLength.addAndGet(bodyLen);
+            builder.msgType = msgType;
+            for (byte b : rawBody) {
+                builder.rawBodyByteList.add(b);
+            }
+            if (Objects.nonNull(expandBody)) {
+                for (byte b : expandBody) {
+                    builder.expandBodyList.add(b);
                 }
             }
-
             return builder;
         }
 
@@ -383,23 +497,28 @@ public final class NetworkPacket {
             return t.deserialize(this);
         }
 
-        public UserSession readUserSession() {
-            UserSession userSession = new UserSession();
-            userSession.deserialize(this);
-            return userSession;
+        public ExpandBody readExpandBody() {
+            ExpandBody expandBody = new ExpandBody();
+            expandBody.deserialize(this);
+            return expandBody;
         }
 
         /**
          * 重置已读下标
          */
         public Decoder resetBodyReadOffset() {
-            readOffset.set(0);
+            rawBodyReadOffset.set(0);
+            expandBodyReadOffset.set(0);
             return this;
         }
 
         public byte readByte() {
             byte[] bytes = new byte[1];
-            System.arraycopy(body, readOffset.getAndAdd(1), bytes, 0, bytes.length);
+            if (isReadRawBody) {
+                System.arraycopy(rawBody, rawBodyReadOffset.getAndAdd(1), bytes, 0, bytes.length);
+            } else {
+                System.arraycopy(expandBody, expandBodyReadOffset.getAndAdd(1), bytes, 0, bytes.length);
+            }
             return bytes[0];
         }
 
@@ -410,61 +529,74 @@ public final class NetworkPacket {
         public byte[] readBytes() {
             final int len = readInt();
             byte[] bytes = new byte[len];
-            System.arraycopy(body, readOffset.getAndAdd(len), bytes, 0, bytes.length);
+            if (isReadRawBody) {
+                System.arraycopy(rawBody, rawBodyReadOffset.getAndAdd(len), bytes, 0, bytes.length);
+            } else {
+                System.arraycopy(expandBody, expandBodyReadOffset.getAndAdd(len), bytes, 0, bytes.length);
+            }
             return bytes;
         }
 
         public short readShort() {
             byte[] bytes = new byte[2];
-            System.arraycopy(body, readOffset.getAndAdd(2), bytes, 0, bytes.length);
+            if (isReadRawBody) {
+                System.arraycopy(rawBody, rawBodyReadOffset.getAndAdd(2), bytes, 0, bytes.length);
+            } else {
+                System.arraycopy(expandBody, expandBodyReadOffset.getAndAdd(2), bytes, 0, bytes.length);
+            }
             return ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN).getShort();
         }
 
         public int readInt() {
             byte[] bytes = new byte[4];
-            System.arraycopy(body, readOffset.getAndAdd(4), bytes, 0, bytes.length);
+            if (isReadRawBody) {
+                System.arraycopy(rawBody, rawBodyReadOffset.getAndAdd(4), bytes, 0, bytes.length);
+            } else {
+                System.arraycopy(expandBody, expandBodyReadOffset.getAndAdd(4), bytes, 0, bytes.length);
+            }
             return ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN).getInt();
         }
         public float readFloat() {
             byte[] bytes = new byte[4];
-            System.arraycopy(body, readOffset.getAndAdd(4), bytes, 0, bytes.length);
-            return ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN).getFloat();
-        }
-
-        /**
-         * 获取最后的long字段
-         * 如果不存在long字段则返回0
-         */
-        public long getLastLong() {
-            if (body.length - 8 > 0) {
-                return ByteBuffer.wrap(body, body.length - 8, 8).order(ByteOrder.BIG_ENDIAN).getLong();
+            if (isReadRawBody) {
+                System.arraycopy(rawBody, rawBodyReadOffset.getAndAdd(4), bytes, 0, bytes.length);
+            } else {
+                System.arraycopy(expandBody, expandBodyReadOffset.getAndAdd(4), bytes, 0, bytes.length);
             }
-            return 0L;
+            return ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN).getFloat();
         }
 
         /**
          * 获取消息类型,阅读偏移量不移动
          */
         public int getMsgType() {
-            return skipGetInt();
+            return this.msgType;
         }
 
         /**
          * 获取消息类型,阅读偏移量移动4个字节
          */
         public int readMsgType() {
-            return readInt();
+            return this.msgType;
         }
 
         public long readLong() {
             byte[] bytes = new byte[8];
-            System.arraycopy(body, readOffset.getAndAdd(8), bytes, 0, bytes.length);
+            if (isReadRawBody) {
+                System.arraycopy(rawBody, rawBodyReadOffset.getAndAdd(8), bytes, 0, bytes.length);
+            } else {
+                System.arraycopy(expandBody, expandBodyReadOffset.getAndAdd(8), bytes, 0, bytes.length);
+            }
             return ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN).getLong();
         }
 
         public double readDouble() {
             byte[] bytes = new byte[8];
-            System.arraycopy(body, readOffset.getAndAdd(8), bytes, 0, bytes.length);
+            if (isReadRawBody) {
+                System.arraycopy(rawBody, rawBodyReadOffset.getAndAdd(8), bytes, 0, bytes.length);
+            } else {
+                System.arraycopy(expandBody, expandBodyReadOffset.getAndAdd(8), bytes, 0, bytes.length);
+            }
             return ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN).getDouble();
         }
 
@@ -477,10 +609,14 @@ public final class NetworkPacket {
          * 读取所有剩下的数据
          */
         public byte[] readAllTheRestBodyData() {
-            final int offset = readOffset.get();
-            int restDataLen = body.length - offset;
+            int offset = isReadRawBody ? rawBodyReadOffset.get() : expandBodyReadOffset.get();
+            int restDataLen = (isReadRawBody ? rawBody.length : expandBody.length) - offset;
             byte[] bytes = new byte[restDataLen];
-            System.arraycopy(body, readOffset.getAndAdd(restDataLen), bytes, 0, bytes.length);
+            if (isReadRawBody) {
+                System.arraycopy(rawBody, rawBodyReadOffset.getAndAdd(restDataLen), bytes, 0, bytes.length);
+            } else {
+                System.arraycopy(expandBody, expandBodyReadOffset.getAndAdd(restDataLen), bytes, 0, bytes.length);
+            }
             return bytes;
         }
 
@@ -528,6 +664,7 @@ public final class NetworkPacket {
 
         private byte[] skipGet(byte[] targetBytes, DecodeSkip... skips) {
             int offset = getOffset(skips);
+            byte [] body = isReadRawBody ? rawBody : expandBody;
             System.arraycopy(body, offset, targetBytes, 0, targetBytes.length);
             return targetBytes;
         }
@@ -550,6 +687,7 @@ public final class NetworkPacket {
                     case BYTE_ARRAY:
                     case STRING: {
                         byte[] bytes = new byte[4];
+                        byte [] body = isReadRawBody ? rawBody : expandBody;
                         System.arraycopy(body, offset, bytes, 0, bytes.length);
                         int len = ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN).getInt();
                         offset += (4 + len);

@@ -57,7 +57,7 @@ public final class TcpClient {
                         pipeline.addLast(new IdleStateHandler(0, 0, 3, TimeUnit.SECONDS));
                         pipeline.addLast(new HeartbeatHandler(bootstrap, b -> connect(b)));
                         pipeline.addLast(new LengthFieldBasedFrameDecoder
-                                (1024 * 1024, NetworkPacket.TCP_HEADER.length, 4, 0, 0));
+                                (1024 * 1024, NetworkPacket.TCP_HEADER.length, 4, 8, 0));
                         pipeline.addLast(new TcpClientHandler(insideClientMessageDispatcher));
                     }
                 });

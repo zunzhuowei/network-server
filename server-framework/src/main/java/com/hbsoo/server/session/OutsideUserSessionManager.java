@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.hbsoo.server.annotation.Permission;
 import com.hbsoo.server.config.ServerInfo;
 import com.hbsoo.server.message.MessageType;
+import com.hbsoo.server.message.entity.ExpandBody;
 import com.hbsoo.server.message.entity.ForwardMessage;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.sender.ForwardMessageSender;
@@ -199,11 +200,11 @@ public final class OutsideUserSessionManager {
      * @param ids        用户id
      */
     public void sendMsg2User(OutsideUserProtocol protocol, NetworkPacket.Builder msgBuilder, Long... ids) {
-        sendMsg2User(protocol, msgBuilder.buildPackage(),null, ids);
+        sendMsg2User(protocol, msgBuilder.buildPackage(), ids);
     }
 
     public void sendTextWebSocketFrameMsg2User(String text, Long... ids) {
-        sendMsg2User(OutsideUserProtocol.TEXT_WEBSOCKET, text.getBytes(StandardCharsets.UTF_8), null, ids);
+        sendMsg2User(OutsideUserProtocol.TEXT_WEBSOCKET, text.getBytes(StandardCharsets.UTF_8), ids);
     }
 
     /**
@@ -212,10 +213,13 @@ public final class OutsideUserSessionManager {
      * @param protocol     用户协议类型
      * @param insidePackage 消息, HBSPackage.Builder#buildPackage()
      * @param ids          用户id
-     * @param contentType  内容类型，针对http协议使用。
      */
-    public void sendMsg2User(OutsideUserProtocol protocol, byte[] insidePackage, String contentType, Long... ids) {
+    public void sendMsg2User(OutsideUserProtocol protocol, byte[] insidePackage, Long... ids) {
         if (Objects.isNull(insidePackage) || Objects.isNull(protocol)) {
+            return;
+        }
+        if (protocol == OutsideUserProtocol.HTTP) {
+            logger.warn("http协议不能此方法发送消息到用户，请用httpResponse()");
             return;
         }
         for (Long id : ids) {
@@ -231,9 +235,8 @@ public final class OutsideUserSessionManager {
                     NetworkPacket.Builder redirectPackage = NetworkPacket.Builder
                             .withDefaultHeader()
                             .msgType(MessageType.Inside.REDIRECT)
-                            .writeLong(id)//用户id
                             .writeStr(protocol.name())//用户协议类型
-                            .writeStr(contentType == null ? "" : contentType)
+                            .writeLong(id)//用户id
                             .writeBytes(insidePackage);//转发的消息
 
                     //重试三次
@@ -273,11 +276,6 @@ public final class OutsideUserSessionManager {
                         channel.writeAndFlush(packet);
                         break;
                     }
-                    case HTTP: {
-                        response(channel, insidePackage, contentType);
-                        logout(id);
-                        break;
-                    }
                     default:
                         break;
                 }
@@ -288,12 +286,38 @@ public final class OutsideUserSessionManager {
         }
     }
 
-    private void response(Channel channel, byte[] bytes, String contentType) {
+    /**
+     * @param bytes 消息
+     * @param contentType  内容类型，针对http协议使用。
+     * @param expandBody 扩展信息
+     */
+    public void httpResponse(byte[] bytes, String contentType, ExpandBody expandBody) {
+        String fromServerType = expandBody.getFromServerType();
+        int fromServerId = expandBody.getFromServerId();
+        String userChannelId = expandBody.getUserChannelId();
+        //转发到他登录的服务器中，再由登录服务器转发给用户
+        NetworkPacket.Builder redirectPackage = NetworkPacket.Builder
+                .withDefaultHeader()
+                .msgType(MessageType.Inside.REDIRECT)
+                .writeStr(OutsideUserProtocol.HTTP.name())//用户协议类型
+                .writeStr(userChannelId)
+                .writeStr(contentType)
+                .writeBytes(bytes);//转发的消息
+
+        //重试三次
+        long msgId = snowflakeIdGenerator.generateId();
+        ForwardMessage forwardMessage = new ForwardMessage(msgId, redirectPackage,
+                new Date(System.currentTimeMillis() + 1000 * 10), -1,
+                fromServerType, null);
+        forwardMessage.setToServerId(fromServerId);
+        forwardMessageSender.send(forwardMessage);
+    }
+
+    public void response(Channel channel, byte[] bytes, String contentType) {
         DefaultFullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
         response.content().writeBytes(bytes);
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, contentType);
         response.headers().set(HttpHeaderNames.CONTENT_LENGTH, response.content().readableBytes());
         channel.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
-        //channel.close();
     }
 }
