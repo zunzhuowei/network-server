@@ -164,7 +164,6 @@ interface CommonDispatcher {
                 threadPoolScheduler().execute(threadKey, () -> {
                     messageDispatcher.handle(ctx, decoder);
                 });
-                break;
             }
             return;
         }
@@ -303,7 +302,6 @@ interface CommonDispatcher {
                     threadPoolScheduler().execute(threadKey, () -> {
                         messageDispatcher.handle(ctx, newDecoder);
                     });
-                    break;
                 }
                 return;
             }
@@ -394,7 +392,6 @@ interface CommonDispatcher {
                 threadPoolScheduler().execute(threadKey, () -> {
                     messageDispatcher.handle(ctx, httpPacket);
                 });
-                break;
             }
             return;
         }
@@ -433,7 +430,7 @@ interface CommonDispatcher {
                     extendBody.setUserSession(userSession);
                 }
             }
-            if (extendBody.getProtocolType() == 1) {
+            if (extendBody.getProtocolType() == udp) {
                 extendBody.setSenderHost(senderHost);
                 extendBody.setSenderPort(senderPort);
             }
