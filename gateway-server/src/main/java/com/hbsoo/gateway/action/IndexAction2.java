@@ -68,7 +68,7 @@ public class IndexAction2 extends HttpServerMessageDispatcher {
                 transactionUtils.rollback(transactionStatus);
             //}).start();*/
         }
-        responseJson(ctx, httpPacket, user);
+        responseJson(httpPacket, user);
 
     }
 

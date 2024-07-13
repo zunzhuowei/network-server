@@ -3,13 +3,12 @@ package com.hbsoo.server.message.server;
 import com.hbsoo.server.annotation.InsideServerMessageHandler;
 import com.hbsoo.server.annotation.OutsideMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
-import com.hbsoo.server.message.entity.ExpandBody;
+import com.hbsoo.server.message.entity.ExtendBody;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.ProtocolType;
 import com.hbsoo.server.message.sender.ForwardMessageSender;
 import com.hbsoo.server.session.InsideClientSessionManager;
 import com.hbsoo.server.session.OutsideUserSessionManager;
-import com.hbsoo.server.session.UserSession;
 import com.hbsoo.server.utils.DelayThreadPoolScheduler;
 import com.hbsoo.server.utils.HttpRequestParser;
 import com.hbsoo.server.utils.SnowflakeIdGenerator;
@@ -219,13 +218,13 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
         FullHttpRequest httpRequest = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,
                 HttpMethod.valueOf(parser.getMethod()), parser.getUri());
         httpRequest.content().writeBytes(parser.getBody());
-        ExpandBody expandBody = parser.getExpandBody();
+        ExtendBody extendBody = parser.getExtendBody();
         Map<String, String> headers = parser.getHeaders();
         for (String key : headers.keySet()) {
             httpRequest.headers().set(key, headers.get(key));
         }
         OutsideServerMessageDispatcher outsideServerMessageDispatcher = SpringBeanFactory.getBean(OutsideServerMessageDispatcher.class);
-        outsideServerMessageDispatcher.onHttpMessage(ctx, httpRequest, expandBody);
+        outsideServerMessageDispatcher.onHttpMessage(ctx, httpRequest, extendBody);
     }
 
     /**

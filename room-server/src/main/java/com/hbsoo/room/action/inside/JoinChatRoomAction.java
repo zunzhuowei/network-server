@@ -4,7 +4,7 @@ import com.google.gson.Gson;
 import com.hbsoo.room.ChatRoomManager;
 import com.hbsoo.room.entity.ChatRoom;
 import com.hbsoo.server.annotation.InsideServerMessageHandler;
-import com.hbsoo.server.message.entity.ExpandBody;
+import com.hbsoo.server.message.entity.ExtendBody;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.server.ServerMessageDispatcher;
 import com.hbsoo.server.session.OutsideUserSessionManager;
@@ -16,11 +16,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 /**
  * Created by zun.wei on 2024/6/15.
@@ -34,9 +32,9 @@ public class JoinChatRoomAction extends ServerMessageDispatcher {
 
     @Override
     public void handle(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
-        ExpandBody expandBody = decoder.readExpandBody();
+        ExtendBody extendBody = decoder.readExtendBody();
         String username = decoder.readStr();
-        final String channelId = expandBody.getUserChannelId();
+        final String channelId = extendBody.getUserChannelId();
         long userId = decoder.readInt();
         //1.执行登录流程，同步到到网关服。
         //2.判断聊天房间是否存在

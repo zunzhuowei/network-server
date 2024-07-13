@@ -3,7 +3,7 @@ package com.hbsoo.server.action.server;
 import com.hbsoo.server.annotation.InsideServerMessageHandler;
 import com.hbsoo.server.message.MessageType;
 import com.hbsoo.server.message.ProtocolType;
-import com.hbsoo.server.message.entity.ExpandBody;
+import com.hbsoo.server.message.entity.ExtendBody;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.server.ServerMessageDispatcher;
 import io.netty.channel.ChannelHandlerContext;
@@ -29,8 +29,8 @@ public class RoutingGatewayWebsocketTcpUdpMessageAction extends ServerMessageDis
         //        .withHeader(header)
         //        .parsePacket(_package);
         //redirectAndSwitchProtocol(ctx, ProtocolType.OUTSIDE_WEBSOCKET, d);
-        ExpandBody expandBody = decoder.readExpandBody();
-        int msgType = decoder.readExpandBodyMode().readInt();
+        ExtendBody extendBody = decoder.readExtendBody();
+        int msgType = decoder.readExtendBodyMode().readInt();
         byte[] header = decoder.getHeader();
         decoder.resetBodyReadOffset();
         NetworkPacket.Builder builder = decoder.toBuilder(header).msgType(msgType);

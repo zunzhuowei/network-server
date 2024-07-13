@@ -1,14 +1,16 @@
 package com.hbsoo.server.session;
 
 import com.google.gson.Gson;
-import com.hbsoo.server.annotation.Permission;
+import com.google.gson.GsonBuilder;
+import com.hbsoo.server.NowServer;
 import com.hbsoo.server.config.ServerInfo;
 import com.hbsoo.server.message.MessageType;
-import com.hbsoo.server.message.entity.ExpandBody;
+import com.hbsoo.server.message.entity.ExtendBody;
 import com.hbsoo.server.message.entity.ForwardMessage;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.sender.ForwardMessageSender;
 import com.hbsoo.server.netty.AttributeKeyConstants;
+import com.hbsoo.server.netty.ProtocolDispatcher;
 import com.hbsoo.server.utils.SnowflakeIdGenerator;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -20,16 +22,15 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.GenericFutureListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -287,22 +288,39 @@ public final class OutsideUserSessionManager {
     }
 
     /**
-     * @param bytes 消息
+     * @param content 消息内容
      * @param contentType  内容类型，针对http协议使用。
-     * @param expandBody 扩展信息
+     * @param extendBody 扩展信息
      */
-    public void httpResponse(byte[] bytes, String contentType, ExpandBody expandBody) {
-        String fromServerType = expandBody.getFromServerType();
-        int fromServerId = expandBody.getFromServerId();
-        String userChannelId = expandBody.getUserChannelId();
+    public void httpResponse(Map<String, String> headers, byte[] content, String contentType, ExtendBody extendBody, HttpResponseStatus status,
+                             GenericFutureListener<? extends Future<? super Void>> future) {
+        String fromServerType = extendBody.getFromServerType();
+        int fromServerId = extendBody.getFromServerId();
+        String userChannelId = extendBody.getUserChannelId();
+        //如果是本服务器，则直接返回
+        if (NowServer.getServerInfo().getType().equals(fromServerType)
+                && fromServerId == NowServer.getServerInfo().getId()) {
+            ProtocolDispatcher.channels.parallelStream()
+                    .filter(channel -> channel.id().asLongText().equals(userChannelId))
+                    .findFirst()
+                    .ifPresent(channel -> response(channel, headers, content, contentType, status, future));
+            return;
+        }
         //转发到他登录的服务器中，再由登录服务器转发给用户
         NetworkPacket.Builder redirectPackage = NetworkPacket.Builder
                 .withDefaultHeader()
                 .msgType(MessageType.Inside.REDIRECT)
                 .writeStr(OutsideUserProtocol.HTTP.name())//用户协议类型
-                .writeStr(userChannelId)
                 .writeStr(contentType)
-                .writeBytes(bytes);//转发的消息
+                .writeInt(status.code())
+                .writeBytes(content == null ? new byte[0] : content)
+                .writeStr(new GsonBuilder()
+                        .setDateFormat("yyyy-MM-dd HH:mm:ss")
+                        .create()
+                        .toJson(headers == null ? new HashMap<String, String>() : headers)
+                )
+                .writeExtendBodyMode()
+                .writeObj(extendBody);
 
         //重试三次
         long msgId = snowflakeIdGenerator.generateId();
@@ -312,12 +330,32 @@ public final class OutsideUserSessionManager {
         forwardMessage.setToServerId(fromServerId);
         forwardMessageSender.send(forwardMessage);
     }
+    public void httpResponse(Map<String, String> headers, byte[] content, String contentType, ExtendBody extendBody,
+                             GenericFutureListener<? extends Future<? super Void>> future) {
+        httpResponse(headers, content, contentType, extendBody, HttpResponseStatus.OK, future);
+    }
+    public void httpResponse(Map<String, String> headers, byte[] content, String contentType, ExtendBody extendBody) {
+        httpResponse(headers, content, contentType, extendBody, HttpResponseStatus.OK, null);
+    }
+    public void httpResponse(Map<String, String> headers, byte[] content, String contentType, ExtendBody extendBody, HttpResponseStatus status) {
+        httpResponse(headers, content, contentType, extendBody, status, null);
+    }
 
-    public void response(Channel channel, byte[] bytes, String contentType) {
-        DefaultFullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
-        response.content().writeBytes(bytes);
+    private void response(Channel channel, Map<String, String> headers, byte[] content, String contentType, HttpResponseStatus status,
+                          GenericFutureListener<? extends Future<? super Void>> future) {
+        DefaultFullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status);
+        if (content != null && content.length > 0) {
+            response.content().writeBytes(content);
+        }
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, contentType);
         response.headers().set(HttpHeaderNames.CONTENT_LENGTH, response.content().readableBytes());
-        channel.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+        if (Objects.nonNull(headers)) {
+            headers.forEach((k, v) -> response.headers().set(k, v));
+        }
+        if (Objects.nonNull(future)) {
+            channel.writeAndFlush(response).addListener(future).addListener(ChannelFutureListener.CLOSE);
+        } else {
+            channel.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+        }
     }
 }

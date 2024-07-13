@@ -2,7 +2,7 @@ package com.hbsoo.hall.action.websocket;
 
 import com.hbsoo.permisson.PermissionAuth;
 import com.hbsoo.server.annotation.OutsideMessageHandler;
-import com.hbsoo.server.message.entity.ExpandBody;
+import com.hbsoo.server.message.entity.ExtendBody;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.server.ServerMessageDispatcher;
 import com.hbsoo.server.session.OutsideUserSessionManager;
@@ -26,8 +26,8 @@ public class HeartBeatAction extends ServerMessageDispatcher {
 
     @Override
     public void handle(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
-        ExpandBody expandBody = decoder.readExpandBody();
-        UserSession userSession = expandBody.getUserSession();
+        ExtendBody extendBody = decoder.readExtendBody();
+        UserSession userSession = extendBody.getUserSession();
         Long userId = userSession.getId();
         logger.debug("收到心跳消息:{}", userId);
         outsideUserSessionManager.sendMsg2User(

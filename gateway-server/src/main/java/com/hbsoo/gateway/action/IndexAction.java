@@ -31,7 +31,7 @@ public class IndexAction extends HttpServerMessageDispatcher {
     public void handle(ChannelHandlerContext ctx, HttpPacket httpPacket) {
         final List<Genealogy> genealogies = genealogyService.listAll();
         //System.out.println("genealogies = " + genealogies);
-        responseJson(ctx, httpPacket, genealogies);
+        responseJson(httpPacket, genealogies);
 
         forward2InsideServerUseSender(
                 NetworkPacket.Builder.withDefaultHeader()

@@ -1,6 +1,6 @@
 package com.hbsoo.server.session;
 
-import com.hbsoo.server.message.entity.ExpandBody;
+import com.hbsoo.server.message.entity.ExtendBody;
 import com.hbsoo.server.message.entity.ForwardMessage;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.entity.SyncMessage;
@@ -272,11 +272,11 @@ public final class InsideClientSessionManager {
     public static NetworkPacket.Decoder requestServer(NetworkPacket.Builder msgBuilder, int waitSeconds, Consumer<NetworkPacket.Builder> forwardMsg2ServerFunction)
             throws InterruptedException {
         NetworkPacket.Decoder decoder = msgBuilder.toDecoder();
-        if (!decoder.hasExpandBody()) {
-            throw new RuntimeException("消息体没有扩展体ExpandBody，服务端响应时根据msgId设置结果！");
+        if (!decoder.hasExtendBody()) {
+            throw new RuntimeException("消息体没有扩展体ExtendBody，服务端响应时根据msgId设置结果！");
         }
-        ExpandBody expandBody = decoder.readExpandBody();
-        long msgId = expandBody.getMsgId();
+        ExtendBody extendBody = decoder.readExtendBody();
+        long msgId = extendBody.getMsgId();
         try {
             SyncMessage syncMessage = syncMsgMap.computeIfAbsent(msgId, k -> new SyncMessage(new CountDownLatch(1)));
             forwardMsg2ServerFunction.accept(msgBuilder);
@@ -286,7 +286,7 @@ public final class InsideClientSessionManager {
             if (await) {
                 return syncMessage.getDecoder();
             }
-            logger.warn("等待响应超时，msgId:{},是不是因为服务端响应结果时没有设置ExpandBody", msgId);
+            logger.warn("等待响应超时，msgId:{},是不是因为服务端响应结果时没有设置ExtendBody", msgId);
             return null;
         } finally {
             syncMsgMap.remove(msgId);

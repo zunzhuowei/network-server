@@ -4,7 +4,7 @@ import com.google.gson.Gson;
 import com.hbsoo.server.NowServer;
 import com.hbsoo.server.annotation.InsideClientMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
-import com.hbsoo.server.message.entity.ExpandBody;
+import com.hbsoo.server.message.entity.ExtendBody;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.entity.SyncMessage;
 import com.hbsoo.server.message.entity.TextWebSocketPacket;
@@ -29,9 +29,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 
 import javax.annotation.PostConstruct;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -122,12 +119,12 @@ public final class InsideClientMessageDispatcher extends ClientMessageDispatcher
     }
 
     void dispatcher(ChannelHandlerContext ctx, Protocol protocol, NetworkPacket.Decoder decoder) {
-        int msgType = decoder.readMsgType();
+        int msgType = decoder.getMsgType();
         //如果是同步消息,服务端返回的结果交给客户端处理
-        boolean hasExpandBody = decoder.hasExpandBody();
-        if (hasExpandBody) {
-            ExpandBody expandBody = decoder.readExpandBody();
-            SyncMessage syncMessage = InsideClientSessionManager.syncMsgMap.get(expandBody.getMsgId());
+        boolean hasExtendBody = decoder.hasExtendBody();
+        if (hasExtendBody) {
+            ExtendBody extendBody = decoder.readExtendBody();
+            SyncMessage syncMessage = InsideClientSessionManager.syncMsgMap.get(extendBody.getMsgId());
             if (Objects.nonNull(syncMessage)) {
                 decoder.resetBodyReadOffset();
                 syncMessage.setDecoder(decoder);
@@ -168,7 +165,7 @@ public final class InsideClientMessageDispatcher extends ClientMessageDispatcher
                     .withHeader(protocol == Protocol.TCP ? NetworkPacket.TCP_HEADER : NetworkPacket.UDP_HEADER)
                     .parsePacket(received);
             NetworkPacket.Builder builder = decoder.toBuilder();
-            fillExpandBody(ctx, protocol== Protocol.TCP ? (byte) 0 : (byte) 1, decoder, builder, null, 0);
+            fillExtendBody(ctx, protocol== Protocol.TCP ? (byte) 0 : (byte) 1, decoder, builder, null, 0);
             dispatcher(ctx, protocol, builder.toDecoder());
         } catch (Exception e) {
             e.printStackTrace();
@@ -225,7 +222,7 @@ public final class InsideClientMessageDispatcher extends ClientMessageDispatcher
             }
             // BinaryWebSocketFrame
             NetworkPacket.Decoder decoder = NetworkPacket.Decoder.withDefaultHeader().parsePacket(received);
-            int msgType = decoder.readMsgType();
+            int msgType = decoder.getMsgType();
             ClientMessageDispatcher dispatcher = insideClientDispatchers.get(Protocol.WEBSOCKET).get(msgType);
             if (Objects.isNull(dispatcher)) {
                 try {
@@ -240,7 +237,7 @@ public final class InsideClientMessageDispatcher extends ClientMessageDispatcher
             }
             Object threadKey = dispatcher.threadKey(ctx, decoder);
             decoder.resetBodyReadOffset();//重置读取位置
-            decoder.readMsgType();//消息类型
+            decoder.getMsgType();//消息类型
             threadPoolScheduler.execute(threadKey, () -> {
                 dispatcher.handle(ctx, decoder);
             });
@@ -250,32 +247,32 @@ public final class InsideClientMessageDispatcher extends ClientMessageDispatcher
         }
     }
 
-    void fillExpandBody(ChannelHandlerContext ctx, byte protocolType, NetworkPacket.Decoder decoder,
-                                NetworkPacket.Builder builder, String senderHost, int senderPort) {
+    void fillExtendBody(ChannelHandlerContext ctx, byte protocolType, NetworkPacket.Decoder decoder,
+                        NetworkPacket.Builder builder, String senderHost, int senderPort) {
         Boolean isInsideClient = AttributeKeyConstants.getAttr(ctx.channel(), AttributeKeyConstants.isInsideClientAttr);
-        boolean hasExpandBody = decoder.hasExpandBody();
-        if (!hasExpandBody && isInsideClient == null) {
+        boolean hasExtendBody = decoder.hasExtendBody();
+        if (!hasExtendBody && isInsideClient == null) {
             Long userId = AttributeKeyConstants.getAttr(ctx.channel(), AttributeKeyConstants.idAttr);
             SnowflakeIdGenerator snowflakeIdGenerator = SpringBeanFactory.getBean(SnowflakeIdGenerator.class);
-            ExpandBody expandBody = new ExpandBody();
-            expandBody.setMsgId(snowflakeIdGenerator.generateId());
-            expandBody.setProtocolType(protocolType);
-            expandBody.setFromServerId(NowServer.getServerInfo().getId());
-            expandBody.setFromServerType(NowServer.getServerInfo().getType());
-            expandBody.setUserChannelId(ctx.channel().id().asLongText());
+            ExtendBody extendBody = new ExtendBody();
+            extendBody.setMsgId(snowflakeIdGenerator.generateId());
+            extendBody.setProtocolType(protocolType);
+            extendBody.setFromServerId(NowServer.getServerInfo().getId());
+            extendBody.setFromServerType(NowServer.getServerInfo().getType());
+            extendBody.setUserChannelId(ctx.channel().id().asLongText());
             boolean isLogin = Objects.nonNull(userId);
-            expandBody.setLogin(isLogin);
+            extendBody.setLogin(isLogin);
             if (isLogin) {
-                expandBody.setUserId(userId);
+                extendBody.setUserId(userId);
                 OutsideUserSessionManager bean = SpringBeanFactory.getBean(OutsideUserSessionManager.class);
                 UserSession userSession = bean.getUserSession(userId);
-                expandBody.setUserSession(userSession);
+                extendBody.setUserSession(userSession);
             }
-            if (expandBody.getProtocolType() == 1) {
-                expandBody.setSenderHost(senderHost);
-                expandBody.setSenderPort(senderPort);
+            if (extendBody.getProtocolType() == 1) {
+                extendBody.setSenderHost(senderHost);
+                extendBody.setSenderPort(senderPort);
             }
-            expandBody.serializable(builder);
+            extendBody.serializable(builder);
         }
     }
 }

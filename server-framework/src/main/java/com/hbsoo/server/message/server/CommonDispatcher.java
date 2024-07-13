@@ -5,20 +5,18 @@ import com.hbsoo.server.NowServer;
 import com.hbsoo.server.annotation.InsideServerMessageHandler;
 import com.hbsoo.server.annotation.OutsideMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
-import com.hbsoo.server.message.entity.ExpandBody;
+import com.hbsoo.server.message.entity.ExtendBody;
 import com.hbsoo.server.message.entity.HttpPacket;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.entity.TextWebSocketPacket;
 import com.hbsoo.server.netty.AttributeKeyConstants;
 import com.hbsoo.server.session.OutsideUserSessionManager;
-import com.hbsoo.server.session.OutsideUserProtocol;
 import com.hbsoo.server.session.UserSession;
 import com.hbsoo.server.utils.SnowflakeIdGenerator;
 import com.hbsoo.server.utils.SpringBeanFactory;
 import com.hbsoo.server.utils.ThreadPoolScheduler;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.DatagramPacket;
 import io.netty.channel.socket.nio.NioDatagramChannel;
@@ -29,7 +27,6 @@ import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.AnnotationUtils;
-import org.springframework.util.StringUtils;
 
 import java.lang.annotation.Annotation;
 import java.nio.ByteBuffer;
@@ -53,6 +50,7 @@ interface CommonDispatcher {
 
     //工作线程池
     ThreadPoolScheduler threadPoolScheduler();
+    byte tcp = 0, udp = 1, binary_websocket = 2,text_websocket = 3, http = 4;
 
     /**
      * 组装协议分发
@@ -148,12 +146,11 @@ interface CommonDispatcher {
      * 消息分发
      */
     default void dispatcher(ChannelHandlerContext ctx, Protocol protocol, NetworkPacket.Decoder decoder) {
-        int msgType = decoder.readMsgType();
+        int msgType = decoder.getMsgType();
         ServerMessageDispatcher dispatcher = dispatchers().get(protocol).get(msgType);
         if (Objects.nonNull(dispatcher)) {
             Object threadKey = dispatcher.threadKey(ctx, decoder);
             decoder.resetBodyReadOffset();//重置读取位置
-            decoder.readMsgType();//消息类型
             threadPoolScheduler().execute(threadKey, () -> {
                 dispatcher.handle(ctx, decoder);
             });
@@ -164,7 +161,6 @@ interface CommonDispatcher {
             for (DefaultServerMessageDispatcher messageDispatcher : beans.values()) {
                 Object threadKey = messageDispatcher.threadKey(ctx, decoder);
                 decoder.resetBodyReadOffset();//重置读取位置
-                decoder.readMsgType();//消息类型
                 threadPoolScheduler().execute(threadKey, () -> {
                     messageDispatcher.handle(ctx, decoder);
                 });
@@ -192,14 +188,11 @@ interface CommonDispatcher {
      */
     default void handleTcp(ChannelHandlerContext ctx, ByteBuf msg) {
         try {
-            //Integer bodyLen = getBodyLen(msg, Protocol.TCP);
-            //if (bodyLen == null) return;
-            //byte[] received = new byte[bodyLen + (NetworkPacket.TCP_HEADER.length + 4)];
             byte[] received = new byte[msg.readableBytes()];
             msg.readBytes(received);
             NetworkPacket.Decoder decoder = NetworkPacket.Decoder.withDefaultHeader().parsePacket(received);
             NetworkPacket.Builder builder = decoder.toBuilder();
-            fillExpandBody(ctx, (byte) 0, decoder, builder, null, 0);
+            fillExtendBody(ctx, tcp, decoder, builder, null, 0);
             dispatcher(ctx, Protocol.TCP, builder.toDecoder());
         } catch (Exception e) {
             e.printStackTrace();
@@ -216,7 +209,7 @@ interface CommonDispatcher {
             msg.readBytes(received);
             NetworkPacket.Decoder decoder = NetworkPacket.Decoder.withHeader(NetworkPacket.UDP_HEADER).parsePacket(received);
             NetworkPacket.Builder builder = decoder.toBuilder();
-            fillExpandBody(ctx, (byte) 1, decoder, builder, datagramPacket.sender().getHostString(), datagramPacket.sender().getPort());
+            fillExtendBody(ctx, udp, decoder, builder, datagramPacket.sender().getHostString(), datagramPacket.sender().getPort());
             dispatcher(ctx, Protocol.UDP, builder.toDecoder());
         } catch (Exception e) {
             e.printStackTrace();
@@ -282,7 +275,6 @@ interface CommonDispatcher {
                 TextWebSocketPacket socketPackage = gson.fromJson(jsonStr, TextWebSocketPacket.class);
                 int msgType = socketPackage.getMsgType();
                 //把文本消息，转成json格式
-                //received = NetworkPacket.Builder.withDefaultHeader().msgType(msgType).writeStr(jsonStr).buildPackage();
                 NetworkPacket.Builder builder = NetworkPacket.Builder.withDefaultHeader().msgType(msgType).writeStr(jsonStr);
                 decoder = builder.toDecoder();
             }
@@ -291,9 +283,9 @@ interface CommonDispatcher {
                 decoder = NetworkPacket.Decoder.withDefaultHeader().parsePacket(received);
             }
             NetworkPacket.Builder builder = decoder.toBuilder();
-            fillExpandBody(ctx, webSocketFrame instanceof TextWebSocketFrame ? (byte) 3 : (byte) 2, decoder, builder, null, 0);
+            fillExtendBody(ctx, webSocketFrame instanceof TextWebSocketFrame ? text_websocket : binary_websocket, decoder, builder, null, 0);
             NetworkPacket.Decoder newDecoder = builder.toDecoder();
-            int msgType = newDecoder.readMsgType();
+            int msgType = newDecoder.getMsgType();
             ServerMessageDispatcher dispatcher = dispatchers().get(Protocol.WEBSOCKET).get(msgType);
             if (Objects.nonNull(dispatcher)) {
                 Object threadKey = dispatcher.threadKey(ctx, newDecoder);
@@ -338,7 +330,7 @@ interface CommonDispatcher {
      * @param ctx
      * @param msg
      */
-    default void handleHttp(ChannelHandlerContext ctx, FullHttpRequest msg, ExpandBody... expandBody) {
+    default void handleHttp(ChannelHandlerContext ctx, FullHttpRequest msg, ExtendBody... extendBody) {
         final String path;
         HttpPacket httpPacket = new HttpPacket();
         try {
@@ -363,17 +355,17 @@ interface CommonDispatcher {
                 content.readBytes(received);
                 httpPacket.setBody(received);
             }
-            if (expandBody == null || expandBody.length == 0) {
-                expandBody = new ExpandBody[1];
-                expandBody[0] = new ExpandBody();
+            if (extendBody == null || extendBody.length == 0) {
+                extendBody = new ExtendBody[1];
+                extendBody[0] = new ExtendBody();
                 SnowflakeIdGenerator snowflakeIdGenerator = SpringBeanFactory.getBean(SnowflakeIdGenerator.class);
-                expandBody[0].setMsgId(snowflakeIdGenerator.generateId());
-                expandBody[0].setProtocolType((byte) 4);
-                expandBody[0].setFromServerId(NowServer.getServerInfo().getId());
-                expandBody[0].setFromServerType(NowServer.getServerInfo().getType());
-                expandBody[0].setUserChannelId(ctx.channel().id().asLongText());
+                extendBody[0].setMsgId(snowflakeIdGenerator.generateId());
+                extendBody[0].setProtocolType(http);
+                extendBody[0].setFromServerId(NowServer.getServerInfo().getId());
+                extendBody[0].setFromServerType(NowServer.getServerInfo().getType());
+                extendBody[0].setUserChannelId(ctx.channel().id().asLongText());
             }
-            httpPacket.setExpandBody(expandBody[0]);
+            httpPacket.setExtendBody(extendBody[0]);
         } catch (Exception e) {
             e.printStackTrace();
             try {
@@ -385,72 +377,67 @@ interface CommonDispatcher {
         }
         int h;
         int msgType = (h = path.hashCode()) ^ (h >>> 16);
+        // 类型匹配上了
         HttpServerMessageDispatcher dispatcher = (HttpServerMessageDispatcher) dispatchers().get(Protocol.HTTP).get(msgType);
         if (Objects.nonNull(dispatcher)) {
             Object threadKey = dispatcher.threadKey(ctx, null);
-            //decoder.resetBodyReadOffset();//重置读取位置
             threadPoolScheduler().execute(threadKey, () -> {
                 dispatcher.handle(ctx, httpPacket);
-                //ctx.close();
             });
             return;
         }
+        // 如果定义的默认处理器
         Map<String, DefaultHttpServerDispatcher> beans = SpringBeanFactory.getBeansOfType(DefaultHttpServerDispatcher.class);
         if (!beans.isEmpty()) {
             for (DefaultHttpServerDispatcher messageDispatcher : beans.values()) {
                 Object threadKey = messageDispatcher.threadKey(ctx, null);
-                //decoder.resetBodyReadOffset();//重置读取位置
                 threadPoolScheduler().execute(threadKey, () -> {
                     messageDispatcher.handle(ctx, httpPacket);
-                    //ctx.close();
                 });
                 break;
             }
             return;
         }
-        //内部转发头部会有用户id字段
-        /*String outsideUserId = msg.headers().get("outsideUserId");
-        if (StringUtils.hasLength(outsideUserId)) {
-            OutsideUserSessionManager sessionManager = SpringBeanFactory.getBean(OutsideUserSessionManager.class);
-            sessionManager.sendMsg2User(
-                    OutsideUserProtocol.HTTP,
-                    "404".getBytes(StandardCharsets.UTF_8),
-                    "application/json; charset=UTF-8",
-                    Long.parseLong(outsideUserId)
-            );
-            return;
-        }*/
-        // 404
-        DefaultFullHttpResponse response = new DefaultFullHttpResponse(msg.protocolVersion(), HttpResponseStatus.NOT_FOUND);
-        ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+        //如果是内部转发而来的消息
+        ExtendBody extendBody2 = httpPacket.getExtendBody();
+        OutsideUserSessionManager sessionManager = SpringBeanFactory.getBean(OutsideUserSessionManager.class);
+        sessionManager.httpResponse(
+                null,
+                "404".getBytes(StandardCharsets.UTF_8),
+                "application/json; charset=UTF-8",
+                extendBody2,
+                HttpResponseStatus.NOT_FOUND
+        );
     }
 
-    default void fillExpandBody(ChannelHandlerContext ctx, byte protocolType, NetworkPacket.Decoder decoder,
+    default void fillExtendBody(ChannelHandlerContext ctx, byte protocolType, NetworkPacket.Decoder decoder,
                                 NetworkPacket.Builder builder, String senderHost, int senderPort) {
         Boolean isInsideClient = AttributeKeyConstants.getAttr(ctx.channel(), AttributeKeyConstants.isInsideClientAttr);
-        boolean hasExpandBody = decoder.hasExpandBody();
-        if (!hasExpandBody && isInsideClient == null) {
+        boolean hasExtendBody = decoder.hasExtendBody();
+        if (!hasExtendBody && isInsideClient == null) {
             Long userId = AttributeKeyConstants.getAttr(ctx.channel(), AttributeKeyConstants.idAttr);
             SnowflakeIdGenerator snowflakeIdGenerator = SpringBeanFactory.getBean(SnowflakeIdGenerator.class);
-            ExpandBody expandBody = new ExpandBody();
-            expandBody.setMsgId(snowflakeIdGenerator.generateId());
-            expandBody.setProtocolType(protocolType);
-            expandBody.setFromServerId(NowServer.getServerInfo().getId());
-            expandBody.setFromServerType(NowServer.getServerInfo().getType());
-            expandBody.setUserChannelId(ctx.channel().id().asLongText());
+            ExtendBody extendBody = new ExtendBody();
+            extendBody.setMsgId(snowflakeIdGenerator.generateId());
+            extendBody.setProtocolType(protocolType);
+            extendBody.setFromServerId(NowServer.getServerInfo().getId());
+            extendBody.setFromServerType(NowServer.getServerInfo().getType());
+            extendBody.setUserChannelId(ctx.channel().id().asLongText());
             boolean isLogin = Objects.nonNull(userId);
-            expandBody.setLogin(isLogin);
             if (isLogin) {
-                expandBody.setUserId(userId);
                 OutsideUserSessionManager bean = SpringBeanFactory.getBean(OutsideUserSessionManager.class);
                 UserSession userSession = bean.getUserSession(userId);
-                expandBody.setUserSession(userSession);
+                if (Objects.nonNull(userSession)) {
+                    extendBody.setLogin(true);
+                    extendBody.setUserId(userId);
+                    extendBody.setUserSession(userSession);
+                }
             }
-            if (expandBody.getProtocolType() == 1) {
-                expandBody.setSenderHost(senderHost);
-                expandBody.setSenderPort(senderPort);
+            if (extendBody.getProtocolType() == 1) {
+                extendBody.setSenderHost(senderHost);
+                extendBody.setSenderPort(senderPort);
             }
-            expandBody.serializable(builder);
+            extendBody.serializable(builder);
         }
     }
 

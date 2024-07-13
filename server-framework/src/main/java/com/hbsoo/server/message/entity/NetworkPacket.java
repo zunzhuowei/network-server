@@ -1,6 +1,5 @@
 package com.hbsoo.server.message.entity;
 
-import com.hbsoo.server.session.UserSession;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.socket.DatagramPacket;
@@ -108,7 +107,6 @@ public final class NetworkPacket {
             for (byte aByte : header) {
                 this.headerByteList.add(aByte);
             }
-            //this.packageLength.getAndAdd(header.length);
         }
 
         public static Builder withDefaultHeader() {
@@ -125,7 +123,7 @@ public final class NetworkPacket {
             return buffer.array();
         }
 
-        public Builder writeExpandBodyMode() {
+        public Builder writeExtendBodyMode() {
             this.isWriteRawBody = false;
             return this;
         }
@@ -314,9 +312,9 @@ public final class NetworkPacket {
                 System.out.println("name = " + name);
                 throw new RuntimeException("msgType not set");
             }
-            int allBodyLen = allBodyLength.get();//包总长度
-            int rawBodyLen = rawBodyByteList.size();//原始包长度
-            //int expandBodyLen = expandBodyList.size();//扩展包长度
+            int allBodyLen = allBodyLength.get();//包体总长度
+            int rawBodyLen = rawBodyByteList.size();//原始包体长度
+            //int expandBodyLen = expandBodyList.size();//扩展包体长度
             ByteBuffer targetPacketBuffer = ByteBuffer.allocate(allBodyLen + this.headerByteList.size() + 12);//+12 bodyLen + rawBodyLen + msgType
             headerByteList.forEach(targetPacketBuffer::put);//header
             targetPacketBuffer.putInt(allBodyLen);//bodyLen
@@ -392,7 +390,7 @@ public final class NetworkPacket {
         private final AtomicInteger expandBodyReadOffset = new AtomicInteger(0);
         private boolean isReadRawBody = true;
 
-        public Decoder readExpandBodyMode() {
+        public Decoder readExtendBodyMode() {
             this.isReadRawBody = false;
             return this;
         }
@@ -405,7 +403,7 @@ public final class NetworkPacket {
             return isReadRawBody;
         }
 
-        public boolean hasExpandBody() {
+        public boolean hasExtendBody() {
             return expandBody != null;
         }
 
@@ -497,10 +495,9 @@ public final class NetworkPacket {
             return t.deserialize(this);
         }
 
-        public ExpandBody readExpandBody() {
-            ExpandBody expandBody = new ExpandBody();
-            expandBody.deserialize(this);
-            return expandBody;
+        public ExtendBody readExtendBody() {
+            ExtendBody extendBody = new ExtendBody();
+            return decode2Obj(extendBody);
         }
 
         /**
@@ -567,16 +564,9 @@ public final class NetworkPacket {
         }
 
         /**
-         * 获取消息类型,阅读偏移量不移动
+         * 获取消息类型
          */
         public int getMsgType() {
-            return this.msgType;
-        }
-
-        /**
-         * 获取消息类型,阅读偏移量移动4个字节
-         */
-        public int readMsgType() {
             return this.msgType;
         }
 

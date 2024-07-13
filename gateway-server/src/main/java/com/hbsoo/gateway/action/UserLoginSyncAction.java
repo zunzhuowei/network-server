@@ -2,12 +2,11 @@ package com.hbsoo.gateway.action;
 
 import com.hbsoo.server.annotation.InsideClientMessageHandler;
 import com.hbsoo.server.message.client.ClientMessageDispatcher;
-import com.hbsoo.server.message.entity.ExpandBody;
+import com.hbsoo.server.message.entity.ExtendBody;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.netty.ProtocolDispatcher;
 import com.hbsoo.server.session.OutsideUserSessionManager;
 import com.hbsoo.server.session.OutsideUserProtocol;
-import com.hbsoo.server.session.UserSession;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,8 +24,8 @@ public class UserLoginSyncAction extends ClientMessageDispatcher {
 
     @Override
     public void handle(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
-        ExpandBody expandBody = decoder.readExpandBody();
-        String channelId = expandBody.getUserChannelId();
+        ExtendBody extendBody = decoder.readExtendBody();
+        String channelId = extendBody.getUserChannelId();
         String username = decoder.readStr();
         int userId = decoder.readInt();
         String permissions = decoder.readStr();

@@ -6,7 +6,7 @@ import com.hbsoo.server.annotation.OutsideMessageHandler;
 import com.hbsoo.server.annotation.Permission;
 import com.hbsoo.server.annotation.Protocol;
 import com.hbsoo.server.message.MessageType;
-import com.hbsoo.server.message.entity.ExpandBody;
+import com.hbsoo.server.message.entity.ExtendBody;
 import com.hbsoo.server.message.entity.HttpPacket;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.server.HttpServerMessageDispatcher;
@@ -105,7 +105,7 @@ public class PermissionAspect {
             String authentication = httpPacket.getHeaders().get("Authentication");
             if (checkJwtPermission(permissions, authentication)) return true;
             ((HttpServerMessageDispatcher) point.getTarget())
-                    .responseHtml(context, httpPacket, "<h1>权限不足</h1>");
+                    .responseHtml(httpPacket, "<h1>权限不足</h1>");
             return false;
         }
         //UDP特殊处理
@@ -130,9 +130,9 @@ public class PermissionAspect {
                 return true;
             }
             NetworkPacket.Decoder decoder = (NetworkPacket.Decoder) args[1];
-            ExpandBody expandBody = decoder.readExpandBody();
-            if (expandBody.isLogin()) {
-                UserSession userSession = expandBody.getUserSession();
+            ExtendBody extendBody = decoder.readExtendBody();
+            if (extendBody.isLogin()) {
+                UserSession userSession = extendBody.getUserSession();
                 if (Objects.isNull(userSession) || userSession.getId() == 0L) {
                     logger.debug("ChannelId:{}未登录，无法获取session信息", userSession.getChannelId());
                     return false;
@@ -146,7 +146,7 @@ public class PermissionAspect {
                     }
                 }
             } else {
-                logger.debug("未登录，无法获取session信息，{}", expandBody);
+                logger.debug("未登录，无法获取session信息，{}", extendBody);
             }
         }
         if (protocol == Protocol.TCP) {

@@ -6,7 +6,7 @@ import com.hbsoo.server.session.UserSession;
 /**
  * Created by zun.wei on 2024/7/12.
  */
-public final class ExpandBody implements NetworkPacketEntity<ExpandBody> {
+public final class ExtendBody implements NetworkPacketEntity<ExtendBody> {
 
     private long msgId;
     public byte protocolType;
@@ -24,7 +24,7 @@ public final class ExpandBody implements NetworkPacketEntity<ExpandBody> {
     public void serializable(NetworkPacket.Builder builder) {
         boolean writeRawBody = builder.isWriteRawBody();
         if (writeRawBody) {
-            builder.writeExpandBodyMode();
+            builder.writeExtendBodyMode();
         }
         builder.writeLong(this.msgId)
                 .writeByte(this.protocolType)
@@ -45,14 +45,14 @@ public final class ExpandBody implements NetworkPacketEntity<ExpandBody> {
     }
 
     @Override
-    public ExpandBody deserialize(NetworkPacket.Decoder decoder) {
-        boolean hasExpandBody = decoder.hasExpandBody();
-        if (!hasExpandBody) {
+    public ExtendBody deserialize(NetworkPacket.Decoder decoder) {
+        boolean hasExtendBody = decoder.hasExtendBody();
+        if (!hasExtendBody) {
             return null;
         }
         boolean isReadRawBody = decoder.isReadRawBody();
         if (isReadRawBody) {
-            decoder.readExpandBodyMode();
+            decoder.readExtendBodyMode();
         }
         this.msgId = decoder.readLong();
         this.protocolType = decoder.readByte();
@@ -159,7 +159,7 @@ public final class ExpandBody implements NetworkPacketEntity<ExpandBody> {
 
     @Override
     public String toString() {
-        return "ExpandBody{" +
+        return "ExtendBody{" +
                 "msgId=" + msgId +
                 ", protocolType=" + protocolType +
                 ", fromServerId=" + fromServerId +

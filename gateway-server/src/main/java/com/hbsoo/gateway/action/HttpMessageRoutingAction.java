@@ -27,7 +27,7 @@ public class HttpMessageRoutingAction extends DefaultHttpServerDispatcher {
             forwardOutsideHttpMsg2InsideServer(ctx, httpPacket, "room", MessageType.Inside.GATEWAY_ROUTING_HTTP_TO_INNER_SERVER);
             return;
         }
-        responseHtml(ctx, httpPacket, "404");
+        responseHtml(httpPacket, "404");
     }
 
     @Override

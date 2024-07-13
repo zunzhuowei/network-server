@@ -2,10 +2,9 @@ package com.hbsoo.hall.action.websocket;
 
 import com.hbsoo.server.annotation.OutsideMessageHandler;
 import com.hbsoo.server.annotation.Permission;
-import com.hbsoo.server.message.entity.ExpandBody;
+import com.hbsoo.server.message.entity.ExtendBody;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.server.ServerMessageDispatcher;
-import com.hbsoo.server.session.UserSession;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,8 +19,8 @@ public class LoginChatRoomAction extends ServerMessageDispatcher {
 
     @Override
     public void handle(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
-        ExpandBody expandBody = decoder.readExpandBody();
-        String channelId = expandBody.getUserChannelId();
+        ExtendBody extendBody = decoder.readExtendBody();
+        String channelId = extendBody.getUserChannelId();
         String username = decoder.readStr();
         int userId = Math.abs(username.hashCode());
         logger.info("login chat room username:{}，channelId:{}，userId:{}", username, channelId, userId);

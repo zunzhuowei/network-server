@@ -2,7 +2,7 @@ package com.hbsoo.server.message.server;
 
 import com.hbsoo.server.annotation.OutsideMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
-import com.hbsoo.server.message.entity.ExpandBody;
+import com.hbsoo.server.message.entity.ExtendBody;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.utils.SpringBeanFactory;
 import com.hbsoo.server.utils.ThreadPoolScheduler;
@@ -45,8 +45,8 @@ public final class OutsideServerMessageDispatcher extends ServerMessageDispatche
         handleMessage(ctx, msg, protocol);
     }
 
-    public void onHttpMessage(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest, ExpandBody expandBody) {
-        handleHttp(ctx, fullHttpRequest, expandBody);
+    public void onHttpMessage(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest, ExtendBody extendBody) {
+        handleHttp(ctx, fullHttpRequest, extendBody);
     }
 
     @Override

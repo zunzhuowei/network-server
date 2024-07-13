@@ -193,7 +193,7 @@ public final class AccessLimitAspect {
         } else if (target instanceof HttpServerMessageDispatcher) {
             HttpPacket httpPacket = (HttpPacket) args[1];
             ((HttpServerMessageDispatcher) target)
-                    .responseHtml(context, httpPacket, "<h1>429</h1>");
+                    .responseHtml(httpPacket, "<h1>429</h1>");
         } else {
             NetworkPacket.Builder.withDefaultHeader()
                     .msgType(MessageType.Outside.TOO_MANY_REQUESTS)

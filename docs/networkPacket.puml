@@ -35,7 +35,7 @@ json NetworkPacket {
         {" string  " : "  [int 4 bytes + strLen bytes]"},
         {" byte[]  " : "  [int 4 bytes + bytes]"}
     ],
-     "expandBody":
+     "extendBody":
      {
         "msgId":{" long  " : "  [8 bytes]"},
         ' 0:tcp,1:udp,2:binary_websocket,3:text_websocket,4:http

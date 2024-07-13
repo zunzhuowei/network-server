@@ -19,14 +19,14 @@ public final class HttpPacket {
     byte[] body;
     FullHttpRequest fullHttpRequest;
     String method;
-    ExpandBody expandBody;
+    ExtendBody extendBody;
 
-    public ExpandBody getExpandBody() {
-        return expandBody;
+    public ExtendBody getExtendBody() {
+        return extendBody;
     }
 
-    public void setExpandBody(ExpandBody expandBody) {
-        this.expandBody = expandBody;
+    public void setExtendBody(ExtendBody extendBody) {
+        this.extendBody = extendBody;
     }
 
     public String getMethod() {

@@ -2,7 +2,7 @@ package com.hbsoo.gateway.action.inside;
 
 import com.alibaba.fastjson.JSON;
 import com.hbsoo.server.annotation.InsideServerMessageHandler;
-import com.hbsoo.server.message.entity.ExpandBody;
+import com.hbsoo.server.message.entity.ExtendBody;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.server.ServerMessageDispatcher;
 import com.hbsoo.server.session.OutsideUserSessionManager;
@@ -22,8 +22,8 @@ public class getUserSessionAction extends ServerMessageDispatcher {
 
     @Override
     public void handle(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
-        ExpandBody expandBody = decoder.readExpandBody();
-        UserSession userSession1 = expandBody.getUserSession();
+        ExtendBody extendBody = decoder.readExtendBody();
+        UserSession userSession1 = extendBody.getUserSession();
         String message = decoder.readStr();
         System.out.println("getUserSessionAction message = " + message);
         UserSession userSession = outsideUserSessionManager.getUserSession(userSession1.getId());
@@ -31,9 +31,9 @@ public class getUserSessionAction extends ServerMessageDispatcher {
         NetworkPacket.Builder.withDefaultHeader()
                 .msgType(1001)
                 .writeStr(jsonString)
-                .writeExpandBodyMode()
+                .writeExtendBodyMode()
                 //expandBody 必须写入，根据里面的msgId 找到对应的请求
-                .writeObj(expandBody)
+                .writeObj(extendBody)
                 .sendTcpTo(ctx.channel());
     }
 

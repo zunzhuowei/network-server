@@ -93,6 +93,13 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<Object
                 break;
             }
             case UDP: {
+                /*
+                maxFrameLength：允许的最大帧长度。超过这个长度的帧将被视为异常。
+                lengthFieldOffset：长度字段在帧中的起始位置。
+                lengthFieldLength：长度字段的长度。
+                lengthAdjustment：接收到的长度值需要增加的值。
+                initialBytesToStrip：从解码后的帧中移除的字节数。
+                 */
                 ctx.pipeline().addLast(new LengthFieldBasedFrameDecoder
                         (maxFrameLength, NetworkPacket.UDP_HEADER.length, 4, 8, 0));
                 ctx.pipeline().addLast(new UdpServerHandler(handler));

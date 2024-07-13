@@ -25,7 +25,7 @@ public class ChatLoginAction extends HttpServerMessageDispatcher {
             final int available = inputStream.available();
             byte[] bytes = new byte[available];
             inputStream.read(bytes);
-            responseHtml(ctx, httpPacket, new String(bytes));
+            responseHtml(httpPacket, new String(bytes));
         } catch (IOException e) {
             e.printStackTrace();
         }

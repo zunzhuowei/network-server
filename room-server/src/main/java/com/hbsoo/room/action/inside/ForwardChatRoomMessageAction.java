@@ -27,7 +27,7 @@ public class ForwardChatRoomMessageAction extends ServerMessageDispatcher {
 
     @Override
     public void handle(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
-        UserSession userSession = decoder.readExpandBody().getUserSession();
+        UserSession userSession = decoder.readExtendBody().getUserSession();
         String message = decoder.readStr();
         long userId = userSession.getId();
         ChatRoom chatRoom = ChatRoomManager.getChatRoom("first-chatroom");

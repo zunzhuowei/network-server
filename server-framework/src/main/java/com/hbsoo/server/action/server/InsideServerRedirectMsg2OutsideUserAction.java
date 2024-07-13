@@ -1,17 +1,21 @@
 package com.hbsoo.server.action.server;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.hbsoo.server.annotation.InsideServerMessageHandler;
 import com.hbsoo.server.message.MessageType;
+import com.hbsoo.server.message.entity.ExtendBody;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.server.ServerMessageDispatcher;
-import com.hbsoo.server.netty.ProtocolDispatcher;
 import com.hbsoo.server.session.OutsideUserSessionManager;
 import com.hbsoo.server.session.OutsideUserProtocol;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelId;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.Map;
 
 /**
  * 接收内部服务器的消息，转发给登录的外部客户
@@ -29,14 +33,15 @@ public class InsideServerRedirectMsg2OutsideUserAction extends ServerMessageDisp
         String protocolStr = decoder.readStr();
         OutsideUserProtocol protocol = OutsideUserProtocol.valueOf(protocolStr);
         if (protocol == OutsideUserProtocol.HTTP) {
-            String userChannelId = decoder.readStr();
             String contentType = decoder.readStr();
+            int status = decoder.readInt();
             byte[] insidePackage = decoder.readBytes();
-            logger.debug("userChannelId:{} protocol:{}", userChannelId, protocol);
-            ProtocolDispatcher.channels.parallelStream()
-                    .filter(channel -> channel.id().asLongText().equals(userChannelId))
-                    .findFirst()
-                    .ifPresent(channel -> outsideUserSessionManager.response(channel, insidePackage, contentType));
+            String headerMapStr = decoder.readStr();
+            Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+            Map<String, String> map = gson.fromJson(headerMapStr, Map.class);
+            ExtendBody extendBody = decoder.readExtendBody();
+            logger.debug("protocol:{},expandBody:{}", protocol, extendBody);
+            outsideUserSessionManager.httpResponse(map, insidePackage, contentType, extendBody, HttpResponseStatus.valueOf(status));
             return;
         }
         long id = decoder.readLong();

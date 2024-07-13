@@ -2,7 +2,7 @@ package com.hbsoo.gateway.action;
 
 import com.hbsoo.gateway.queue.MessageQueueTest;
 import com.hbsoo.server.message.MessageType;
-import com.hbsoo.server.message.entity.ExpandBody;
+import com.hbsoo.server.message.entity.ExtendBody;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.server.DefaultServerMessageDispatcher;
 import io.netty.channel.ChannelHandlerContext;
@@ -23,14 +23,14 @@ public class WebsocketTcpUdpMessageRoutingAction extends DefaultServerMessageDis
     @Override
     public void handle(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
         int msgType = decoder.getMsgType();
-        ExpandBody expandBody = new ExpandBody();
-        expandBody.deserialize(decoder);
-        Object threadKey = expandBody.getMsgId();
+        ExtendBody extendBody = new ExtendBody();
+        extendBody.deserialize(decoder);
+        Object threadKey = extendBody.getMsgId();
 
         NetworkPacket.Builder builder = decoder
                 .toBuilder(NetworkPacket.TCP_HEADER)
                 .msgType(MessageType.Inside.GATEWAY_ROUTING_WEBSOCKET_TCP_UDP_TO_INNER_SERVER)
-                .writeExpandBodyMode().writeInt(msgType);
+                .writeExtendBodyMode().writeInt(msgType);
         if (msgType < 1000) {
             forward2InsideServer(builder, "hall", threadKey);
             return;

@@ -116,7 +116,7 @@ public final class UserSession implements NetworkPacketEntity<UserSession> {
     public void serializable(NetworkPacket.Builder builder) {
         boolean writeRawBody = builder.isWriteRawBody();
         if (writeRawBody) {
-            builder.writeExpandBodyMode();
+            builder.writeExtendBodyMode();
         }
         builder.writeLong(this.id == null ? 0 : this.id)
                 .writeStr(this.belongServer == null ? "" : this.belongServer.getHost())
@@ -141,7 +141,7 @@ public final class UserSession implements NetworkPacketEntity<UserSession> {
     public UserSession deserialize(NetworkPacket.Decoder decoder) {
         boolean readRawBody = decoder.isReadRawBody();
         if (readRawBody) {
-            decoder.readExpandBodyMode();
+            decoder.readExtendBodyMode();
         }
         this.id = decoder.readLong();
         this.belongServer = new ServerInfo();
