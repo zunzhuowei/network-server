@@ -6,6 +6,7 @@ import com.hbsoo.server.message.MessageType;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.server.ServerMessageDispatcher;
 import com.hbsoo.server.netty.AttributeKeyConstants;
+import com.hbsoo.server.session.OutsideUserProtocol;
 import com.hbsoo.server.session.OutsideUserSessionManager;
 import com.hbsoo.server.session.UserSession;
 import io.netty.channel.ChannelHandlerContext;
@@ -50,7 +51,7 @@ public class InsideServerLoginAction extends ServerMessageDispatcher {
             clients.forEach((userId, userSession) -> {
                 Gson gson = new Gson();
                 // 登录服务器
-                NetworkPacket.Builder.withDefaultHeader()
+                NetworkPacket.Builder builder = NetworkPacket.Builder.withDefaultHeader()
                         .msgType(MessageType.Inside.LOGIN_SYNC)
                         .writeLong(userId)//登录用户id
                         .writeInt(userSession.getBelongServer().getId()) //登录所属服务器id
@@ -58,7 +59,12 @@ public class InsideServerLoginAction extends ServerMessageDispatcher {
                         .writeInt(userSession.getBelongServer().getPort())
                         .writeStr(userSession.getBelongServer().getType())
                         .writeStr(gson.toJson(userSession.getPermissions()))
-                        .sendTcpTo(ctx.channel());
+                        .writeStr(userSession.getChannelId())
+                        .writeByte(userSession.getProtocolType());
+                if (userSession.getOutsideUserProtocol() == OutsideUserProtocol.UDP) {
+                    builder.writeStr(userSession.getUdpHost()).writeInt(userSession.getUdpPort());
+                }
+                builder.sendTcpTo(ctx.channel());
                 //必须用连接的客户端推送，否则可能对方客户端链接了但是服务端还未启动完成，导致无法收到消息
             });
         }

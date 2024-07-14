@@ -10,6 +10,7 @@ import com.hbsoo.server.message.entity.HttpPacket;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.entity.TextWebSocketPacket;
 import com.hbsoo.server.netty.AttributeKeyConstants;
+import com.hbsoo.server.session.OutsideUserProtocol;
 import com.hbsoo.server.session.OutsideUserSessionManager;
 import com.hbsoo.server.session.UserSession;
 import com.hbsoo.server.utils.SnowflakeIdGenerator;
@@ -50,7 +51,7 @@ interface CommonDispatcher {
 
     //工作线程池
     ThreadPoolScheduler threadPoolScheduler();
-    byte tcp = 0, udp = 1, binary_websocket = 2,text_websocket = 3, http = 4;
+    //byte tcp = 0, udp = 1, binary_websocket = 2,text_websocket = 3, http = 4;
 
     /**
      * 组装协议分发
@@ -191,7 +192,7 @@ interface CommonDispatcher {
             msg.readBytes(received);
             NetworkPacket.Decoder decoder = NetworkPacket.Decoder.withDefaultHeader().parsePacket(received);
             NetworkPacket.Builder builder = decoder.toBuilder();
-            fillExtendBody(ctx, tcp, decoder, builder, null, 0);
+            fillExtendBody(ctx, OutsideUserProtocol.TCP.protocolType, decoder, builder, null, 0);
             dispatcher(ctx, Protocol.TCP, builder.toDecoder());
         } catch (Exception e) {
             e.printStackTrace();
@@ -208,7 +209,7 @@ interface CommonDispatcher {
             msg.readBytes(received);
             NetworkPacket.Decoder decoder = NetworkPacket.Decoder.withHeader(NetworkPacket.UDP_HEADER).parsePacket(received);
             NetworkPacket.Builder builder = decoder.toBuilder();
-            fillExtendBody(ctx, udp, decoder, builder, datagramPacket.sender().getHostString(), datagramPacket.sender().getPort());
+            fillExtendBody(ctx, OutsideUserProtocol.UDP.protocolType, decoder, builder, datagramPacket.sender().getHostString(), datagramPacket.sender().getPort());
             dispatcher(ctx, Protocol.UDP, builder.toDecoder());
         } catch (Exception e) {
             e.printStackTrace();
@@ -282,7 +283,8 @@ interface CommonDispatcher {
                 decoder = NetworkPacket.Decoder.withDefaultHeader().parsePacket(received);
             }
             NetworkPacket.Builder builder = decoder.toBuilder();
-            fillExtendBody(ctx, webSocketFrame instanceof TextWebSocketFrame ? text_websocket : binary_websocket, decoder, builder, null, 0);
+            byte type = webSocketFrame instanceof TextWebSocketFrame ? OutsideUserProtocol.TEXT_WEBSOCKET.protocolType : OutsideUserProtocol.BINARY_WEBSOCKET.protocolType;
+            fillExtendBody(ctx, type, decoder, builder, null, 0);
             NetworkPacket.Decoder newDecoder = builder.toDecoder();
             int msgType = newDecoder.getMsgType();
             ServerMessageDispatcher dispatcher = dispatchers().get(Protocol.WEBSOCKET).get(msgType);
@@ -358,7 +360,7 @@ interface CommonDispatcher {
                 extendBody[0] = new ExtendBody();
                 SnowflakeIdGenerator snowflakeIdGenerator = SpringBeanFactory.getBean(SnowflakeIdGenerator.class);
                 extendBody[0].setMsgId(snowflakeIdGenerator.generateId());
-                extendBody[0].setProtocolType(http);
+                extendBody[0].setProtocolType(OutsideUserProtocol.HTTP.protocolType);
                 extendBody[0].setFromServerId(NowServer.getServerInfo().getId());
                 extendBody[0].setFromServerType(NowServer.getServerInfo().getType());
                 extendBody[0].setUserChannelId(ctx.channel().id().asLongText());
@@ -420,9 +422,13 @@ interface CommonDispatcher {
             extendBody.setFromServerId(NowServer.getServerInfo().getId());
             extendBody.setFromServerType(NowServer.getServerInfo().getType());
             extendBody.setUserChannelId(ctx.channel().id().asLongText());
+
+            OutsideUserSessionManager bean = SpringBeanFactory.getBean(OutsideUserSessionManager.class);
+            if (OutsideUserProtocol.UDP.protocolType == protocolType) {
+                userId = bean.getUdpRelativeUserId(senderHost, senderPort);
+            }
             boolean isLogin = Objects.nonNull(userId);
             if (isLogin) {
-                OutsideUserSessionManager bean = SpringBeanFactory.getBean(OutsideUserSessionManager.class);
                 UserSession userSession = bean.getUserSession(userId);
                 if (Objects.nonNull(userSession)) {
                     extendBody.setLogin(true);
@@ -430,7 +436,7 @@ interface CommonDispatcher {
                     extendBody.setUserSession(userSession);
                 }
             }
-            if (extendBody.getProtocolType() == udp) {
+            if (extendBody.getProtocolType() == OutsideUserProtocol.UDP.protocolType) {
                 extendBody.setSenderHost(senderHost);
                 extendBody.setSenderPort(senderPort);
             }

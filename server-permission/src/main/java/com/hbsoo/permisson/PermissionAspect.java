@@ -113,17 +113,22 @@ public class PermissionAspect {
             NetworkPacket.Decoder decoder = (NetworkPacket.Decoder) args[1];
             String sendHost = decoder.skipGetStr(NetworkPacket.DecodeSkip.INT);
             int sendPort = decoder.skipGetInt(NetworkPacket.DecodeSkip.INT, NetworkPacket.DecodeSkip.STRING);
-            String authentication = decoder.skipGetStr(
-                    NetworkPacket.DecodeSkip.INT,//消息类型
-                    NetworkPacket.DecodeSkip.STRING,//发送端
-                    NetworkPacket.DecodeSkip.INT);//发送端口
-            if (checkJwtPermission(permissions, authentication)) return true;
+            ExtendBody extendBody = decoder.readExtendBody();
+            UserSession userSession = extendBody.getUserSession();
+            // 重置读取位置
+            decoder.resetBodyReadOffset();
+            Set<String> userSessionPermissions = userSession.getPermissions();
+            for (String p : permissions) {
+                if (userSessionPermissions.contains(p)) {
+                    return true;
+                }
+            }
             NetworkPacket.Builder.withHeader(NetworkPacket.UDP_HEADER)
                     .msgType(MessageType.Outside.PERMISSION_DENIED)
                     .sendUdpTo(context.channel(), sendHost, sendPort);
             return false;
         }
-        // 非http,非udp
+        // tcp, websocket
         else {
             //int msgType = decoder.getMsgType();
             if (Objects.isNull(context)) {
@@ -131,22 +136,21 @@ public class PermissionAspect {
             }
             NetworkPacket.Decoder decoder = (NetworkPacket.Decoder) args[1];
             ExtendBody extendBody = decoder.readExtendBody();
-            if (extendBody.isLogin()) {
-                UserSession userSession = extendBody.getUserSession();
-                if (Objects.isNull(userSession) || userSession.getId() == 0L) {
-                    logger.debug("ChannelId:{}未登录，无法获取session信息", userSession.getChannelId());
-                    return false;
+            try {
+                if (extendBody.isLogin()) {
+                    UserSession userSession = extendBody.getUserSession();
+                    Set<String> userSessionPermissions = userSession.getPermissions();
+                    for (String p : permissions) {
+                        if (userSessionPermissions.contains(p)) {
+                            return true;
+                        }
+                    }
+                } else {
+                    logger.debug("未登录，无法获取session信息，{}", extendBody);
                 }
+            } finally {
                 // 重置读取位置
                 decoder.resetBodyReadOffset();
-                Set<String> userSessionPermissions = userSession.getPermissions();
-                for (String p : permissions) {
-                    if (userSessionPermissions.contains(p)) {
-                        return true;
-                    }
-                }
-            } else {
-                logger.debug("未登录，无法获取session信息，{}", extendBody);
             }
         }
         if (protocol == Protocol.TCP) {

@@ -1,5 +1,7 @@
 package com.hbsoo.room.entity;
 
+import com.hbsoo.server.session.UserSession;
+
 import java.util.List;
 import java.util.Set;
 
@@ -10,7 +12,7 @@ public class ChatRoom {
 
     private Long roomId;
     private String roomName;
-    private Set<Long> userIds;
+    private Set<UserSession> userSessions;
     private String belongServerType;
     private int belongServerId;
     private List<String> recentMsgList;
@@ -31,12 +33,12 @@ public class ChatRoom {
         this.roomName = roomName;
     }
 
-    public Set<Long> getUserIds() {
-        return userIds;
+    public Set<UserSession> getUserSessions() {
+        return userSessions;
     }
 
-    public void setUserIds(Set<Long> userIds) {
-        this.userIds = userIds;
+    public void setUserSessions(Set<UserSession> userSessions) {
+        this.userSessions = userSessions;
     }
 
     public String getBelongServerType() {
@@ -63,11 +65,13 @@ public class ChatRoom {
         this.recentMsgList = recentMsgList;
     }
 
-    public void addUser(Long userId) {
-        this.userIds.add(userId);
+    public void addUser(UserSession userSession) {
+        removeUser(userSession);
+        this.userSessions.add(userSession);
     }
-    public void removeUser(Long userId) {
-        this.userIds.remove(userId);
+    public void removeUser(UserSession userSession) {
+        this.userSessions.removeIf(userSession1 -> userSession1.getId().equals(userSession.getId()));
+        //this.userSessions.remove(userSession);
     }
     public void addRecentMsg(String msg) {
         this.recentMsgList.add(msg);

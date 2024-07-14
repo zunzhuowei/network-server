@@ -28,12 +28,18 @@ public final class UserSession implements NetworkPacketEntity<UserSession> {
     private String channelId;
     private String udpHost;
     private int udpPort;
-    private boolean isUdp;
+    /**
+     * 协议类型
+     */
+    public byte protocolType;
     /**
      * 用户有的权限
      */
     private final Set<String> permissions = new HashSet<>();
 
+    public OutsideUserProtocol getOutsideUserProtocol() {
+        return OutsideUserProtocol.getProtocol(this.protocolType);
+    }
 
     public UserSession() { }
     public UserSession(String channelId) {
@@ -66,12 +72,12 @@ public final class UserSession implements NetworkPacketEntity<UserSession> {
         this.udpPort = udpPort;
     }
 
-    public boolean isUdp() {
-        return isUdp;
+    public byte getProtocolType() {
+        return protocolType;
     }
 
-    public void setUdp(boolean udp) {
-        isUdp = udp;
+    public void setProtocolType(byte protocolType) {
+        this.protocolType = protocolType;
     }
 
     public Long getId() {
@@ -100,6 +106,10 @@ public final class UserSession implements NetworkPacketEntity<UserSession> {
         this.channelId = channel.id().asLongText();
     }
 
+    public void setChannelId(String channelId) {
+        this.channelId = channelId;
+    }
+
     @Override
     public String toString() {
         return "UserSession{" +
@@ -108,7 +118,7 @@ public final class UserSession implements NetworkPacketEntity<UserSession> {
                 ", channel=" + channel +
                 ", udpHost='" + udpHost + '\'' +
                 ", udpPort=" + udpPort +
-                ", isUdp=" + isUdp +
+                ", protocolType=" + protocolType +
                 '}';
     }
 
@@ -125,7 +135,7 @@ public final class UserSession implements NetworkPacketEntity<UserSession> {
                 .writeInt(this.belongServer == null ? 0 : this.belongServer.getId())
                 .writeInt(this.belongServer == null ? 0 : this.belongServer.getWeight())
                 .writeInt(this.belongServer == null ? 0 : this.belongServer.getClientSize())
-                .writeBoolean(this.isUdp)
+                .writeByte(this.protocolType)
                 .writeStr(this.udpHost == null ? "" : this.udpHost)
                 .writeInt(this.udpPort == 0 ? 0 : this.udpPort)
                 .writeStr(this.channelId == null ? "" : this.channelId)
@@ -151,7 +161,7 @@ public final class UserSession implements NetworkPacketEntity<UserSession> {
         this.belongServer.setId(decoder.readInt());
         this.belongServer.setWeight(decoder.readInt());
         this.belongServer.setClientSize(decoder.readInt());
-        this.isUdp = decoder.readBoolean();
+        this.protocolType = decoder.readByte();
         this.udpHost = decoder.readStr();
         this.udpPort = decoder.readInt();
         this.channelId = decoder.readStr();

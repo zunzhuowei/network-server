@@ -40,13 +40,7 @@ public class UdpClient {
             //ByteBuf buf = Unpooled.copiedBuffer("Hello, UDP Server!".getBytes());
             //channelFuture.channel().writeAndFlush(new DatagramPacket(buf, new InetSocketAddress("localhost", 5555))).sync();
             NetworkPacket.Builder.withHeader(NetworkPacket.UDP_HEADER)
-                    .msgType(1).writeStr("Hello, UDP Server!")
-                    .sendUdpTo(channelFuture.channel(), "localhost", 5555);
-            NetworkPacket.Builder.withHeader(NetworkPacket.UDP_HEADER)
-                    .msgType(1).writeStr("Hello, UDP Server2!")
-                    .sendUdpTo(channelFuture.channel(), "localhost", 5555);
-            NetworkPacket.Builder.withHeader(NetworkPacket.UDP_HEADER)
-                    .msgType(1).writeStr("Hello, UDP Server3!")
+                    .msgType(100).writeStr("Hello, UDP Server!")
                     .sendUdpTo(channelFuture.channel(), "localhost", 5555);
             channelFuture.channel().closeFuture().await(); // wait for 10 seconds for responses
         } finally {

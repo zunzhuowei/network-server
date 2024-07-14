@@ -1,5 +1,6 @@
 package com.hbsoo.server.message.entity;
 
+import com.hbsoo.server.session.OutsideUserProtocol;
 import com.hbsoo.server.session.UserSession;
 
 
@@ -35,7 +36,7 @@ public final class ExtendBody implements NetworkPacketEntity<ExtendBody> {
         if (isLogin) {
             builder.writeLong(this.userId).writeObj(this.userSession);
         }
-        if (this.protocolType == 1) {
+        if (this.protocolType == OutsideUserProtocol.UDP.protocolType) {
             builder.writeStr(this.senderHost)
                     .writeInt(this.senderPort);
         }
@@ -66,7 +67,7 @@ public final class ExtendBody implements NetworkPacketEntity<ExtendBody> {
             userSession.deserialize(decoder);
             this.userSession = userSession;
         }
-        if (this.protocolType == 1) {
+        if (this.protocolType == OutsideUserProtocol.UDP.protocolType) {
             this.senderHost = decoder.readStr();
             this.senderPort = decoder.readInt();
         }
@@ -76,6 +77,9 @@ public final class ExtendBody implements NetworkPacketEntity<ExtendBody> {
         return this;
     }
 
+    public OutsideUserProtocol getOutsideUserProtocol() {
+        return OutsideUserProtocol.getProtocol(this.protocolType);
+    }
 
     public long getMsgId() {
         return msgId;

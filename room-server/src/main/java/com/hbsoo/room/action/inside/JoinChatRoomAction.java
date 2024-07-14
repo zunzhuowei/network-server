@@ -33,6 +33,7 @@ public class JoinChatRoomAction extends ServerMessageDispatcher {
     @Override
     public void handle(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
         ExtendBody extendBody = decoder.readExtendBody();
+        OutsideUserProtocol protocol = extendBody.getOutsideUserProtocol();
         String username = decoder.readStr();
         final String channelId = extendBody.getUserChannelId();
         long userId = decoder.readInt();
@@ -44,6 +45,7 @@ public class JoinChatRoomAction extends ServerMessageDispatcher {
         UserSession userSession = outsideUserSessionManager.getUserSession(userId);
         //有可能网关还未同步用户信息过来
         if (userSession == null) {
+            //TODO 添加重试次数
             delayThreadPoolScheduler.schedule(() -> redirectMessage(ctx, decoder.toBuilder()), 500L, TimeUnit.MILLISECONDS);
             return;
         }
@@ -53,34 +55,40 @@ public class JoinChatRoomAction extends ServerMessageDispatcher {
             chatRoom1.setRoomId(1L);
             chatRoom1.setBelongServerId(outsideUserSessionManager.getNowServerInfo().getId());
             chatRoom1.setBelongServerType(outsideUserSessionManager.getNowServerInfo().getType());
-            CopyOnWriteArraySet<Long> userIds = new CopyOnWriteArraySet<>();
-            chatRoom1.setUserIds(userIds);
+            CopyOnWriteArraySet<UserSession> userSessions = new CopyOnWriteArraySet<>();
+            chatRoom1.setUserSessions(userSessions);
             chatRoom1.setRecentMsgList(new CopyOnWriteArrayList<>());
             return chatRoom1;
         });
         //通知他人该用户上线了
         NetworkPacket.Builder onlineMsg = NetworkPacket.Builder.withDefaultHeader()
                 .msgType(100).writeStr(username).writeLong(userId);
-        outsideUserSessionManager.sendMsg2User(
-                OutsideUserProtocol.BINARY_WEBSOCKET,
-                onlineMsg,
-                chatRoom.getUserIds().stream().filter(id -> !id.equals(userId)).distinct().toArray(Long[]::new)
-        );
-
-        chatRoom.addUser(userId);
+        chatRoom.getUserSessions().forEach(us -> {
+            if (!us.getId().equals(userId)) {
+                outsideUserSessionManager.sendMsg2User(
+                        us.getOutsideUserProtocol(),
+                        onlineMsg,
+                        us.getId()
+                );
+            }
+        });
+        //加入房间
+        chatRoom.addUser(userSession);
         Gson gson = new Gson();
-        NetworkPacket.Builder builder = NetworkPacket.Builder.withDefaultHeader()
+        NetworkPacket.Builder builder = NetworkPacket.Builder
+                .withHeader(protocol == OutsideUserProtocol.UDP ? NetworkPacket.UDP_HEADER : NetworkPacket.TCP_HEADER)
                 .msgType(101)
                 .writeStr(gson.toJson(chatRoom));
         //通知用户成功加入房间
-        outsideUserSessionManager.sendMsg2User(OutsideUserProtocol.BINARY_WEBSOCKET, builder, userId);
+        outsideUserSessionManager.sendMsg2User(protocol, builder, userId);
         //推送历史消息
         List<String> recentMsgList = chatRoom.getRecentMsgList();
         for (String msg : recentMsgList) {
              String[] split = msg.split(":");
-            NetworkPacket.Builder historyMsg = NetworkPacket.Builder.withDefaultHeader()
+            NetworkPacket.Builder historyMsg = NetworkPacket.Builder
+                    .withHeader(protocol == OutsideUserProtocol.UDP ? NetworkPacket.UDP_HEADER : NetworkPacket.TCP_HEADER)
                     .msgType(1001).writeLong(Long.parseLong(split[0])).writeStr(split[1]);
-            outsideUserSessionManager.sendMsg2User(OutsideUserProtocol.BINARY_WEBSOCKET, historyMsg, userId);
+            outsideUserSessionManager.sendMsg2User(protocol, historyMsg, userId);
         }
     }
 

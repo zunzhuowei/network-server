@@ -45,11 +45,20 @@ public class ReceiveChatRoomMessageAction extends ServerMessageDispatcher {
         chatRoom.addRecentMsg(userId + ":" + message);
         NetworkPacket.Builder builder = NetworkPacket.Builder.withDefaultHeader()
                 .msgType(1001).writeLong(userId).writeStr(message);
-        outsideUserSessionManager.sendMsg2User(
-                OutsideUserProtocol.BINARY_WEBSOCKET,
-                builder,
-                chatRoom.getUserIds().toArray(new Long[0])
-        );
+        chatRoom.getUserSessions().forEach(us -> {
+            if (us.getOutsideUserProtocol() == OutsideUserProtocol.UDP) {
+                builder.replaceHeader(NetworkPacket.UDP_HEADER);
+            }
+            outsideUserSessionManager.sendMsg2User(
+                    us.getOutsideUserProtocol(),
+                    builder,
+                    us.getId()
+            );
+            if (us.getOutsideUserProtocol() == OutsideUserProtocol.UDP) {
+                builder.replaceHeader(NetworkPacket.TCP_HEADER);
+            }
+        });
+
     }
 
     @Override

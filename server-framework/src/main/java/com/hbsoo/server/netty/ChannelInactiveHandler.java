@@ -1,5 +1,6 @@
 package com.hbsoo.server.netty;
 
+import com.hbsoo.server.session.ChannelManager;
 import com.hbsoo.server.session.InsideClientSessionManager;
 import com.hbsoo.server.session.OutsideUserSessionManager;
 import com.hbsoo.server.session.UserSession;
@@ -53,7 +54,7 @@ public final class ChannelInactiveHandler extends ChannelInboundHandlerAdapter {
                 InsideClientSessionManager.logoutWithChannel(ctx.channel());
             }
         }
-        ProtocolDispatcher.channels.remove(ctx.channel());
+        ChannelManager.removeChannel(ctx.channel());
     }
 
     @Override

@@ -117,6 +117,14 @@ public final class NetworkPacket {
             return new Builder(header);
         }
 
+        public Builder replaceHeader(byte[] header) {
+            this.headerByteList.clear();
+            for (byte aByte : header) {
+                this.headerByteList.add(aByte);
+            }
+            return this;
+        }
+
         public byte[] getHeader() {
             ByteBuffer buffer = ByteBuffer.allocate(headerByteList.size());
             headerByteList.forEach(buffer::put);

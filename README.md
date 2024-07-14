@@ -45,8 +45,8 @@
 
 
 4. `server-permission`: The `permission` module of the framework, Use `Spring AOP` and annotations to control interface
-   permissions. The HTTP protocol uses the request header entrainment JWT method, the UDP protocol uses the JWT string
-   as the first field, and the `permissions` field in the `UserSession` is used for TCP and WebSocket. If you need
+   permissions. The HTTP protocol uses the request header entrainment JWT method,
+   the `permissions` field in the `UserSession` is used for TCP and UDP and WebSocket. If you need
    to use a `permission` module, you can use it.`that is optional`.
 
 
@@ -266,3 +266,4 @@ public class IndexAction extends HttpServerMessageDispatcher {
 30. ~~做一个im群组聊天室，测试框架完善度~~
 31. ~~让内部服务客户端发送同步消息（客户端发送等待服务端返回消息）~~
 32. ~~重构NetworkPacket，body部分改成rawBody、extendBody，方便扩展~~
+33. ~~udp协议问题修复，消息体改版后其他模块的适配~~

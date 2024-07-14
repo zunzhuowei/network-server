@@ -6,6 +6,7 @@ import com.hbsoo.server.config.ServerInfo;
 import com.hbsoo.server.message.MessageType;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.server.ServerMessageDispatcher;
+import com.hbsoo.server.session.OutsideUserProtocol;
 import com.hbsoo.server.session.OutsideUserSessionManager;
 import com.hbsoo.server.session.UserSession;
 import io.netty.channel.ChannelHandlerContext;
@@ -35,6 +36,8 @@ public class InsideServerSyncOutsideUserLoginAction extends ServerMessageDispatc
         int belongServerPort = decoder.readInt();
         String belongServerType = decoder.readStr();
         String permissionStr = decoder.readStr();
+        String channelId = decoder.readStr();
+        byte protocolType = decoder.readByte();
         logger.debug("id:{} belongServerId:{} belongServerHost:{} belongServerPort:{} belongServerType:{},permissionStr:{}",
                 id, belongServerId, belongServerHost, belongServerPort, belongServerType, permissionStr);
         UserSession userSession = new UserSession();
@@ -48,6 +51,14 @@ public class InsideServerSyncOutsideUserLoginAction extends ServerMessageDispatc
         Gson gson = new Gson();
         Set<String> set = gson.fromJson(permissionStr, Set.class);
         userSession.getPermissions().addAll(set);
+        userSession.setChannelId(channelId);
+        userSession.setProtocolType(protocolType);
+        if (OutsideUserProtocol.getProtocol(protocolType) == OutsideUserProtocol.UDP) {
+            String senderHost = decoder.readStr();
+            int senderPort = decoder.readInt();
+            userSession.setUdpHost(senderHost);
+            userSession.setUdpPort(senderPort);
+        }
         outsideUserSessionManager.login(id, userSession);
     }
 

@@ -2,6 +2,7 @@ package com.hbsoo.server.netty;
 
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.server.ServerMessageHandler;
+import com.hbsoo.server.session.ChannelManager;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -36,7 +37,7 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<Object
     private final int maxFrameLength;
     private final Set<String> protocols;
     private static final Logger logger = LoggerFactory.getLogger(ProtocolDispatcher.class);
-    public static ChannelGroup channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
+    //public static ChannelGroup channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
 
     public ProtocolDispatcher(ServerMessageHandler handler, int maxFrameLength, Set<String> protocols) {
         this.protocols = protocols;
@@ -54,7 +55,7 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<Object
         ctx.pipeline().addLast("unknownIdleStateHandler", new IdleStateHandler(0, 0, 1));
         ctx.pipeline().addLast("unknownServerHeartbeatHandler", new ServerHeartbeatHandler());
         ctx.pipeline().addLast("unknownChannelInactiveHandler", new ChannelInactiveHandler(ProtocolType.UNKNOWN));
-        channels.add(ctx.channel());
+        ChannelManager.addChannel(ctx.channel());
     }
 
     @Override
@@ -77,6 +78,10 @@ public final class ProtocolDispatcher extends SimpleChannelInboundHandler<Object
             ctx.pipeline().remove("unknownChannelInactiveHandler");
             ctx.pipeline().addLast("idleStateHandler", new IdleStateHandler(0, 0, 10));
             ctx.pipeline().addLast("serverHeartbeatHandler", new ServerHeartbeatHandler());
+        }
+        if (protocolType == ProtocolType.UDP) {
+            ctx.pipeline().addLast(new IdleStateHandler(0, 0, 10));
+            ctx.pipeline().addLast(new UdpServerHeartbeatHandler());
         }
         if (!protocols.contains(protocolType.name())) {
             logger.error("protocol was disable, type: {}", protocolType.name());

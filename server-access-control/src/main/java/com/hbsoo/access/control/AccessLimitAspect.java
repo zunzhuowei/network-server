@@ -5,10 +5,12 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.RateLimiter;
 import com.hbsoo.server.message.MessageType;
+import com.hbsoo.server.message.entity.ExtendBody;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.entity.HttpPacket;
 import com.hbsoo.server.message.server.HttpServerMessageDispatcher;
 import com.hbsoo.server.netty.AttributeKeyConstants;
+import com.hbsoo.server.session.OutsideUserProtocol;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -106,6 +108,7 @@ public final class AccessLimitAspect {
                 return joinPoint.proceed();
             }
         }
+
         //系统配置文件限流配置
         AccessLimit accessLimit = getAccessLimit(joinPoint);
         if (accessLimit == null) {
@@ -115,23 +118,7 @@ public final class AccessLimitAspect {
                 responseAccessLimit(target, args, context);
                 return null;
             }
-            Long userId = null;
-            //UDP
-            if (context.channel() instanceof NioDatagramChannel) {
-                NetworkPacket.Decoder decoder = (NetworkPacket.Decoder) args[1];
-                String sendHost = decoder.skipGetStr(NetworkPacket.DecodeSkip.INT);
-                //int sendPort = decoder.skipGetInt(HBSPackage.DecodeSkip.INT, HBSPackage.DecodeSkip.STRING);
-                userId = (long) Math.abs(sendHost.hashCode());
-            } else {
-                // TCP,WEBSOCKET
-                userId = AttributeKeyConstants.getAttr(context.channel(), AttributeKeyConstants.idAttr);
-                // HTTP or no login
-                if (Objects.isNull(userId)) {
-                    SocketAddress socketAddress = context.channel().remoteAddress();
-                    String hostString = ((InetSocketAddress) socketAddress).getHostString();
-                    userId = (long) Math.abs(hostString.hashCode());
-                }
-            }
+            Long userId = getUserId(context, args);
             boolean userAcquire = systemRateLimiter.tryUserAcquire(userId);
             if (!userAcquire) {
                 logger.debug("User rate limit");
@@ -142,7 +129,6 @@ public final class AccessLimitAspect {
         }
 
         //注解限流配置
-
         Object[] systemRateLimiters = getSystemRateLimiters(aClass, accessLimit);
         RateLimiter globalRateLimiter = (RateLimiter) systemRateLimiters[0];
         if (!globalRateLimiter.tryAcquire()) {
@@ -151,23 +137,7 @@ public final class AccessLimitAspect {
             return null;
         }
         LoadingCache<Long, RateLimiter> userRateLimiters = (LoadingCache<Long, RateLimiter>) systemRateLimiters[1];
-        Long userId = null;
-        //UDP
-        if (context.channel() instanceof NioDatagramChannel) {
-            NetworkPacket.Decoder decoder = (NetworkPacket.Decoder) args[1];
-            String sendHost = decoder.skipGetStr(NetworkPacket.DecodeSkip.INT);
-            //int sendPort = decoder.skipGetInt(HBSPackage.DecodeSkip.INT, HBSPackage.DecodeSkip.STRING);
-            userId = (long) Math.abs(sendHost.hashCode());
-        } else {
-            // TCP,WEBSOCKET
-            userId = AttributeKeyConstants.getAttr(context.channel(), AttributeKeyConstants.idAttr);
-            // HTTP or no login
-            if (Objects.isNull(userId)) {
-                SocketAddress socketAddress = context.channel().remoteAddress();
-                String hostString = ((InetSocketAddress) socketAddress).getHostString();
-                userId = (long) Math.abs(hostString.hashCode());
-            }
-        }
+        Long userId = getUserId(context, args);
         if (!userRateLimiters.get(userId).tryAcquire()) {
             logger.debug("AccessLimit User rate limit");
             responseAccessLimit(target, args, context);
@@ -208,6 +178,34 @@ public final class AccessLimitAspect {
     public AccessLimit getAccessLimit(ProceedingJoinPoint point) {
         MethodSignature signature = (MethodSignature) point.getSignature();
         return AnnotationUtils.findAnnotation(signature.getDeclaringType(), AccessLimit.class);
+    }
+
+
+    public Long getUserId(ChannelHandlerContext context, Object[] args) {
+        Long userId = null;
+        //UDP
+        if (context.channel() instanceof NioDatagramChannel) {
+            NetworkPacket.Decoder decoder = (NetworkPacket.Decoder) args[1];
+            ExtendBody extendBody = decoder.readExtendBody();
+            String sendHost = extendBody.getSenderHost();
+            int sendPort = extendBody.getSenderPort();
+            userId = (long) Math.abs((sendHost + ":" + sendPort).hashCode());
+            decoder.resetBodyReadOffset();
+        }
+        // TCP,WEBSOCKET,HTTP
+        else {
+            NetworkPacket.Decoder decoder = (NetworkPacket.Decoder) args[1];
+            ExtendBody extendBody = decoder.readExtendBody();
+            userId = extendBody.isLogin() ? extendBody.getUserId() : (long) Math.abs(extendBody.getUserChannelId().hashCode());
+            OutsideUserProtocol protocol = extendBody.getOutsideUserProtocol();
+            if (protocol == OutsideUserProtocol.HTTP) {
+                SocketAddress socketAddress = context.channel().remoteAddress();
+                String hostString = ((InetSocketAddress) socketAddress).getHostString();
+                userId = (long) Math.abs(hostString.hashCode());
+            }
+            decoder.resetBodyReadOffset();
+        }
+        return userId;
     }
 
 }

@@ -47,6 +47,8 @@ public final class OutsideUserSessionManager {
     private SnowflakeIdGenerator snowflakeIdGenerator;
     //用户session
     static Map<Long, UserSession> clients = new ConcurrentHashMap<>();
+    // udp host:port与id的映射
+    static Map<String, Long> udpSenderRelation = new ConcurrentHashMap<>();
     private final ServerInfo nowServerInfo;
 
     /**
@@ -60,6 +62,16 @@ public final class OutsideUserSessionManager {
 
     public ServerInfo getNowServerInfo() {
         return this.nowServerInfo;
+    }
+
+    /**
+     * 获取upd sender映射的用户id
+     * @param senderHost 发送端地址
+     * @param senderPort 发送端端口
+     * @return 用户id
+     */
+    public Long getUdpRelativeUserId(String senderHost, int senderPort) {
+        return udpSenderRelation.get(senderHost + ":" + senderPort);
     }
 
     /**
@@ -94,8 +106,10 @@ public final class OutsideUserSessionManager {
      */
     private void loginAndSyncAllServer(Long id, UserSession userSession) {
         login(id, userSession);
-        // 保存id,断线的时候踢出登录
-        userSession.getChannel().attr(AttributeKeyConstants.idAttr).set(userSession.getId());
+        if (!(userSession.getOutsideUserProtocol() == OutsideUserProtocol.UDP)) {
+            // 保存id,断线的时候踢出登录
+            userSession.getChannel().attr(AttributeKeyConstants.idAttr).set(userSession.getId());
+        }
         Gson gson = new Gson();
         NetworkPacket.Builder builder = NetworkPacket.Builder.withDefaultHeader()
                 .msgType(MessageType.Inside.LOGIN_SYNC)
@@ -105,42 +119,56 @@ public final class OutsideUserSessionManager {
                 .writeInt(userSession.getBelongServer().getPort())
                 .writeStr(userSession.getBelongServer().getType())
                 .writeStr(gson.toJson(userSession.getPermissions()))
+                .writeStr(userSession.getChannelId())
+                .writeByte(userSession.getProtocolType())
                 ;
+        if (userSession.getOutsideUserProtocol() == OutsideUserProtocol.UDP) {
+            builder.writeStr(userSession.getUdpHost()).writeInt(userSession.getUdpPort());
+        }
         InsideClientSessionManager.forwardMsg2AllServerByKeyUseSender(builder, id);
     }
 
-    public void loginWithTcpAndSyncAllServer(Channel channel, Long userId, String... permissions) {
+    private void loginSyncAllServer(Channel channel, Long userId, byte protocolType, String... permissions) {
         UserSession userSession = new UserSession();
         userSession.setId(userId);
         userSession.setBelongServer(nowServerInfo);
         userSession.setChannel(channel);
-        userSession.setUdp(false);
+        userSession.setProtocolType(protocolType);
         for (String permission : permissions) {
             userSession.addPermission(permission);
         }
         loginAndSyncAllServer(userId, userSession);
     }
 
-    public void loginWithWebsocketAndSyncAllServer(Channel channel, Long userId, String... permissions) {
-        loginWithTcpAndSyncAllServer(channel, userId, permissions);
+    public void loginWithTcpAndSyncAllServer(Channel channel, Long userId, String... permissions) {
+        loginSyncAllServer(channel, userId, OutsideUserProtocol.TCP.protocolType, permissions);
+    }
+
+    public void loginWithBinWebsocketAndSyncAllServer(Channel channel, Long userId, String... permissions) {
+        loginSyncAllServer(channel, userId, OutsideUserProtocol.BINARY_WEBSOCKET.protocolType, permissions);
+    }
+    public void loginWithTxtWebsocketAndSyncAllServer(Channel channel, Long userId, String... permissions) {
+        loginSyncAllServer(channel, userId, OutsideUserProtocol.TEXT_WEBSOCKET.protocolType, permissions);
     }
 
     public void loginWithHttpAndSyncAllServer(Channel channel, Long userId, String... permissions) {
-        loginWithTcpAndSyncAllServer(channel, userId, permissions);
+        loginSyncAllServer(channel, userId, OutsideUserProtocol.HTTP.protocolType, permissions);
     }
 
-    public void loginWithUdpAndSyncAllServer(Channel channel, Long userId, String sendHost, int sendPort, String... permissions) {
+    public void loginWithUdpAndSyncAllServer(Channel channel, Long userId, String senderHost, int senderPort, String... permissions) {
         UserSession userSession = new UserSession();
         userSession.setId(userId);
         userSession.setBelongServer(nowServerInfo);
         userSession.setChannel(channel);
-        userSession.setUdp(true);
-        userSession.setUdpHost(sendHost);
-        userSession.setUdpPort(sendPort);
+        userSession.setProtocolType(OutsideUserProtocol.UDP.protocolType);
+        userSession.setUdpHost(senderHost);
+        userSession.setUdpPort(senderPort);
         for (String permission : permissions) {
             userSession.addPermission(permission);
         }
+        logout(userId);
         loginAndSyncAllServer(userId, userSession);
+        udpSenderRelation.putIfAbsent(senderHost + ":" + senderPort, userId);
     }
 
     /**
@@ -175,6 +203,11 @@ public final class OutsideUserSessionManager {
      */
     public void logout(Long id) {
         clients.remove(id);
+        udpSenderRelation.forEach((k, v) -> {
+            if (v.equals(id)) {
+                udpSenderRelation.remove(k);
+            }
+        });
     }
 
     /**
@@ -300,9 +333,7 @@ public final class OutsideUserSessionManager {
         //如果是本服务器，则直接返回
         if (NowServer.getServerInfo().getType().equals(fromServerType)
                 && fromServerId == NowServer.getServerInfo().getId()) {
-            ProtocolDispatcher.channels.parallelStream()
-                    .filter(channel -> channel.id().asLongText().equals(userChannelId))
-                    .findFirst()
+            ChannelManager.getChannel(userChannelId)
                     .ifPresent(channel -> response(channel, headers, content, contentType, status, future));
             return;
         }
