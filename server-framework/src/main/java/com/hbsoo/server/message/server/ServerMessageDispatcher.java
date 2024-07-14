@@ -214,7 +214,7 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
         redirectAndSwitchProtocolOrg(ctx, protocolType, decoder);
     }
 
-    public void redirectAndSwitch2OuterHttp(ChannelHandlerContext ctx, HttpRequestParser parser) {
+    public void redirectAndSwitch2OutsideHttpProtocol(ChannelHandlerContext ctx, HttpRequestParser parser) {
         FullHttpRequest httpRequest = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,
                 HttpMethod.valueOf(parser.getMethod()), parser.getUri());
         httpRequest.content().writeBytes(parser.getBody());
@@ -244,11 +244,17 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
                 case INSIDE_WEBSOCKET:
                     insideServerMessageDispatcher.onMessage(ctx, customMsg, Protocol.WEBSOCKET);
                     break;
+                case INSIDE_UDP:
+                    insideServerMessageDispatcher.onMessage(ctx, customMsg, Protocol.UDP);
+                    break;
                 case OUTSIDE_TCP:
                     outsideServerMessageDispatcher.onMessage(ctx, customMsg, Protocol.TCP);
                     break;
                 case OUTSIDE_WEBSOCKET:
                     outsideServerMessageDispatcher.onMessage(ctx, customMsg, Protocol.WEBSOCKET);
+                    break;
+                case OUTSIDE_UDP:
+                    outsideServerMessageDispatcher.onMessage(ctx, customMsg, Protocol.UDP);
                     break;
             }
         } finally {

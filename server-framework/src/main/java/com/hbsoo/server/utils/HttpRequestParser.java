@@ -35,8 +35,7 @@ public final class HttpRequestParser {
         httpRequestParser.parameters = gson.fromJson(parameterStr, Map.class);
         httpRequestParser.body = body;
         httpRequestParser.headers = gson.fromJson(headerStr, Map.class);
-        httpRequestParser.extendBody = new ExtendBody();
-        httpRequestParser.extendBody.deserialize(decoder);
+        httpRequestParser.extendBody = decoder.readExtendBody();
         return httpRequestParser;
     }
 

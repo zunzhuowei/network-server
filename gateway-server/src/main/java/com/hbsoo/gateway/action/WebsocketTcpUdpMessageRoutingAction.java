@@ -23,13 +23,12 @@ public class WebsocketTcpUdpMessageRoutingAction extends DefaultServerMessageDis
     @Override
     public void handle(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
         int msgType = decoder.getMsgType();
-        ExtendBody extendBody = new ExtendBody();
-        extendBody.deserialize(decoder);
+        ExtendBody extendBody = decoder.readExtendBody();
         Object threadKey = extendBody.getMsgId();
 
         NetworkPacket.Builder builder = decoder
                 .toBuilder(NetworkPacket.TCP_HEADER)
-                .msgType(MessageType.Inside.GATEWAY_ROUTING_WEBSOCKET_TCP_UDP_TO_INNER_SERVER)
+                .msgType(MessageType.Inside.GATEWAY_ROUTING_MESSAGE_TO_INNER_SERVER)
                 .writeExtendBodyMode().writeInt(msgType);
         if (msgType < 1000) {
             forward2InsideServer(builder, "hall", threadKey);
