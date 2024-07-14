@@ -60,9 +60,10 @@ json UserSession {
     "belongServer.id": {" int  " : "  [4 bytes]"},
     "belongServer.weight": {" int  " : "  [4 bytes]"},
     "belongServer.clientSize": {" int  " : "  [4 bytes]"},
-    "isUdp": {" byte  " : "  [1 byte]"},
+    "protocolType": {" byte  " : "  [1 byte]"},
     "udpHost": {" string  " : "  [int 4 bytes + strLen bytes]"},
     "udpPort": {" int  " : "  [4 bytes]"},
-    "channelId": {" string  " : "  [int 4 bytes + strLen bytes]"}
+    "channelId": {" string  " : "  [int 4 bytes + strLen bytes]"},
+    "permissions":{" string  " : "  [int 4 bytes + strLen bytes]"}
 }
 @enduml
