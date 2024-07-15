@@ -9,18 +9,27 @@ import com.hbsoo.server.session.UserSession;
  */
 public final class ExtendBody implements NetworkPacketEntity<ExtendBody> {
 
+    //消息id
     private long msgId;
+    //协议类型：OutsideUserProtocol
     public byte protocolType;
+    //来源服务器id
     private int fromServerId;
+    //来源服务器类型
     private String fromServerType;
+    // channel().id().asLongText();用户链接channelId或者是udp协议中的通信管道
     private String userChannelId;
+    //是否登录
     private boolean isLogin;
+    //用户id(登录后才有)
     private Long userId;
+    //用户session(登录后才有)
     private UserSession userSession;
-    //UDP
+    //UDP协议，发送者ip
     private String senderHost;
+    //UDP协议，发送者端口
     private int senderPort;
-    //重试次数
+    //消息重试次数
     private int retryTimes;
 
     @Override
