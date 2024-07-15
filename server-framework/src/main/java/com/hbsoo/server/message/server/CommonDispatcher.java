@@ -440,6 +440,7 @@ interface CommonDispatcher {
                 extendBody.setSenderHost(senderHost);
                 extendBody.setSenderPort(senderPort);
             }
+            extendBody.setRetryTimes(0);
             extendBody.serializable(builder);
         }
     }

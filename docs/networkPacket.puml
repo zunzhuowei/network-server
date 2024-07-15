@@ -47,7 +47,8 @@ json NetworkPacket {
          "userId":{" long  " : "  [8 bytes]"},
         "userSession" : "  UserSession ",
         "senderHost  " :   {" string  " : "  [int 4 bytes + strLen bytes]"},
-        "senderPort  " : {" int  " : "  [4 bytes]"}
+        "senderPort  " : {" int  " : "  [4 bytes]"},
+        "retryTimes  " : {" int  " : "  [4 bytes]"}
      }
  }
 }

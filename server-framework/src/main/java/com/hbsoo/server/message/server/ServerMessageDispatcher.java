@@ -270,13 +270,13 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
     /**
      * 请求服务器，并等待服务器响应返回值；
      * @param builder 消息内容
-     * @param waitSeconds 等待相应结果时间秒数
+     * @param timeoutSeconds 等待相应结果时间秒数
      * @param forwardMsg2ServerFunction 消息发送函数
      * @return 服务器响应的内容或者null(等待返回值超时)
      */
-    public NetworkPacket.Decoder request2Server(NetworkPacket.Builder builder, int waitSeconds, Consumer<NetworkPacket.Builder> forwardMsg2ServerFunction) {
+    public NetworkPacket.Decoder request2Server(NetworkPacket.Builder builder, int timeoutSeconds, Consumer<NetworkPacket.Builder> forwardMsg2ServerFunction) {
         try {
-            return InsideClientSessionManager.requestServer(builder, waitSeconds, forwardMsg2ServerFunction);
+            return InsideClientSessionManager.requestServer(builder, timeoutSeconds, forwardMsg2ServerFunction);
         } catch (InterruptedException e) {
             e.printStackTrace();
             return null;

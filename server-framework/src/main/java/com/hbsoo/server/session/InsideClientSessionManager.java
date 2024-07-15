@@ -265,11 +265,11 @@ public final class InsideClientSessionManager {
     /**
      * 请求服务器，并等待服务器响应返回值；
      * @param msgBuilder 消息内容
-     * @param waitSeconds 等待相应结果时间秒数
+     * @param timeoutSeconds 等待相应结果时间秒数
      * @param forwardMsg2ServerFunction 消息发送函数
      * @return 服务器响应的内容或者null(等待返回值超时)
      */
-    public static NetworkPacket.Decoder requestServer(NetworkPacket.Builder msgBuilder, int waitSeconds, Consumer<NetworkPacket.Builder> forwardMsg2ServerFunction)
+    public static NetworkPacket.Decoder requestServer(NetworkPacket.Builder msgBuilder, int timeoutSeconds, Consumer<NetworkPacket.Builder> forwardMsg2ServerFunction)
             throws InterruptedException {
         NetworkPacket.Decoder decoder = msgBuilder.toDecoder();
         if (!decoder.hasExtendBody()) {
@@ -282,7 +282,7 @@ public final class InsideClientSessionManager {
             forwardMsg2ServerFunction.accept(msgBuilder);
             CountDownLatch latch = syncMessage.getCountDownLatch();
             //阻塞等待结果
-            boolean await = latch.await(waitSeconds, TimeUnit.SECONDS);
+            boolean await = latch.await(timeoutSeconds, TimeUnit.SECONDS);
             if (await) {
                 return syncMessage.getDecoder();
             }

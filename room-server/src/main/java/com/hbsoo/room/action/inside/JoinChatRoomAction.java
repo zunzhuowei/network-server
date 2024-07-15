@@ -37,16 +37,15 @@ public class JoinChatRoomAction extends ServerMessageDispatcher {
         String username = decoder.readStr();
         final String channelId = extendBody.getUserChannelId();
         long userId = decoder.readInt();
-        //1.执行登录流程，同步到到网关服。
-        //2.判断聊天房间是否存在
-        //3.存在则进入，不存在则创建；进入聊天房间
-        //4.发送聊天小则走房间服务。
         logger.info("JoinChatRoomAction username:{}，channelId:{}，userId:{}", username, channelId, userId);
         UserSession userSession = outsideUserSessionManager.getUserSession(userId);
         //有可能网关还未同步用户信息过来
         if (userSession == null) {
-            //TODO 添加重试次数
-            delayThreadPoolScheduler.schedule(() -> redirectMessage(ctx, decoder.toBuilder()), 500L, TimeUnit.MILLISECONDS);
+            int retryTimes = extendBody.getRetryTimes();
+            if (retryTimes < 5) {
+                extendBody.setRetryTimes(retryTimes + 1);
+                delayThreadPoolScheduler.schedule(() -> redirectMessage(ctx, decoder.replaceExtendBody(extendBody)), 500L, TimeUnit.MILLISECONDS);
+            }
             return;
         }
         ChatRoom chatRoom = ChatRoomManager.getChatRoom("first-chatroom",k -> {

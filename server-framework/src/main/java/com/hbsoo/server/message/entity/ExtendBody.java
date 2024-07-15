@@ -20,6 +20,8 @@ public final class ExtendBody implements NetworkPacketEntity<ExtendBody> {
     //UDP
     private String senderHost;
     private int senderPort;
+    //重试次数
+    private int retryTimes;
 
     @Override
     public void serializable(NetworkPacket.Builder builder) {
@@ -40,6 +42,7 @@ public final class ExtendBody implements NetworkPacketEntity<ExtendBody> {
             builder.writeStr(this.senderHost)
                     .writeInt(this.senderPort);
         }
+        builder.writeInt(this.retryTimes);
         if (writeRawBody) {
             builder.writeRawBodyMode();
         }
@@ -71,6 +74,7 @@ public final class ExtendBody implements NetworkPacketEntity<ExtendBody> {
             this.senderHost = decoder.readStr();
             this.senderPort = decoder.readInt();
         }
+        this.retryTimes = decoder.readInt();
         if (isReadRawBody) {
             decoder.readRawBodyMode();
         }
@@ -161,6 +165,14 @@ public final class ExtendBody implements NetworkPacketEntity<ExtendBody> {
         this.senderPort = senderPort;
     }
 
+    public int getRetryTimes() {
+        return retryTimes;
+    }
+
+    public void setRetryTimes(int retryTimes) {
+        this.retryTimes = retryTimes;
+    }
+
     @Override
     public String toString() {
         return "ExtendBody{" +
@@ -174,6 +186,7 @@ public final class ExtendBody implements NetworkPacketEntity<ExtendBody> {
                 ", userSession=" + userSession +
                 ", senderHost='" + senderHost + '\'' +
                 ", senderPort=" + senderPort +
+                ", retryTimes=" + retryTimes +
                 '}';
     }
 }

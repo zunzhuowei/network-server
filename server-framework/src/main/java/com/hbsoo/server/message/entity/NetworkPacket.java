@@ -385,6 +385,15 @@ public final class NetworkPacket {
             byte[] bytes = buildPackage();
             return NetworkPacket.Decoder.withHeader(getHeader()).parsePacket(bytes);
         }
+
+        public Builder replaceExtendBody(ExtendBody extendBody) {
+            if (!expandBodyList.isEmpty()) {
+                int all = allBodyLength.get();
+                allBodyLength.set(all - expandBodyList.size());
+                expandBodyList.clear();
+            }
+            return this.writeObj(extendBody);
+        }
     }
 
     public static class Decoder {
@@ -492,6 +501,14 @@ public final class NetworkPacket {
                 }
             }
             return builder;
+        }
+
+        public Decoder replaceExtendBody(ExtendBody extendBody) {
+            if (Objects.nonNull(this.expandBody)) {
+                this.bodyLen = this.bodyLen - expandBody.length;
+                this.expandBody = null;
+            }
+            return this.toBuilder().writeObj(extendBody).toDecoder();
         }
 
         /**
