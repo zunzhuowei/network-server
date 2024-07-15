@@ -10,8 +10,8 @@ import com.hbsoo.server.message.entity.ForwardMessage;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.sender.ForwardMessageSender;
 import com.hbsoo.server.netty.AttributeKeyConstants;
-import com.hbsoo.server.netty.ProtocolDispatcher;
 import com.hbsoo.server.utils.SnowflakeIdGenerator;
+import com.hbsoo.server.utils.SpringBeanFactory;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
@@ -128,12 +128,12 @@ public final class OutsideUserSessionManager {
         InsideClientSessionManager.forwardMsg2AllServerByKeyUseSender(builder, id);
     }
 
-    private void loginSyncAllServer(Channel channel, Long userId, byte protocolType, String... permissions) {
+    private void loginSyncAllServer(Channel channel, Long userId, OutsideUserProtocol protocol, String... permissions) {
         UserSession userSession = new UserSession();
         userSession.setId(userId);
         userSession.setBelongServer(nowServerInfo);
         userSession.setChannel(channel);
-        userSession.setProtocolType(protocolType);
+        userSession.setProtocolType(protocol.protocolType);
         for (String permission : permissions) {
             userSession.addPermission(permission);
         }
@@ -141,18 +141,18 @@ public final class OutsideUserSessionManager {
     }
 
     public void loginWithTcpAndSyncAllServer(Channel channel, Long userId, String... permissions) {
-        loginSyncAllServer(channel, userId, OutsideUserProtocol.TCP.protocolType, permissions);
+        loginSyncAllServer(channel, userId, OutsideUserProtocol.TCP, permissions);
     }
 
     public void loginWithBinWebsocketAndSyncAllServer(Channel channel, Long userId, String... permissions) {
-        loginSyncAllServer(channel, userId, OutsideUserProtocol.BINARY_WEBSOCKET.protocolType, permissions);
+        loginSyncAllServer(channel, userId, OutsideUserProtocol.BINARY_WEBSOCKET, permissions);
     }
     public void loginWithTxtWebsocketAndSyncAllServer(Channel channel, Long userId, String... permissions) {
-        loginSyncAllServer(channel, userId, OutsideUserProtocol.TEXT_WEBSOCKET.protocolType, permissions);
+        loginSyncAllServer(channel, userId, OutsideUserProtocol.TEXT_WEBSOCKET, permissions);
     }
 
     public void loginWithHttpAndSyncAllServer(Channel channel, Long userId, String... permissions) {
-        loginSyncAllServer(channel, userId, OutsideUserProtocol.HTTP.protocolType, permissions);
+        loginSyncAllServer(channel, userId, OutsideUserProtocol.HTTP, permissions);
     }
 
     public void loginWithUdpAndSyncAllServer(Channel channel, Long userId, String senderHost, int senderPort, String... permissions) {
@@ -178,6 +178,14 @@ public final class OutsideUserSessionManager {
      * @param userSession 用户session
      */
     public void login(Long id, UserSession userSession) {
+        Map<String, OutsideUserLoginLogoutListener> beans = SpringBeanFactory.getBeansOfType(OutsideUserLoginLogoutListener.class);
+        beans.forEach((k, v) -> {
+            try {
+                v.onLogin(id, userSession);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
         clients.put(id, userSession);
     }
 
@@ -202,6 +210,14 @@ public final class OutsideUserSessionManager {
      * @param id 用户id
      */
     public void logout(Long id) {
+        Map<String, OutsideUserLoginLogoutListener> beans = SpringBeanFactory.getBeansOfType(OutsideUserLoginLogoutListener.class);
+        beans.forEach((k, v) -> {
+            try {
+                v.onLogout(id);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
         clients.remove(id);
         udpSenderRelation.forEach((k, v) -> {
             if (v.equals(id)) {
@@ -237,7 +253,7 @@ public final class OutsideUserSessionManager {
         sendMsg2User(protocol, msgBuilder.buildPackage(), ids);
     }
 
-    public void sendTextWebSocketFrameMsg2User(String text, Long... ids) {
+    public void sendTextWebSocketMsg2User(String text, Long... ids) {
         sendMsg2User(OutsideUserProtocol.TEXT_WEBSOCKET, text.getBytes(StandardCharsets.UTF_8), ids);
     }
 

@@ -37,6 +37,12 @@ router.route_101 = function (dataParser) {
     //console.log("chatRoomJson:" + chatRoomJson)
     $("#chat-list").append("<li>" + chatRoomJson + "</li>");
 };
+//退出房间消息
+router.route_102 = function (dataParser) {
+    var userId = dataParser.getLong();
+    var msg = dataParser.getStr();
+    $("#chat-list").append("<li>[" + userId + "]:" + msg + "</li>");
+};
 //聊天消息
 router.route_1001 = function (dataParser) {
     var userId = dataParser.getLong();

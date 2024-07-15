@@ -32,12 +32,12 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
 
     @Autowired
     protected DelayThreadPoolScheduler delayThreadPoolScheduler;
-    @Autowired
-    private ForwardMessageSender forwardMessageSender;
-    @Autowired
-    private SnowflakeIdGenerator snowflakeIdGenerator;
-    @Autowired
-    private OutsideUserSessionManager outsideUserSessionManager;
+//    @Autowired
+//    private ForwardMessageSender forwardMessageSender;
+//    @Autowired
+//    private SnowflakeIdGenerator snowflakeIdGenerator;
+//    @Autowired
+//    private OutsideUserSessionManager outsideUserSessionManager;
 
     /**
      * 注意，业务层不要重写此方法。此方法给分发器使用
@@ -214,6 +214,11 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
         redirectAndSwitchProtocolOrg(ctx, protocolType, decoder);
     }
 
+    /**
+     * 消息重定向到【外部HTTP】消息处理器中处理,作用于【当前服务器】
+     * @param ctx 处理器上下文
+     * @param parser http请求
+     */
     public void redirectAndSwitch2OutsideHttpProtocol(ChannelHandlerContext ctx, HttpRequestParser parser) {
         FullHttpRequest httpRequest = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,
                 HttpMethod.valueOf(parser.getMethod()), parser.getUri());

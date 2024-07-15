@@ -4,7 +4,7 @@ let heartbeatTimer;
 let heartbeatTimeout;
 let reconnectTimer;
 // 定义心跳间隔时间，单位毫秒
-const HEARTBEAT_INTERVAL = 2500;
+const HEARTBEAT_INTERVAL = 10000;
 // 定义心跳检测超时时间，单位毫秒
 const HEARTBEAT_TIMEOUT = 5000;
 (function () {

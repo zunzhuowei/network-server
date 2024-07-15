@@ -31,6 +31,14 @@ public class UdpClient {
                                     byte[] received = new byte[content.readableBytes()];
                                     content.readBytes(received);
                                     System.out.println("UDP Response: " + new String(received));
+                                    NetworkPacket.Decoder decoder = NetworkPacket.Decoder
+                                            .withHeader(NetworkPacket.UDP_HEADER)
+                                            .parsePacket(received);
+                                    int msgType = decoder.getMsgType();
+                                    //他人退出登录消息
+                                    if (msgType == 102) {
+                                        ctx.close();
+                                    }
                                 }
                             });
                         }

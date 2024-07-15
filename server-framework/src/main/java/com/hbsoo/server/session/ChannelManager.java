@@ -8,6 +8,9 @@ import io.netty.util.concurrent.GlobalEventExecutor;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * 每一个连接服务器的客户端管道都可以在这里找到，包括内部服务和外部服务的客户端；
+ */
 public final class ChannelManager {
 
     private static final ConcurrentHashMap<String, Channel> channelMap = new ConcurrentHashMap<>();
