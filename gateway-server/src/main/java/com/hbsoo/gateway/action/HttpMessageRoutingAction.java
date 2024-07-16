@@ -5,8 +5,8 @@ import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.entity.HttpPacket;
 import com.hbsoo.server.message.server.DefaultHttpServerDispatcher;
 import io.netty.channel.ChannelHandlerContext;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 /**
  * Created by zun.wei on 2024/7/5.
@@ -20,11 +20,11 @@ public class HttpMessageRoutingAction extends DefaultHttpServerDispatcher {
         final int index = uri.indexOf("?");
         String path = index < 0 ? uri : uri.substring(0, index);
         int msgType = MessageType.Inside.GATEWAY_ROUTING_MESSAGE_TO_INNER_SERVER;
-        if (StringUtils.startsWith(path, "/hall")) {
+        if (StringUtils.startsWithIgnoreCase(path, "/hall")) {
             forwardOutsideHttpMsg2InsideServer(ctx, httpPacket, "hall", msgType);
             return;
         }
-        if (StringUtils.startsWith(path, "/room")) {
+        if (StringUtils.startsWithIgnoreCase(path, "/room")) {
             forwardOutsideHttpMsg2InsideServer(ctx, httpPacket, "room", msgType);
             return;
         }

@@ -2,8 +2,8 @@ package com.hbsoo.hall.action.http;
 
 import com.hbsoo.server.annotation.OutsideMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
-import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.entity.HttpPacket;
+import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.server.HttpServerMessageDispatcher;
 import io.netty.channel.ChannelHandlerContext;
 import org.springframework.core.io.ClassPathResource;
@@ -15,7 +15,7 @@ import java.io.InputStream;
  * Created by zun.wei on 2024/6/15.
  */
 @OutsideMessageHandler(value = 0, uri = "/hall/login", protocol = Protocol.HTTP)
-public class ChatLoginAction extends HttpServerMessageDispatcher {
+public class LoginAction extends HttpServerMessageDispatcher {
 
 
     @Override

@@ -9,11 +9,7 @@ var receiver;
             router.route(msgType, dv);
         },
         onOpen(evt) {
-            var username = $('#username').text();
-            var buffer = sender.buildHead(100)
-                .buildString(username)
-                .finish();
-            socket.send(buffer);
+            router.onOpen();
         },
         onError(evt) {
             console.log("Socket发生了错误");

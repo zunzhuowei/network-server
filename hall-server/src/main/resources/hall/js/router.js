@@ -21,8 +21,8 @@ router.route = function (msgType, dataView) {
 router.route_100 = function (dataParser) {
     var username = dataParser.getStr();
     var userId = dataParser.getLong();
-    console.log("userId:" + userId + ";username:" + username)
-    $("#chat-list").append("<li>[" + username + "]:" + userId + "上线了！</li>");
+    var time = (new Date()).Format("yyyy-MM-dd hh:mm:ss");
+    $("#chat-list").append("<li>" + time + "[" + username + "]:" + userId + "上线了！</li>");
 };
 
 // 心跳包
@@ -43,9 +43,31 @@ router.route_102 = function (dataParser) {
     var msg = dataParser.getStr();
     $("#chat-list").append("<li>[" + userId + "]:" + msg + "</li>");
 };
-//聊天消息
+//手牌消息
+router.route_103 = function (dataParser) {
+    var cards = dataParser.getStr();
+    $("#chat-list").append("<li>" + cards + "</li>");
+};
+//出牌消息
 router.route_1001 = function (dataParser) {
+    var discardCards = dataParser.getStr();
+    var turnNo = dataParser.getInt();
+    var cardSize = dataParser.getInt();
+    $("#chat-list").append("<li>" + discardCards + "--" + turnNo + "--" + cardSize + "</li>");
+};
+//赢牌消息
+router.route_1002 = function (dataParser) {
     var userId = dataParser.getLong();
     var message = dataParser.getStr();
     $("#chat-list").append("<li>[" + userId + "]:" + message + "</li>");
+};
+
+router.onOpen = function () {
+    var roomName = $('#roomName').text();
+    var username = $('#username').text();
+    var buffer = sender.buildHead(100)
+        .buildString(username)
+        .buildString(roomName)
+        .finish();
+    socket.send(buffer);
 };

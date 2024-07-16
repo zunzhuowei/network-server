@@ -30,6 +30,7 @@ public class UserLoginSyncAction extends ClientMessageDispatcher {
         String senderHost = extendBody.getSenderHost();
         int senderPort = extendBody.getSenderPort();
         String username = decoder.readStr();
+        String roomName = decoder.readStr();
         int userId = decoder.readInt();
         String permissions = decoder.readStr();
         logger.info("用户登录同步, username:{}, userId:{}, channelId:{}", username, userId, channelId);

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta charset="utf-8">
+</head>
+<body>
+<div>
+    <form action="/hall/joinRoom" method="post">
+        <label for="roomName">RoomName</label>
+        <input type="text" id="roomName" name="roomName">
+        <input type="hidden" value="{{username}}" name="username">
+        <input type="submit" value="Join">
+    </form>
+</div>
+<div id="username">{{username}}</div>
+
+</body>
+</html>

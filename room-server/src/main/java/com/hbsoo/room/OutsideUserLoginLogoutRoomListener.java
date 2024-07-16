@@ -1,6 +1,6 @@
 package com.hbsoo.room;
 
-import com.hbsoo.room.entity.ChatRoom;
+import com.hbsoo.room.entity.GameRoom;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.session.OutsideUserLoginLogoutListener;
 import com.hbsoo.server.session.OutsideUserProtocol;
@@ -31,25 +31,25 @@ public class OutsideUserLoginLogoutRoomListener implements OutsideUserLoginLogou
     @Override
     public void onLogout(Long userId) {
         logger.debug("onLogout userId:{}", userId);
-        List<ChatRoom> chatRooms = ChatRoomManager.findChatRoomByUserId(userId);
+        List<GameRoom> gameRooms = ChatRoomManager.findGameRoomByUserId(userId);
         NetworkPacket.Builder builder = NetworkPacket.Builder.withDefaultHeader()
                 .msgType(102).writeLong(userId).writeStr("offline");
-        for (ChatRoom chatRoom : chatRooms) {
-            chatRoom.getUserSessions().forEach(us -> {
-                if (us.getOutsideUserProtocol() == OutsideUserProtocol.UDP) {
-                    builder.replaceHeader(NetworkPacket.UDP_HEADER);
-                }
-                outsideUserSessionManager.sendMsg2User(
-                        us.getOutsideUserProtocol(),
-                        builder,
-                        us.getId()
-                );
-                if (us.getOutsideUserProtocol() == OutsideUserProtocol.UDP) {
-                    builder.replaceHeader(NetworkPacket.TCP_HEADER);
-                }
-            });
-        }
-        ChatRoomManager.quitChatRoom(userId);
+//        for (GameRoom gameRoom : gameRooms) {
+//            gameRoom.getUserSessions().forEach(us -> {
+//                if (us.getOutsideUserProtocol() == OutsideUserProtocol.UDP) {
+//                    builder.replaceHeader(NetworkPacket.UDP_HEADER);
+//                }
+//                outsideUserSessionManager.sendMsg2User(
+//                        us.getOutsideUserProtocol(),
+//                        builder,
+//                        us.getId()
+//                );
+//                if (us.getOutsideUserProtocol() == OutsideUserProtocol.UDP) {
+//                    builder.replaceHeader(NetworkPacket.TCP_HEADER);
+//                }
+//            });
+//        }
+        ChatRoomManager.quitGameRoom(userId);
 
     }
 

@@ -1,6 +1,5 @@
 package com.hbsoo.gateway.action;
 
-import com.hbsoo.gateway.queue.MessageQueueTest;
 import com.hbsoo.server.message.MessageType;
 import com.hbsoo.server.message.entity.ExtendBody;
 import com.hbsoo.server.message.entity.NetworkPacket;
@@ -17,7 +16,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class WebsocketTcpUdpMessageRoutingAction extends DefaultServerMessageDispatcher {
 
-    private static final Logger logger = LoggerFactory.getLogger(MessageQueueTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(WebsocketTcpUdpMessageRoutingAction.class);
 
 
     @Override

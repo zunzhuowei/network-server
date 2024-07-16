@@ -449,11 +449,17 @@ public final class NetworkPacket {
             System.arraycopy(received, readOffset, bodyLenBytes, 0, bodyLenBytes.length);
             int bodyLen = ByteBuffer.wrap(bodyLenBytes).order(ByteOrder.BIG_ENDIAN).getInt();
             readOffset += bodyLenBytes.length;
+            if (bodyLen < 0) {
+                throw new RuntimeException("bodyLen must greater than 0");
+            }
 
             byte[] rawBodyLenBytes = new byte[4];
             System.arraycopy(received, readOffset, rawBodyLenBytes, 0, rawBodyLenBytes.length);
             int rawBodyLen = ByteBuffer.wrap(rawBodyLenBytes).order(ByteOrder.BIG_ENDIAN).getInt();
             readOffset += rawBodyLenBytes.length;
+            if (rawBodyLen < 0) {
+                throw new RuntimeException("rawBodyLen must greater than 0");
+            }
 
             byte[] msgTypeBytes = new byte[4];
             System.arraycopy(received, readOffset, msgTypeBytes, 0, msgTypeBytes.length);
@@ -504,11 +510,10 @@ public final class NetworkPacket {
         }
 
         public Decoder replaceExtendBody(ExtendBody extendBody) {
-            if (Objects.nonNull(this.expandBody)) {
-                this.bodyLen = this.bodyLen - expandBody.length;
-                this.expandBody = null;
-            }
-            return this.toBuilder().writeObj(extendBody).toDecoder();
+            Builder builder = this.toBuilder().replaceExtendBody(extendBody);
+            byte[] bytes = builder.buildPackage();
+            this.parsePacket(bytes);
+            return this;
         }
 
         /**
@@ -549,7 +554,10 @@ public final class NetworkPacket {
         }
 
         public byte[] readBytes() {
-            final int len = readInt();
+            int len = readInt();
+            if (len < 0 || len > 1024 * 1024) {
+                throw new RuntimeException("len must between 0 and 1024 * 1024,but actual:" + len);
+            }
             byte[] bytes = new byte[len];
             if (isReadRawBody) {
                 System.arraycopy(rawBody, rawBodyReadOffset.getAndAdd(len), bytes, 0, bytes.length);

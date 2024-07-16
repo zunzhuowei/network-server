@@ -2,8 +2,8 @@ package com.hbsoo.hall.action.http;
 
 import com.hbsoo.server.annotation.OutsideMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
-import com.hbsoo.server.message.entity.HttpPacket;
 import com.hbsoo.server.message.entity.NetworkPacket;
+import com.hbsoo.server.message.entity.HttpPacket;
 import com.hbsoo.server.message.server.HttpServerMessageDispatcher;
 import com.hbsoo.server.session.OutsideUserSessionManager;
 import io.netty.channel.ChannelHandlerContext;
@@ -24,8 +24,8 @@ import java.util.Objects;
 /**
  * Created by zun.wei on 2024/6/15.
  */
-@OutsideMessageHandler(value = 0, uri = "/hall/chat", protocol = Protocol.HTTP)
-public class ChatAction extends HttpServerMessageDispatcher {
+@OutsideMessageHandler(value = 0, uri = "/hall/joinRoom", protocol = Protocol.HTTP)
+public class JoinRoomAction extends HttpServerMessageDispatcher {
 
     @Autowired
     private OutsideUserSessionManager outsideUserSessionManager;
@@ -34,14 +34,16 @@ public class ChatAction extends HttpServerMessageDispatcher {
     public void handle(ChannelHandlerContext ctx, HttpPacket httpPacket) {
         byte[] body = httpPacket.getBody();
         String page = "pages/chat.html";
+        String roomName = null;
         String username = null;
         boolean success = true;
         if (Objects.nonNull(body)) {
             String dataStr = new String(body);
             QueryStringDecoder decoder = new QueryStringDecoder("?" + dataStr);
             Map<String, List<String>> parameters = decoder.parameters();
+            roomName = parameters.get("roomName").get(0);
             username = parameters.get("username").get(0);
-            if (!StringUtils.hasLength(username)) {
+            if (!StringUtils.hasLength(roomName)) {
                 page = "pages/login.html";
                 success = false;
             }
@@ -51,11 +53,12 @@ public class ChatAction extends HttpServerMessageDispatcher {
         }
         ClassPathResource classPathResource = new ClassPathResource(page);
         try (InputStream inputStream = classPathResource.getInputStream()){
-            int available = inputStream.available();
+            final int available = inputStream.available();
             byte[] bytes = new byte[available];
             inputStream.read(bytes);
             String html = new String(bytes);
             if (success) {
+                html = StringUtils.replace(html, "{{roomName}}", roomName);
                 html = StringUtils.replace(html, "{{username}}", username);
                 responseHtml(httpPacket, html);
             } else {

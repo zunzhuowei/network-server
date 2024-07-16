@@ -13,17 +13,18 @@ import org.slf4j.LoggerFactory;
  * Created by zun.wei on 2024/6/15.
  */
 @OutsideMessageHandler(100)
-public class LoginChatRoomAction extends ServerMessageDispatcher {
+public class LoginGameRoomAction extends ServerMessageDispatcher {
 
-    private static final Logger logger = LoggerFactory.getLogger(LoginChatRoomAction.class);
+    private static final Logger logger = LoggerFactory.getLogger(LoginGameRoomAction.class);
 
     @Override
     public void handle(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
         ExtendBody extendBody = decoder.readExtendBody();
         String channelId = extendBody.getUserChannelId();
         String username = decoder.readStr();
+        String roomName = decoder.readStr();
         int userId = Math.abs(username.hashCode());
-        logger.info("login chat room username:{}，channelId:{}，userId:{}", username, channelId, userId);
+        logger.info("login game room username:{}，channelId:{}，userId:{}", username, channelId, userId);
         //通知客户端登录成功
         NetworkPacket.Builder builder = decoder.toBuilder().writeInt(userId).writeStr(Permission.USER.name());
         builder.sendTcpTo(ctx.channel());

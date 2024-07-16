@@ -24,18 +24,13 @@
         </dependency>
         <dependency>
             <groupId>com.hbsoo</groupId>
-            <artifactId>server-message-queue</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-        <dependency>
-            <groupId>com.hbsoo</groupId>
-            <artifactId>server-access-control</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-        <dependency>
-            <groupId>com.hbsoo</groupId>
             <artifactId>server-permission</artifactId>
             <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>fastjson</artifactId>
+            <version>1.2.83</version>
         </dependency>
     </dependencies>
 
