@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Created by zun.wei on 2024/6/15.
@@ -117,10 +118,14 @@ public class JoinGameRoomUseThreadAction extends ServerMessageDispatcher {
                     .filter(seat -> seat.userSession.getId().equals(userId))
                     .findFirst();
             first.ifPresent(seat -> {
+                List<Card> collect = seat.cardsInHand.stream()
+                        .sorted(Comparator.comparingInt(card -> card.cardSort))
+                        .sorted(Comparator.comparingInt(card -> card.cardPoint))
+                        .collect(Collectors.toList());
                 NetworkPacket.Builder playerCardBuilder = NetworkPacket.Builder
                         .withDefaultHeader()
                         .msgType(103)
-                        .writeStr(gson.toJson(seat.cardsInHand));
+                        .writeStr(gson.toJson(collect));
                 outsideUserSessionManager.sendMsg2User(
                         seat.userSession.getOutsideUserProtocol(),
                         playerCardBuilder,
@@ -133,6 +138,15 @@ public class JoinGameRoomUseThreadAction extends ServerMessageDispatcher {
         startGame(ctx, gameRoom, seats, gson, status);
     }
 
+    /**
+     * 开始游戏
+     *
+     * @param ctx
+     * @param gameRoom
+     * @param seats
+     * @param gson
+     * @param status
+     */
     public void startGame(ChannelHandlerContext ctx, GameRoom gameRoom, Seat[] seats, Gson gson, int status) {
         //如果房间已经满人，开始发牌
         boolean isFullSeat = Arrays.stream(seats).allMatch(Objects::nonNull);
@@ -159,10 +173,14 @@ public class JoinGameRoomUseThreadAction extends ServerMessageDispatcher {
                 if (seat.userSession == null) {
                     continue;
                 }
+                List<Card> collect = seat.cardsInHand.stream()
+                        .sorted(Comparator.comparingInt(card -> card.cardSort))
+                        .sorted(Comparator.comparingInt(card -> card.cardPoint))
+                        .collect(Collectors.toList());
                 NetworkPacket.Builder playerCardBuilder = NetworkPacket.Builder
                         .withDefaultHeader()
                         .msgType(103)
-                        .writeStr(gson.toJson(seat.cardsInHand));
+                        .writeStr(gson.toJson(collect));
                 outsideUserSessionManager.sendMsg2User(
                         seat.userSession.getOutsideUserProtocol(),
                         playerCardBuilder,

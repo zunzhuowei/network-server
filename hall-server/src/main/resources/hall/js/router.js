@@ -46,14 +46,22 @@ router.route_102 = function (dataParser) {
 //手牌消息
 router.route_103 = function (dataParser) {
     var cards = dataParser.getStr();
-    $("#chat-list").append("<li>" + cards + "</li>");
+    var parse = JSON.parse(cards);
+    var cs = parse.map(function (card) {
+        return cardMapping(card);
+    });
+    $("#chat-list").append("<li>" + JSON.stringify(cs) + "</li>");
 };
 //出牌消息
 router.route_1001 = function (dataParser) {
     var discardCards = dataParser.getStr();
+    var parse = JSON.parse(discardCards);
+    var cs = parse.map(function (card) {
+        return cardMapping(card);
+    });
     var turnNo = dataParser.getInt();
     var cardSize = dataParser.getInt();
-    $("#chat-list").append("<li>出的牌:" + discardCards + "--接下来轮到谁出牌:" + turnNo + "--出牌人手上还有多少牌:" + cardSize + "</li>");
+    $("#chat-list").append("<li>出的牌:" + JSON.stringify(cs) + "--接下来轮到谁出牌:" + turnNo + "--出牌人手上还有多少牌:" + cardSize + "</li>");
 };
 //赢牌消息
 router.route_1002 = function (dataParser) {
@@ -82,3 +90,76 @@ router.onOpen = function () {
         .finish();
     socket.send(buffer);
 };
+
+/**
+ * 牌点数映射
+ * @param card
+ * @returns {string|*|string}
+ */
+function cardMapping(card) {
+    var cardPoint = card.cardPoint;
+    var cardSort = card.cardSort;
+    var num;
+    switch (cardPoint) {
+        case 3:
+            num = "3";
+            break;
+        case 4:
+            num = "4";
+            break;
+        case 5:
+            num = "5";
+            break;
+        case 6:
+            num = "6";
+            break;
+        case 7:
+            num = "7";
+            break;
+        case 8:
+            num = "8";
+            break;
+        case 9:
+            num = "9";
+            break;
+        case 10:
+            num = "10";
+            break;
+        case 11:
+            num = "J";
+            break;
+        case 12:
+            num = "Q";
+            break;
+        case 13:
+            num = "K";
+            break;
+        case 14:
+            num = "A";
+            break;
+        case 15:
+            num = "2";
+            break;
+        case 16:
+            num = "小王";
+            break;
+        case 17:
+            num = "大王";
+            break;
+        default:
+            return "未知";
+    }
+    switch (cardSort) {
+        case 0:
+            return num !== "小王" && num !== "大王" ? "方块:" + num : num;
+        case 1:
+            return "梅花:" + num;
+        case 2:
+            return "红桃:" + num;
+        case 3:
+            return "黑桃:" + num;
+        default:
+            return "未知";
+    }
+    return num;
+}

@@ -163,9 +163,13 @@ public class AutoDiscardCardAction extends ServerMessageDispatcher {
             outsideUserSessionManager.sendMsg2User(OutsideUserProtocol.BINARY_WEBSOCKET, builder, seat.userSession.getId());
         }
         //把剩下的牌发给出牌人
+        List<Card> collect = seats[turnNo].cardsInHand.stream()
+                .sorted(Comparator.comparingInt(card -> card.cardSort))
+                .sorted(Comparator.comparingInt(card -> card.cardPoint))
+                .collect(Collectors.toList());
         NetworkPacket.Builder builder = NetworkPacket.Builder.withDefaultHeader()
                 .msgType(103)
-                .writeStr(JSON.toJSONString(seats[turnNo].cardsInHand));
+                .writeStr(JSON.toJSONString(collect));
         outsideUserSessionManager.sendMsg2User(OutsideUserProtocol.BINARY_WEBSOCKET, builder, userId);
         //判断是否为最后一张牌
         if (seats[turnNo].cardsInHand.size() == 0) {

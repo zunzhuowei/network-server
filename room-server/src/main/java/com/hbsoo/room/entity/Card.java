@@ -26,8 +26,10 @@ public final class Card {
     public static List<Card> newCards() {
         //初始化一副牌
         List<Card> cards = new ArrayList<>();
+        cards.add(new Card(16, 0));
+        cards.add(new Card(17, 0));
         for (int i = 0; i < 4; i++) {
-            for (int j = 3; j <= 17; j++) {
+            for (int j = 3; j <= 15; j++) {
                 Card card = new Card(j, i);
                 cards.add(card);
             }
