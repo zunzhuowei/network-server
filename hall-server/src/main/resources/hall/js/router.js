@@ -59,7 +59,18 @@ router.route_1001 = function (dataParser) {
 router.route_1002 = function (dataParser) {
     var userId = dataParser.getLong();
     var message = dataParser.getStr();
+    $("#chat-list").append("<li>[" + userId + "]赢了,房间号:" + message + "</li>");
+};
+//要不起
+router.route_1003 = function (dataParser) {
+    var userId = dataParser.getLong();
+    var message = dataParser.getStr();
     $("#chat-list").append("<li>[" + userId + "]:" + message + "</li>");
+};
+//倒计时
+router.route_1004 = function (dataParser) {
+    var timer = dataParser.getInt();
+    $("#chat-list").append("<li>[" + "倒计时：" + "]:" + timer + "</li>");
 };
 
 router.onOpen = function () {

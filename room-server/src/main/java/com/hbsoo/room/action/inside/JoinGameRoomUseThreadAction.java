@@ -130,6 +130,10 @@ public class JoinGameRoomUseThreadAction extends ServerMessageDispatcher {
             return;
         }
 
+        startGame(ctx, gameRoom, seats, gson, status);
+    }
+
+    public void startGame(ChannelHandlerContext ctx, GameRoom gameRoom, Seat[] seats, Gson gson, int status) {
         //如果房间已经满人，开始发牌
         boolean isFullSeat = Arrays.stream(seats).allMatch(Objects::nonNull);
         if (isFullSeat && status == 0) {
@@ -141,6 +145,7 @@ public class JoinGameRoomUseThreadAction extends ServerMessageDispatcher {
             //发牌每人17张
             for (Seat seat : seats) {
                 seat.cardsInHand = new ArrayList<>(cards.subList(offset, offset + 17));
+                seat.cardsOutHand = new ArrayList<>();
                 //seat.cardsInHand = cards.subList(offset, offset + 17);
                 //java.util.ConcurrentModificationException
                 offset += 17;

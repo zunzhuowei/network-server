@@ -54,6 +54,14 @@ public class AutoDiscardCardAction extends ServerMessageDispatcher {
                 gameRoom.decrementTimer();
                 redirectMessage(ctx, decoder, 1);
                 logger.debug("自动出牌倒计时:{}", timer);
+                //推送倒计时给客户端
+                NetworkPacket.Builder builder = NetworkPacket.Builder.withDefaultHeader()
+                        .msgType(1004)
+                        .writeInt(timer);
+                for (Seat seat : gameRoom.getSeats()) {
+                    UserSession session = seat.userSession;
+                    outsideUserSessionManager.sendMsg2User(OutsideUserProtocol.BINARY_WEBSOCKET, builder, session.getId());
+                }
                 return;
             }
             List<Card> nowCard = gameRoom.getNowCard();
@@ -78,14 +86,23 @@ public class AutoDiscardCardAction extends ServerMessageDispatcher {
                 if (Objects.isNull(bigThanCards)) {
                     logger.debug("{}:要不起:{},{}", userId, cardsInHand, nowCard);
                     gameRoom.setTurnNo(turnNo == 0 ? 1 : turnNo == 1 ? 2 : 0);
-                    gameRoom.setTimer(0);
+                    gameRoom.setTimer(10);
                     //自动出牌
                     NetworkPacket.Builder autoDiscardBuilder = NetworkPacket.Builder
                             .withDefaultHeader()
                             .msgType(1001)
                             .writeBoolean(true)
                             .writeStr(gameRoom.getRoomName());
-                    redirectMessage(ctx, autoDiscardBuilder,1);
+                    redirectMessage(ctx, autoDiscardBuilder, 1);
+                    //通知玩家当前玩家要不起
+                    NetworkPacket.Builder builder = NetworkPacket.Builder.withDefaultHeader()
+                            .msgType(1003)
+                            .writeLong(userId)
+                            .writeStr("要不起");
+                    for (Seat seat : seats) {
+                        UserSession session = seat.userSession;
+                        outsideUserSessionManager.sendMsg2User(OutsideUserProtocol.BINARY_WEBSOCKET, builder, session.getId());
+                    }
                     return;
                 } else {
                     cardsJson = JSON.toJSONString(bigThanCards);
@@ -95,7 +112,7 @@ public class AutoDiscardCardAction extends ServerMessageDispatcher {
             userId = decoder.readLong();
             cardsJson = decoder.readStr();
         }
-        gameRoom.setTimer(0);
+        gameRoom.setTimer(10);
         //座位
         Seat[] seats = gameRoom.getSeats();
         //当前出的牌
@@ -152,9 +169,22 @@ public class AutoDiscardCardAction extends ServerMessageDispatcher {
         outsideUserSessionManager.sendMsg2User(OutsideUserProtocol.BINARY_WEBSOCKET, builder, userId);
         //判断是否为最后一张牌
         if (seats[turnNo].cardsInHand.size() == 0) {
-            //TODO 赢牌消息1002
-            System.out.println("赢牌消息1002 = " + userId);
+            gameRoom.setStatus(2);
+            //赢牌消息1002
+            NetworkPacket.Builder b = NetworkPacket.Builder.withDefaultHeader()
+                    .msgType(1002)
+                    .writeLong(userId)
+                    .writeStr(gameRoom.getRoomName());
+            for (Seat seat : seats) {
+                UserSession session = seat.userSession;
+                outsideUserSessionManager.sendMsg2User(OutsideUserProtocol.BINARY_WEBSOCKET, b, session.getId());
+            }
             //重新开始牌局
+            redirectMessage(ctx, NetworkPacket.Builder
+                            .withDefaultHeader()
+                            .msgType(1003)
+                            .writeStr(gameRoom.getRoomName()),
+                    10);
             return;
         }
         if (isAuto) {
@@ -172,6 +202,7 @@ public class AutoDiscardCardAction extends ServerMessageDispatcher {
 
     /**
      * 是否为王炸
+     *
      * @param cards
      * @return
      */
@@ -189,6 +220,7 @@ public class AutoDiscardCardAction extends ServerMessageDispatcher {
 
     /**
      * 是否为对子
+     *
      * @param cards
      * @return
      */
@@ -206,6 +238,7 @@ public class AutoDiscardCardAction extends ServerMessageDispatcher {
 
     /**
      * 是否为三张
+     *
      * @param cards
      * @return
      */
@@ -221,6 +254,7 @@ public class AutoDiscardCardAction extends ServerMessageDispatcher {
 
     /**
      * 是否为普通炸弹
+     *
      * @param cards
      * @return
      */
@@ -238,6 +272,7 @@ public class AutoDiscardCardAction extends ServerMessageDispatcher {
 
     /**
      * 是否为三带一
+     *
      * @param cards
      * @return
      */
@@ -259,6 +294,7 @@ public class AutoDiscardCardAction extends ServerMessageDispatcher {
 
     /**
      * 是否为四带二
+     *
      * @param cards
      * @return
      */
@@ -276,8 +312,10 @@ public class AutoDiscardCardAction extends ServerMessageDispatcher {
         }
         return false;
     }
+
     /**
      * 判断牌型
+     *
      * @param cards
      * @return
      */
@@ -322,6 +360,7 @@ public class AutoDiscardCardAction extends ServerMessageDispatcher {
 
     /**
      * 判断是否为顺子
+     *
      * @param cards
      * @return
      */
@@ -352,10 +391,11 @@ public class AutoDiscardCardAction extends ServerMessageDispatcher {
 
     /**
      * 判断是否为飞机牌型
-     *飞机主体：至少两组连续三张相同的牌，例如“444 555”或“777 888 999”。
-     *    带单张：可以给飞机主体的每组牌各带一张单张牌。
-     *    带对子：可以给飞机主体的每组牌各带一个对子。
-     *    飞机可以不带单牌或对子,但不能同时带单牌和对子。
+     * 飞机主体：至少两组连续三张相同的牌，例如“444 555”或“777 888 999”。
+     * 带单张：可以给飞机主体的每组牌各带一张单张牌。
+     * 带对子：可以给飞机主体的每组牌各带一个对子。
+     * 飞机可以不带单牌或对子,但不能同时带单牌和对子。
+     *
      * @param cards
      * @return
      */
@@ -401,6 +441,7 @@ public class AutoDiscardCardAction extends ServerMessageDispatcher {
 
     /**
      * 比较牌
+     *
      * @param cards1
      * @param cards2
      * @return 如果cards1大于cards2返回1，小于cards2返回-1，等于返回0
@@ -603,6 +644,7 @@ public class AutoDiscardCardAction extends ServerMessageDispatcher {
 
     /**
      * 查找比当前牌更大的牌出来
+     *
      * @param cardsInHand
      * @param nowCards
      * @return
@@ -749,7 +791,7 @@ public class AutoDiscardCardAction extends ServerMessageDispatcher {
         }
     }
 
-    private List<Card> getCardList(List<Card> cardsInHand, List<Card> nowCards,int cardSize) {
+    private List<Card> getCardList(List<Card> cardsInHand, List<Card> nowCards, int cardSize) {
         //找比当期牌大的对子
         Optional<Card> min = cardsInHand.stream()
                 .filter(card -> card.cardPoint > nowCards.get(0).cardPoint)

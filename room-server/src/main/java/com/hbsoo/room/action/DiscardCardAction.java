@@ -41,7 +41,7 @@ public class DiscardCardAction extends ServerMessageDispatcher {
         String cardsJson = decoder.readStr();
         List<GameRoom> gameRooms = GameRoomManager.findGameRoomByUserId(userId);
         if (Objects.isNull(gameRooms) || gameRooms.isEmpty()) {
-            forward2AllInsideServerByTypeUseSender(decoder.toBuilder(), "room");
+            forward2AllInsideServerByTypeUseSender(decoder.toBuilder().msgType(1002), "room");
             return;
         }
         //转发到自动出牌处理器处理

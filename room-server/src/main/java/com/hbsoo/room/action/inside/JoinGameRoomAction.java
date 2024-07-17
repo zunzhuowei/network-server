@@ -67,7 +67,7 @@ public class JoinGameRoomAction extends ServerMessageDispatcher {
             Card[] diZhuCards = new Card[3];
             gr.setSeats(seats);
             gr.setDiZhuCards(diZhuCards);
-            gr.setTimer(0);
+            gr.setTimer(10);
             return gr;
         });
         //join to specified thread and join game room
