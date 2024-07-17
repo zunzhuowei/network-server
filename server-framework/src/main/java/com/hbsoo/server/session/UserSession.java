@@ -29,7 +29,7 @@ public final class UserSession implements NetworkPacketEntity<UserSession> {
     private String udpHost;
     private int udpPort;
     /**
-     * 协议类型
+     * 协议类型:OutsideUserProtocol
      */
     public byte protocolType;
     /**
@@ -134,7 +134,8 @@ public final class UserSession implements NetworkPacketEntity<UserSession> {
                 .writeStr(this.belongServer == null ? "" : this.belongServer.getType())
                 .writeInt(this.belongServer == null ? 0 : this.belongServer.getId())
                 .writeInt(this.belongServer == null ? 0 : this.belongServer.getWeight())
-                .writeInt(this.belongServer == null ? 0 : this.belongServer.getClientSize())
+                .writeInt(this.belongServer == null ? 0 : this.belongServer.getClientSize() == null
+                        ? 0 : this.belongServer.getClientSize())
                 .writeByte(this.protocolType)
                 .writeStr(this.udpHost == null ? "" : this.udpHost)
                 .writeInt(this.udpPort == 0 ? 0 : this.udpPort)

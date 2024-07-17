@@ -155,6 +155,8 @@ public final class ExtendBody implements NetworkPacketEntity<ExtendBody> {
     }
 
     public void setUserSession(UserSession userSession) {
+        this.isLogin = true;
+        this.userId = userSession.getId();
         this.userSession = userSession;
     }
 
