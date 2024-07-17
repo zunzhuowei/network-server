@@ -63,7 +63,13 @@ public class DiscardCardAction extends ServerMessageDispatcher {
             logger.error("玩家没有这些牌");
             return;
         }
-
+        //判断牌型是否合法
+        final CardType cardType = getCardType(discardCards);
+        if (!cardType.equals(CardType.unknown)) {
+            logger.error("牌型不合法");
+            return;
+        }
+        //判断是否要得起
         if (Objects.nonNull(nowCards)) {
             int compareResult = compareCards(discardCards, nowCards);
             if (compareResult < 1) {
