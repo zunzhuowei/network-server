@@ -1,4 +1,4 @@
-package com.hbsoo.room;
+package com.hbsoo.room.globe;
 
 import com.hbsoo.room.entity.GameRoom;
 import com.hbsoo.room.entity.Seat;
@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 /**
  * Created by zun.wei on 2024/7/7.
  */
-public class ChatRoomManager {
+public class GameRoomManager {
 
     public static final Map<String, GameRoom> CHAT_ROOM_MAP = new java.util.concurrent.ConcurrentHashMap<>();
 

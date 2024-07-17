@@ -1,6 +1,6 @@
 package com.hbsoo.room.action.inside;
 
-import com.hbsoo.room.ChatRoomManager;
+import com.hbsoo.room.globe.GameRoomManager;
 import com.hbsoo.room.entity.Card;
 import com.hbsoo.room.entity.GameRoom;
 import com.hbsoo.room.entity.Seat;
@@ -45,24 +45,32 @@ public class JoinGameRoomAction extends ServerMessageDispatcher {
             if (retryTimes < 5) {
                 extendBody.setRetryTimes(retryTimes + 1);
                 delayThreadPoolScheduler.schedule(() -> redirectMessage(ctx, decoder.replaceExtendBody(extendBody)), 500, TimeUnit.MILLISECONDS);
+            } else {
+                NetworkPacket.Builder builder = NetworkPacket.Builder
+                        .withHeader(protocol == OutsideUserProtocol.UDP ? NetworkPacket.UDP_HEADER : NetworkPacket.TCP_HEADER)
+                        .msgType(101)
+                        .writeStr("join game room failed");
+                outsideUserSessionManager.sendMsg2User(protocol, builder, userId);
             }
             return;
         }
         extendBody.setUserSession(userSession);
         extendBody.setRetryTimes(0);
         decoder.replaceExtendBody(extendBody);
-        GameRoom gameRoom = ChatRoomManager.getGameRoom(roomName, k -> {
-            GameRoom gameRoom1 = new GameRoom();
-            gameRoom1.setRoomName(k);
-            gameRoom1.setRoomId((long) Objects.hash(roomName));
-            gameRoom1.setBelongServerId(outsideUserSessionManager.getNowServerInfo().getId());
-            gameRoom1.setBelongServerType(outsideUserSessionManager.getNowServerInfo().getType());
+        GameRoom gameRoom = GameRoomManager.getGameRoom(roomName, k -> {
+            GameRoom gr = new GameRoom();
+            gr.setRoomName(k);
+            gr.setRoomId((long) Objects.hash(roomName));
+            gr.setBelongServerId(outsideUserSessionManager.getNowServerInfo().getId());
+            gr.setBelongServerType(outsideUserSessionManager.getNowServerInfo().getType());
             Seat[] seats = new Seat[3];
             Card[] diZhuCards = new Card[3];
-            gameRoom1.setSeats(seats);
-            gameRoom1.setDiZhuCards(diZhuCards);
-            return gameRoom1;
+            gr.setSeats(seats);
+            gr.setDiZhuCards(diZhuCards);
+            gr.setTimer(0);
+            return gr;
         });
+        //join to specified thread and join game room
         redirectMessage(ctx, decoder.toBuilder().msgType(101).writeLong(gameRoom.getRoomId()));
     }
 

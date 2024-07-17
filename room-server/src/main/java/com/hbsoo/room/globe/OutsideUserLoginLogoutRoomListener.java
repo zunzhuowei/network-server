@@ -1,9 +1,8 @@
-package com.hbsoo.room;
+package com.hbsoo.room.globe;
 
 import com.hbsoo.room.entity.GameRoom;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.session.OutsideUserLoginLogoutListener;
-import com.hbsoo.server.session.OutsideUserProtocol;
 import com.hbsoo.server.session.OutsideUserSessionManager;
 import com.hbsoo.server.session.UserSession;
 import org.slf4j.Logger;
@@ -31,7 +30,7 @@ public class OutsideUserLoginLogoutRoomListener implements OutsideUserLoginLogou
     @Override
     public void onLogout(Long userId) {
         logger.debug("onLogout userId:{}", userId);
-        List<GameRoom> gameRooms = ChatRoomManager.findGameRoomByUserId(userId);
+        List<GameRoom> gameRooms = GameRoomManager.findGameRoomByUserId(userId);
         NetworkPacket.Builder builder = NetworkPacket.Builder.withDefaultHeader()
                 .msgType(102).writeLong(userId).writeStr("offline");
 //        for (GameRoom gameRoom : gameRooms) {
@@ -49,7 +48,7 @@ public class OutsideUserLoginLogoutRoomListener implements OutsideUserLoginLogou
 //                }
 //            });
 //        }
-        ChatRoomManager.quitGameRoom(userId);
+        //GameRoomManager.quitGameRoom(userId);
 
     }
 

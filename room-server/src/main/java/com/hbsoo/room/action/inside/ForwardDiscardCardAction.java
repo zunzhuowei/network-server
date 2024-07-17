@@ -1,6 +1,6 @@
 package com.hbsoo.room.action.inside;
 
-import com.hbsoo.room.ChatRoomManager;
+import com.hbsoo.room.globe.GameRoomManager;
 import com.hbsoo.room.entity.GameRoom;
 import com.hbsoo.server.annotation.InsideServerMessageHandler;
 import com.hbsoo.server.message.ProtocolType;
@@ -30,7 +30,7 @@ public class ForwardDiscardCardAction extends ServerMessageDispatcher {
     public void handle(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
         UserSession userSession = decoder.readExtendBody().getUserSession();
         Long userId = userSession.getId();
-        List<GameRoom> gameRooms = ChatRoomManager.findGameRoomByUserId(userId);
+        List<GameRoom> gameRooms = GameRoomManager.findGameRoomByUserId(userId);
         if (Objects.isNull(gameRooms)) {
             logger.error("chatRoom is null");
             return;

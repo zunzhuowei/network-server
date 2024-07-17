@@ -1,7 +1,7 @@
 package com.hbsoo.room.action.inside;
 
 import com.google.gson.Gson;
-import com.hbsoo.room.ChatRoomManager;
+import com.hbsoo.room.globe.GameRoomManager;
 import com.hbsoo.room.entity.Card;
 import com.hbsoo.room.entity.GameRoom;
 import com.hbsoo.room.entity.Seat;
@@ -37,9 +37,9 @@ public class JoinGameRoomUseThreadAction extends ServerMessageDispatcher {
         String roomName = decoder.readStr();
         long userId = decoder.readInt();
         long roomId = decoder.readLong();
-        final String channelId = extendBody.getUserChannelId();
+        String channelId = extendBody.getUserChannelId();
         logger.info("JoinGameRoomUseThreadAction username:{}，channelId:{}，userId:{}", username, channelId, userId);
-        GameRoom gameRoom = ChatRoomManager.getGameRoom(roomName);
+        GameRoom gameRoom = GameRoomManager.getGameRoom(roomName);
         if (Objects.isNull(gameRoom)) {
             NetworkPacket.Builder builder = NetworkPacket.Builder
                     .withHeader(protocol == OutsideUserProtocol.UDP ? NetworkPacket.UDP_HEADER : NetworkPacket.TCP_HEADER)
@@ -89,7 +89,7 @@ public class JoinGameRoomUseThreadAction extends ServerMessageDispatcher {
         NetworkPacket.Builder builder = NetworkPacket.Builder
                 .withHeader(protocol == OutsideUserProtocol.UDP ? NetworkPacket.UDP_HEADER : NetworkPacket.TCP_HEADER)
                 .msgType(101)
-                .writeStr("房间name,id:" +gameRoom.getRoomName() + ":" + gameRoom.getRoomId());
+                .writeStr("房间name,id:" + gameRoom.getRoomName() + ":" + gameRoom.getRoomId());
         outsideUserSessionManager.sendMsg2User(protocol, builder, userId);
 
         //通知他人该用户加入了房间
@@ -111,6 +111,7 @@ public class JoinGameRoomUseThreadAction extends ServerMessageDispatcher {
         //游戏已经开始
         int status = gameRoom.getStatus();
         if (status == 1) {
+            //断线重连重新加入
             Optional<Seat> first = Arrays.stream(seats).filter(Objects::nonNull)
                     .filter(seat -> Objects.nonNull(seat.userSession))
                     .filter(seat -> seat.userSession.getId().equals(userId))
@@ -134,10 +135,14 @@ public class JoinGameRoomUseThreadAction extends ServerMessageDispatcher {
         if (isFullSeat && status == 0) {
             List<Card> cards = Card.newCards();
             int offset = 0;
+            //地主牌
             gameRoom.setDiZhuCards(cards.subList(offset, 3).toArray(new Card[0]));
             offset += 3;
+            //发牌每人17张
             for (Seat seat : seats) {
-                seat.cardsInHand = cards.subList(offset, offset + 17);
+                seat.cardsInHand = new ArrayList<>(cards.subList(offset, offset + 17));
+                //seat.cardsInHand = cards.subList(offset, offset + 17);
+                //java.util.ConcurrentModificationException
                 offset += 17;
             }
             //通知玩家发牌
@@ -159,7 +164,16 @@ public class JoinGameRoomUseThreadAction extends ServerMessageDispatcher {
                         seat.userSession.getId()
                 );
             }
+            //游戏开始
             gameRoom.setStatus(1);
+            //自动出牌
+            NetworkPacket.Builder autoDiscardBuilder = NetworkPacket.Builder
+                    .withDefaultHeader()
+                    .msgType(1001)
+                    .writeBoolean(true)
+                    .writeStr(gameRoom.getRoomName())
+                    ;
+            redirectMessage(ctx, autoDiscardBuilder,1);
         }
     }
 

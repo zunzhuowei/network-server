@@ -53,7 +53,7 @@ router.route_1001 = function (dataParser) {
     var discardCards = dataParser.getStr();
     var turnNo = dataParser.getInt();
     var cardSize = dataParser.getInt();
-    $("#chat-list").append("<li>" + discardCards + "--" + turnNo + "--" + cardSize + "</li>");
+    $("#chat-list").append("<li>出的牌:" + discardCards + "--接下来轮到谁出牌:" + turnNo + "--出牌人手上还有多少牌:" + cardSize + "</li>");
 };
 //赢牌消息
 router.route_1002 = function (dataParser) {
