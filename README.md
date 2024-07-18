@@ -267,4 +267,5 @@ public class IndexAction extends HttpServerMessageDispatcher {
 31. ~~让内部服务客户端发送同步消息（客户端发送等待服务端返回消息）~~
 32. ~~重构NetworkPacket，body部分改成rawBody、extendBody，方便扩展~~
 33. ~~udp协议问题修复，消息体改版后其他模块的适配~~
-34. 消息解码时，添加消息体长度校验：java.lang.OutOfMemoryError: Java heap space
+34. ~~消息解码时，添加消息体长度校验：java.lang.OutOfMemoryError: Java heap space~~
+35. ~~转发延迟时间单位可选~~

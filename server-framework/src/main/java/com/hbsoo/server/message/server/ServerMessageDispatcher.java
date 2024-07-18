@@ -3,15 +3,12 @@ package com.hbsoo.server.message.server;
 import com.hbsoo.server.annotation.InsideServerMessageHandler;
 import com.hbsoo.server.annotation.OutsideMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
+import com.hbsoo.server.message.ProtocolType;
 import com.hbsoo.server.message.entity.ExtendBody;
 import com.hbsoo.server.message.entity.NetworkPacket;
-import com.hbsoo.server.message.ProtocolType;
-import com.hbsoo.server.message.sender.ForwardMessageSender;
 import com.hbsoo.server.session.InsideClientSessionManager;
-import com.hbsoo.server.session.OutsideUserSessionManager;
 import com.hbsoo.server.utils.DelayThreadPoolScheduler;
 import com.hbsoo.server.utils.HttpRequestParser;
-import com.hbsoo.server.utils.SnowflakeIdGenerator;
 import com.hbsoo.server.utils.SpringBeanFactory;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
@@ -32,12 +29,6 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
 
     @Autowired
     protected DelayThreadPoolScheduler delayThreadPoolScheduler;
-//    @Autowired
-//    private ForwardMessageSender forwardMessageSender;
-//    @Autowired
-//    private SnowflakeIdGenerator snowflakeIdGenerator;
-//    @Autowired
-//    private OutsideUserSessionManager outsideUserSessionManager;
 
     /**
      * 注意，业务层不要重写此方法。此方法给分发器使用
@@ -67,7 +58,10 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
      * @param delaySecond 延迟时间（秒）
      */
     public void forward2InsideServer(NetworkPacket.Builder msgBuilder, String serverType, Object key, int delaySecond) {
-        delayThreadPoolScheduler.schedule(() -> forward2InsideServer(msgBuilder, serverType, key), delaySecond, TimeUnit.SECONDS);
+        forward2InsideServer(msgBuilder, serverType, key, delaySecond, TimeUnit.SECONDS);
+    }
+    public void forward2InsideServer(NetworkPacket.Builder msgBuilder, String serverType, Object key, int delay, TimeUnit unit) {
+        delayThreadPoolScheduler.schedule(() -> forward2InsideServer(msgBuilder, serverType, key), delay, unit);
     }
     /**
      * 消息转发到【其他内网服务器】的消息处理器中，
@@ -87,7 +81,10 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
      * @param delaySecond 延迟时间（秒）
      */
     public void forward2InsideServer(NetworkPacket.Builder msgBuilder, int serverId, String serverType, int delaySecond) {
-        delayThreadPoolScheduler.schedule(() -> forward2InsideServer(msgBuilder, serverId, serverType), delaySecond, TimeUnit.SECONDS);
+        forward2InsideServer(msgBuilder, serverId, serverType, delaySecond, TimeUnit.SECONDS);
+    }
+    public void forward2InsideServer(NetworkPacket.Builder msgBuilder, int serverId, String serverType, int delay, TimeUnit unit) {
+        delayThreadPoolScheduler.schedule(() -> forward2InsideServer(msgBuilder, serverId, serverType), delay, unit);
     }
 
     public void forward2AllInsideServerByType(NetworkPacket.Builder msgBuilder, String serverType) {
@@ -95,7 +92,10 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
     }
 
     public void forward2AllInsideServerByType(NetworkPacket.Builder msgBuilder, String serverType, int delaySecond) {
-        delayThreadPoolScheduler.schedule(() -> forward2AllInsideServerByType(msgBuilder, serverType), delaySecond, TimeUnit.SECONDS);
+        forward2AllInsideServerByType(msgBuilder, serverType, delaySecond, TimeUnit.SECONDS);
+    }
+    public void forward2AllInsideServerByType(NetworkPacket.Builder msgBuilder, String serverType, int delay, TimeUnit unit) {
+        delayThreadPoolScheduler.schedule(() -> forward2AllInsideServerByType(msgBuilder, serverType), delay, unit);
     }
 
     public void forward2AllInsideServerByTypeUseSender(NetworkPacket.Builder msgBuilder, String serverType) {
@@ -103,7 +103,10 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
     }
 
     public void forward2AllInsideServerByTypeUseSender(NetworkPacket.Builder msgBuilder, String serverType, int delaySecond) {
-        delayThreadPoolScheduler.schedule(() -> forward2AllInsideServerByTypeUseSender(msgBuilder, serverType), delaySecond, TimeUnit.SECONDS);
+        forward2AllInsideServerByTypeUseSender(msgBuilder, serverType, delaySecond, TimeUnit.SECONDS);
+    }
+    public void forward2AllInsideServerByTypeUseSender(NetworkPacket.Builder msgBuilder, String serverType, int delay, TimeUnit unit) {
+        delayThreadPoolScheduler.schedule(() -> forward2AllInsideServerByTypeUseSender(msgBuilder, serverType), delay, unit);
     }
 
     /**
@@ -120,7 +123,10 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
      * {@link ServerMessageDispatcher#forward2InsideServer}
      */
     public void forward2InsideServerUseSender(NetworkPacket.Builder msgBuilder, String serverType, Object key, int delaySecond) {
-        delayThreadPoolScheduler.schedule(() -> forward2InsideServerUseSender(msgBuilder, serverType, key), delaySecond, TimeUnit.SECONDS);
+        forward2InsideServerUseSender(msgBuilder, serverType, key, delaySecond, TimeUnit.SECONDS);
+    }
+    public void forward2InsideServerUseSender(NetworkPacket.Builder msgBuilder, String serverType, Object key, int delay, TimeUnit unit) {
+        delayThreadPoolScheduler.schedule(() -> forward2InsideServerUseSender(msgBuilder, serverType, key), delay, unit);
     }
     /**
      * 消息转发到【其他内网服务器】的消息处理器中，
@@ -137,7 +143,10 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
      * {@link ServerMessageDispatcher#forward2InsideServer}
      */
     public void forward2InsideServerUseSender(NetworkPacket.Builder msgBuilder, int serverId, String serverType, int delaySecond) {
-        delayThreadPoolScheduler.schedule(() -> forward2InsideServerUseSender(msgBuilder, serverId, serverType), delaySecond, TimeUnit.SECONDS);
+        forward2InsideServerUseSender(msgBuilder, serverId, serverType, delaySecond, TimeUnit.SECONDS);
+    }
+    public void forward2InsideServerUseSender(NetworkPacket.Builder msgBuilder, int serverId, String serverType, int delay, TimeUnit unit) {
+        delayThreadPoolScheduler.schedule(() -> forward2InsideServerUseSender(msgBuilder, serverId, serverType), delay, unit);
     }
     /**
      * 消息重定向到【当前服务器】中的其他消息处理器中，与当前处理器【相同协议】
@@ -148,7 +157,10 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
     }
 
     public void redirectMessage(ChannelHandlerContext ctx, NetworkPacket.Builder builder, int delaySecond) {
-        delayThreadPoolScheduler.schedule(() -> redirectMessage(ctx, builder), delaySecond, TimeUnit.SECONDS);
+        redirectMessage(ctx, builder, delaySecond, TimeUnit.SECONDS);
+    }
+    public void redirectMessage(ChannelHandlerContext ctx, NetworkPacket.Builder builder, int delay, TimeUnit unit) {
+        delayThreadPoolScheduler.schedule(() -> redirectMessage(ctx, builder), delay, unit);
     }
 
     /**
@@ -159,7 +171,11 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
         redirectMessageOrg(ctx, decoder);
     }
     public void redirectMessage(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder, int delaySecond) {
-        delayThreadPoolScheduler.schedule(() -> redirectMessage(ctx, decoder), delaySecond, TimeUnit.SECONDS);
+        redirectMessage(ctx, decoder, delaySecond, TimeUnit.SECONDS);
+    }
+
+    public void redirectMessage(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder, int delay, TimeUnit unit) {
+        delayThreadPoolScheduler.schedule(() -> redirectMessage(ctx, decoder), delay, unit);
     }
     /**
      * 消息重定向到【当前服务器】中的其他消息处理器中，与当前处理器【相同协议】
@@ -275,8 +291,12 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
      * @return 服务器响应的内容或者null(等待返回值超时)
      */
     public NetworkPacket.Decoder request2Server(NetworkPacket.Builder builder, int timeoutSeconds, Consumer<NetworkPacket.Builder> forwardMsg2ServerFunction) {
+        return request2Server(builder, timeoutSeconds, TimeUnit.SECONDS, forwardMsg2ServerFunction);
+    }
+
+    public NetworkPacket.Decoder request2Server(NetworkPacket.Builder builder, int timeout, TimeUnit unit, Consumer<NetworkPacket.Builder> forwardMsg2ServerFunction) {
         try {
-            return InsideClientSessionManager.requestServer(builder, timeoutSeconds, forwardMsg2ServerFunction);
+            return InsideClientSessionManager.requestServer(builder, timeout, unit, forwardMsg2ServerFunction);
         } catch (InterruptedException e) {
             e.printStackTrace();
             return null;

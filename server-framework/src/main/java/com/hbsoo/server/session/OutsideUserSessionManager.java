@@ -388,7 +388,7 @@ public final class OutsideUserSessionManager {
         httpResponse(headers, content, contentType, extendBody, status, null);
     }
 
-    private void response(Channel channel, Map<String, String> headers, byte[] content, String contentType, HttpResponseStatus status,
+    public void response(Channel channel, Map<String, String> headers, byte[] content, String contentType, HttpResponseStatus status,
                           GenericFutureListener<? extends Future<? super Void>> future) {
         DefaultFullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status);
         if (content != null && content.length > 0) {

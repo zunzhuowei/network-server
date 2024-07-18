@@ -19,12 +19,6 @@ public final class WebSocketFrameHandler extends SimpleChannelInboundHandler<Web
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, WebSocketFrame frame) throws Exception {
-        /*if (frame instanceof TextWebSocketFrame) {
-            String request = ((TextWebSocketFrame) frame).text();
-            ctx.channel().writeAndFlush(new TextWebSocketFrame("Server received your message: " + request));
-        } else {
-            throw new UnsupportedOperationException("Unsupported frame type: " + frame.getClass().getName());
-        }*/
         handler.onMessage(ctx, frame);
     }
 
