@@ -19,11 +19,6 @@ public final class TcpServerHandler extends SimpleChannelInboundHandler<ByteBuf>
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
-        /*byte[] received = new byte[msg.readableBytes()];
-        msg.readBytes(received);
-        String message = new String(received);
-        System.out.println("Received TCP message: " + message);
-        ctx.writeAndFlush(ctx.alloc().buffer().writeBytes(("Echo: " + message).getBytes()));*/
         handler.onMessage(ctx, msg);
     }
 

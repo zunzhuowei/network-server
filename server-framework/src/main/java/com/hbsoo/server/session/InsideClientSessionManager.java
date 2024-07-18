@@ -257,9 +257,9 @@ public final class InsideClientSessionManager {
     /**
      * 根据消息类型和键值向特定服务器发送消息。
      */
-    public static NetworkPacket.Decoder requestServerByTypeAndId(NetworkPacket.Builder msgBuilder, int serverId, String serverType)
-            throws InterruptedException, TimeoutException {
-        return requestServer(msgBuilder, 5, (builder) -> forwardMsg2ServerByTypeAndId(builder, serverId, serverType));
+    public static NetworkPacket.Decoder requestServerByTypeAndId(NetworkPacket.Builder msgBuilder, int serverId, String serverType, int timeoutSeconds)
+            throws InterruptedException {
+        return requestServer(msgBuilder, timeoutSeconds, (builder) -> forwardMsg2ServerByTypeAndId(builder, serverId, serverType));
     }
 
     /**
@@ -270,6 +270,11 @@ public final class InsideClientSessionManager {
      * @return 服务器响应的内容或者null(等待返回值超时)
      */
     public static NetworkPacket.Decoder requestServer(NetworkPacket.Builder msgBuilder, int timeoutSeconds, Consumer<NetworkPacket.Builder> forwardMsg2ServerFunction)
+            throws InterruptedException {
+        return requestServer(msgBuilder, timeoutSeconds, TimeUnit.SECONDS, forwardMsg2ServerFunction);
+    }
+
+    public static NetworkPacket.Decoder requestServer(NetworkPacket.Builder msgBuilder, int timeout, TimeUnit unit, Consumer<NetworkPacket.Builder> forwardMsg2ServerFunction)
             throws InterruptedException {
         NetworkPacket.Decoder decoder = msgBuilder.toDecoder();
         if (!decoder.hasExtendBody()) {
@@ -282,7 +287,7 @@ public final class InsideClientSessionManager {
             forwardMsg2ServerFunction.accept(msgBuilder);
             CountDownLatch latch = syncMessage.getCountDownLatch();
             //阻塞等待结果
-            boolean await = latch.await(timeoutSeconds, TimeUnit.SECONDS);
+            boolean await = latch.await(timeout, unit);
             if (await) {
                 return syncMessage.getDecoder();
             }
@@ -292,5 +297,4 @@ public final class InsideClientSessionManager {
             syncMsgMap.remove(msgId);
         }
     }
-
 }
