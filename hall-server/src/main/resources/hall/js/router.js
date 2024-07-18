@@ -21,8 +21,7 @@ router.route = function (msgType, dataView) {
 router.route_100 = function (dataParser) {
     var username = dataParser.getStr();
     var userId = dataParser.getLong();
-    var time = (new Date()).Format("yyyy-MM-dd hh:mm:ss");
-    $("#chat-list").append("<li>" + time + "[" + username + "]:" + userId + "上线了！</li>");
+    $("#chat-list").append("<li>[" + username + "]:" + userId + "上线了！</li>");
 };
 
 // 心跳包
@@ -78,7 +77,15 @@ router.route_1003 = function (dataParser) {
 //倒计时
 router.route_1004 = function (dataParser) {
     var timer = dataParser.getInt();
-    $("#chat-list").append("<li>[" + "倒计时：" + "]:" + timer + "</li>");
+    if (timer == 10) {
+        $("#chat-list").append("<li>[" + "倒计时：" + "]:" + timer + "</li>");
+    } else {
+        $("#chat-list > li:last").append("," + timer);
+    }
+};
+//重新开始游戏
+router.route_1005 = function (dataParser) {
+    $("#chat-list").empty();//删除所有子节点
 };
 
 router.onOpen = function () {

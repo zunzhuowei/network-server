@@ -2,10 +2,12 @@ package com.hbsoo.room.action.inside;
 
 import com.google.gson.Gson;
 import com.hbsoo.room.entity.GameRoom;
+import com.hbsoo.room.entity.Seat;
 import com.hbsoo.room.globe.GameRoomManager;
 import com.hbsoo.server.annotation.InsideServerMessageHandler;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.server.ServerMessageDispatcher;
+import com.hbsoo.server.session.OutsideUserProtocol;
 import com.hbsoo.server.session.OutsideUserSessionManager;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
@@ -35,6 +37,15 @@ public class RestartGameAction extends ServerMessageDispatcher {
             logger.debug("房间状态异常");
             return;
         }
+        //发送重新开始消息
+        NetworkPacket.Builder builder = NetworkPacket.Builder.withDefaultHeader().msgType(1005);
+        for (Seat seat : gameRoom.getSeats()) {
+            if (Objects.nonNull(seat) && Objects.nonNull(seat.userSession)) {
+                outsideUserSessionManager.sendMsg2User
+                        (OutsideUserProtocol.BINARY_WEBSOCKET, builder, seat.userSession.getId());
+            }
+        }
+
         joinGameRoomUseThreadAction.startGame(ctx, gameRoom, gameRoom.getSeats(), new Gson(), 0);
     }
 
