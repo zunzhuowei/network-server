@@ -219,6 +219,9 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
     public void redirectAndSwitchProtocol(ChannelHandlerContext ctx, ProtocolType protocolType, NetworkPacket.Builder msgBuilder) {
         redirectAndSwitchProtocolOrg(ctx, protocolType, msgBuilder);
     }
+    public void redirectAndSwitchProtocol(ChannelHandlerContext ctx, ProtocolType protocolType, NetworkPacket.Builder msgBuilder, int delay, TimeUnit unit) {
+        delayThreadPoolScheduler.schedule(() -> redirectAndSwitchProtocolOrg(ctx, protocolType, msgBuilder), delay, unit);
+    }
 
     /**
      * 消息重定向到【指定协议】的消息处理器中处理,作用于【当前服务器】
@@ -228,6 +231,9 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
      */
     public void redirectAndSwitchProtocol(ChannelHandlerContext ctx, ProtocolType protocolType, NetworkPacket.Decoder decoder) {
         redirectAndSwitchProtocolOrg(ctx, protocolType, decoder);
+    }
+    public void redirectAndSwitchProtocol(ChannelHandlerContext ctx, ProtocolType protocolType, NetworkPacket.Decoder decoder, int delay, TimeUnit unit) {
+        delayThreadPoolScheduler.schedule(() -> redirectAndSwitchProtocolOrg(ctx, protocolType, decoder), delay, unit);
     }
 
     /**
