@@ -24,7 +24,7 @@ public final class GameRoom {
     private int nowCardsUserNo;
     //底牌
     private Card[] diZhuCards;
-    //房间状态:0:等待中、1:游戏中、2:结束
+    //房间状态:0:等待中、1:已准备，2:游戏中、3:结束
     private int status;
     //计时器(秒)
     private int timer;
@@ -43,6 +43,7 @@ public final class GameRoom {
     }
     public void setTimer(int timer) {
         this.timer = timer;
+        this.timer = 0;
     }
     public void decrementTimer() {
         this.timer--;

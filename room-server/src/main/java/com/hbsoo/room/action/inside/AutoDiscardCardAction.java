@@ -1,14 +1,12 @@
 package com.hbsoo.room.action.inside;
 
 import com.alibaba.fastjson.JSON;
-import com.hbsoo.permisson.PermissionAuth;
 import com.hbsoo.room.entity.Card;
 import com.hbsoo.room.entity.CardType;
 import com.hbsoo.room.entity.GameRoom;
 import com.hbsoo.room.entity.Seat;
 import com.hbsoo.room.globe.GameRoomManager;
 import com.hbsoo.server.annotation.InsideServerMessageHandler;
-import com.hbsoo.server.annotation.OutsideMessageHandler;
 import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.server.ServerMessageDispatcher;
 import com.hbsoo.server.session.OutsideUserProtocol;
@@ -22,7 +20,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * 超时自动出牌
@@ -40,7 +37,7 @@ public class AutoDiscardCardAction extends ServerMessageDispatcher {
         boolean isAuto = decoder.readBoolean();
         String roomName = decoder.readStr();
         GameRoom gameRoom = GameRoomManager.getGameRoom(roomName);
-        if (gameRoom.getStatus() != 1) {
+        if (gameRoom.getStatus() != 2) {
             return;
         }
         //轮到谁出牌
@@ -53,7 +50,7 @@ public class AutoDiscardCardAction extends ServerMessageDispatcher {
             int timer = gameRoom.getTimer();
             if (timer > 0) {
                 gameRoom.decrementTimer();
-                redirectMessage(ctx, decoder, 1);
+                redirectMessage(ctx, decoder, 1, TimeUnit.MILLISECONDS);
                 logger.debug("自动出牌倒计时:{}", timer);
                 //推送倒计时给客户端
                 NetworkPacket.Builder builder = NetworkPacket.Builder.withDefaultHeader()
@@ -94,7 +91,7 @@ public class AutoDiscardCardAction extends ServerMessageDispatcher {
                             .msgType(1001)
                             .writeBoolean(true)
                             .writeStr(gameRoom.getRoomName());
-                    redirectMessage(ctx, autoDiscardBuilder, 1);
+                    redirectMessage(ctx, autoDiscardBuilder, 1,TimeUnit.MILLISECONDS);
                     //通知玩家当前玩家要不起
                     NetworkPacket.Builder builder = NetworkPacket.Builder.withDefaultHeader()
                             .msgType(1003)
@@ -174,7 +171,7 @@ public class AutoDiscardCardAction extends ServerMessageDispatcher {
         outsideUserSessionManager.sendMsg2User(OutsideUserProtocol.BINARY_WEBSOCKET, builder, userId);
         //判断是否为最后一张牌
         if (seats[turnNo].cardsInHand.size() == 0) {
-            gameRoom.setStatus(2);
+            gameRoom.setStatus(3);
             //赢牌消息1002
             NetworkPacket.Builder b = NetworkPacket.Builder.withDefaultHeader()
                     .msgType(1002)
@@ -193,7 +190,7 @@ public class AutoDiscardCardAction extends ServerMessageDispatcher {
             return;
         }
         if (isAuto) {
-            redirectMessage(ctx, decoder, 1);
+            redirectMessage(ctx, decoder, 1,TimeUnit.MILLISECONDS);
         }
     }
 
@@ -418,8 +415,18 @@ public class AutoDiscardCardAction extends ServerMessageDispatcher {
                 .stream()
                 .filter(entry -> entry.getValue().size() >= 3)
                 .count();
-        //TODO 还缺少是否为连续的三张的判断;333,444,555
         if (count < 2) {
+            return false;
+        }
+        //是否为连续的三张的判断;333,444,555
+        Optional<List<List<Card>>> theSameCardPointWithSize = findTheSameCardPointWithSize(cards, 3);
+        if (!theSameCardPointWithSize.isPresent()) {
+            return false;
+        }
+        List<List<Card>> lists = theSameCardPointWithSize.get();
+        byte cardPoint = lists.get(0).get(0).cardPoint;
+        byte cardPoint1 = lists.get(1).get(1).cardPoint;
+        if (cardPoint != cardPoint1) {
             return false;
         }
         int subCardSize = cards.size() - count * 3;
@@ -840,23 +847,167 @@ public class AutoDiscardCardAction extends ServerMessageDispatcher {
             }
         }
     }
+//TODO 地主牌还没分配
+
+    /**
+     * 查找指定张数的牌有哪些，如：cardSize=2，33，44，55；cardSize=2，333，444，555；
+     * @param cardsInHand 手上的牌
+     * @param cardSize 指定的张数
+     */
+  private Optional<List<List<Card>>> findTheSameCardPointWithSize(List<Card> cardsInHand, int cardSize) {
+        List<List<Card>> result = new ArrayList<>();
+        cardsInHand = cardsInHand.stream()
+                .sorted(Comparator.comparingInt(card -> card.cardSort))
+                .sorted(Comparator.comparingInt(card -> card.cardPoint))
+                .collect(Collectors.toList());
+        switch (cardSize) {
+            case 1:{
+                for (Card card : cardsInHand) {
+                    List<Card> item = new ArrayList<>();
+                    item.add(card);
+                    result.add(item);
+                }
+                break;
+            }
+            case 2:{
+                for (int i = 0; i < cardsInHand.size(); i++) {
+                    Card card = cardsInHand.get(i);
+                    if (card.cardPoint == 16 || card.cardPoint == 17) {
+                        continue;
+                    }
+                    if (i + 1 < cardsInHand.size()) {
+                        Card nextCard = cardsInHand.get(i + 1);
+                        if (card.cardPoint == nextCard.cardPoint) {
+                            List<Card> item = new ArrayList<>();
+                            item.add(card);
+                            item.add(nextCard);
+                            result.add(item);
+                            i += 2;
+                        }
+                    }
+                }
+                break;
+            }
+            case 3:{
+                for (int i = 0; i < cardsInHand.size(); i++) {
+                    Card card = cardsInHand.get(i);
+                    if (i + 2 < cardsInHand.size()) {
+                        Card nextCard = cardsInHand.get(i + 1);
+                        Card nextNextCard = cardsInHand.get(i + 2);
+                        if (card.cardPoint == nextCard.cardPoint
+                                && card.cardPoint == nextNextCard.cardPoint) {
+                            List<Card>item = new ArrayList<>();
+                            item.add(card);
+                            item.add(nextCard);
+                            item.add(nextNextCard);
+                            result.add(item);
+                            i += 3;
+                        }
+                    }
+                }
+                break;
+            }
+            case 4:{
+                for (int i = 0; i < cardsInHand.size(); i++) {
+                    Card card = cardsInHand.get(i);
+                    if (i + 3 < cardsInHand.size()) {
+                        Card nextCard = cardsInHand.get(i + 1);
+                        Card nextNextCard = cardsInHand.get(i + 2);
+                        Card lastCard = cardsInHand.get(i + 3);
+                        if (card.cardPoint == nextCard.cardPoint
+                                && nextCard.cardPoint == nextNextCard.cardPoint
+                                && nextNextCard.cardPoint == lastCard.cardPoint) {
+                            List<Card>item = new ArrayList<>();
+                            item.add(card);
+                            item.add(nextCard);
+                            item.add(nextNextCard);
+                            item.add(lastCard);
+                            result.add(item);
+                            i += 4;
+                        }
+                    }
+                }
+                break;
+            }
+        }
+        return Optional.of(result);
+    }
+
+    /**
+     * 查找最大顺子;12345
+     *                345 78910JQK
+     * @param cardsInHand 手上的牌
+     */
+    private Optional<List<Card>> findMaxStraight(List<Card> cardsInHand) {
+        cardsInHand = cardsInHand.stream()
+                .filter(card -> card.cardPoint != 16 && card.cardPoint != 17)
+                .sorted(Comparator.comparingInt(card -> card.cardSort))
+                .sorted(Comparator.comparingInt(card -> card.cardPoint))
+                .collect(Collectors.toList());
+        List<Card> result = new ArrayList<>();
+        List<Card> temp = new ArrayList<>();
+        int index = 0;
+        boolean b = true;
+        while (index < cardsInHand.size()) {
+            Card card = cardsInHand.get(index);
+            if (index + 1 < cardsInHand.size()) {
+                Card nextCard = cardsInHand.get(index + 1);
+                if (card.cardPoint == nextCard.cardPoint - 1) {
+                    if (b){
+                        temp.add(card);
+                        b = false;
+                    }
+                    temp.add(nextCard);
+                    if (temp.size() >= 5 && temp.size() > result.size()) {
+                        result.clear();
+                        result.addAll(temp);
+                    }
+                    index ++;
+                } else if (card.cardPoint == nextCard.cardPoint) {
+                    index++;
+                } else {
+                    if (temp.size() < 5) {
+                        temp.clear();
+                    } else {
+                        if (temp.size() >= result.size()) {
+                            result.clear();
+                            result.addAll(temp);
+                            temp.clear();
+                        }
+                    }
+                    b = true;
+                    index++;
+                }
+            } else {
+                if (temp.size() < 5) {
+                    temp.clear();
+                } else {
+                    if (temp.size() > result.size()) {
+                        result = temp;
+                    }
+                    temp.clear();
+                }
+                index ++;
+            }
+        }
+        return Optional.of(result);
+    }
 
 //    public static void main(String[] args) {
-//        DiscardCardAction discardCardAction = new DiscardCardAction();
-//        List<Card> cards = new ArrayList<>();
-//        cards.add(new Card(3, 1));
-//        cards.add(new Card(3, 1));
-//        cards.add(new Card(3, 1));
-//        cards.add(new Card(3, 1));
-//        cards.add(new Card(4, 1));
-//        cards.add(new Card(4, 1));
-//        cards.add(new Card(4, 1));
-//        cards.add(new Card(5, 1));
-//        cards.add(new Card(6, 1));
-//        cards.add(new Card(6, 1));
-//        cards.add(new Card(6, 1));
-//        boolean plane = discardCardAction.isPlane(cards);
-//        System.out.println("plane = " + plane);
+//        //String json = "[{\"cardPoint\":3,\"cardSort\":0},{\"cardPoint\":3,\"cardSort\":1},{\"cardPoint\":3,\"cardSort\":2},{\"cardPoint\":4,\"cardSort\":3},{\"cardPoint\":5,\"cardSort\":0},{\"cardPoint\":5,\"cardSort\":2},{\"cardPoint\":6,\"cardSort\":1},{\"cardPoint\":7,\"cardSort\":2},{\"cardPoint\":8,\"cardSort\":2},{\"cardPoint\":11,\"cardSort\":0},{\"cardPoint\":12,\"cardSort\":0},{\"cardPoint\":12,\"cardSort\":2},{\"cardPoint\":12,\"cardSort\":3},{\"cardPoint\":13,\"cardSort\":0},{\"cardPoint\":13,\"cardSort\":1},{\"cardPoint\":14,\"cardSort\":1},{\"cardPoint\":14,\"cardSort\":2}]";
+//        //Optional<List<Card>> optionalCards2 = findMaxStraight(JSON.parseArray(json, Card.class));
+//
+//        List<Card> cards = Card.newCards();
+//        int offset = 0;
+//        //地主牌
+//        cards.subList(offset, 3).toArray(new Card[0]);
+//        offset += 3;
+//        //发牌每人17张
+//        for (int i = 0; i < 3; i++) {
+//            List<Card> cardsInHand = new ArrayList<>(cards.subList(offset, offset + 17));
+//            Optional<List<Card>> optionalCards = findMaxStraight(cardsInHand);
+//            offset += 17;
+//        }
 //    }
 
 }

@@ -33,7 +33,7 @@ public class JoinRoomAction extends HttpServerMessageDispatcher {
     @Override
     public void handle(ChannelHandlerContext ctx, HttpPacket httpPacket) {
         byte[] body = httpPacket.getBody();
-        String page = "pages/chat.html";
+        String page = "pages/game.html";
         String roomName = null;
         String username = null;
         boolean success = true;

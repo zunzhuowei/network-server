@@ -87,7 +87,28 @@ router.route_1004 = function (dataParser) {
 router.route_1005 = function (dataParser) {
     $("#chat-list").empty();//删除所有子节点
 };
-
+//通知客户端打开准备按钮
+router.route_1006 = function (dataParser) {
+    $("#chat-list").append("<li class='readyLi'>" + "<button onclick='sendReadyGame()'>准备</button>" + "</li>");
+};
+//通知客户端已准备
+router.route_1007 = function (dataParser) {
+    $("#chat-list > .readyLi").empty();
+};
+//通知客户端打开抢地主按钮
+router.route_1008 = function (dataParser) {
+    $("#chat-list").append("<li class='grabDiZhu'>" + "<button onclick='grabDiZhu()'>抢地主</button>" + "</li>");
+};
+//通知客户端已参加抢地主
+router.route_1009 = function (dataParser) {
+    $("#chat-list > .grabDiZhu").empty();
+};
+//通知客户端抢地主结果
+router.route_1010 = function (dataParser) {
+    var index = dataParser.getInt();
+    var diZhuCard = dataParser.getStr();
+    $("#chat-list").append("<li>地主下标：[" + index + "]，地主牌:" + diZhuCard + "</li>");
+};
 router.onOpen = function () {
     var roomName = $('#roomName').text();
     var username = $('#username').text();

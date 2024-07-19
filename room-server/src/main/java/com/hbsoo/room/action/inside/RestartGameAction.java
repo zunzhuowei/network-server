@@ -33,7 +33,7 @@ public class RestartGameAction extends ServerMessageDispatcher {
     public void handle(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
         String roomName = decoder.readStr();
         GameRoom gameRoom = GameRoomManager.getGameRoom(roomName);
-        if (Objects.isNull(gameRoom) || gameRoom.getStatus() != 2) {
+        if (Objects.isNull(gameRoom) || gameRoom.getStatus() != 3) {
             logger.debug("房间状态异常");
             return;
         }
@@ -45,8 +45,21 @@ public class RestartGameAction extends ServerMessageDispatcher {
                         (OutsideUserProtocol.BINARY_WEBSOCKET, builder, seat.userSession.getId());
             }
         }
-
-        joinGameRoomUseThreadAction.startGame(ctx, gameRoom, gameRoom.getSeats(), new Gson(), 0);
+        gameRoom.setStatus(0);
+        gameRoom.setTurnNo(0);
+        gameRoom.setDiZhuCards(null);
+        gameRoom.setNowCardsUserNo(0);
+        gameRoom.setNowCards(null);
+        for (Seat seat : gameRoom.getSeats()) {
+            if (Objects.nonNull(seat)) {
+                seat.isReady = false;
+                seat.isGrab = false;
+                seat.isLandlord = false;
+                seat.cardsInHand = null;
+                seat.cardsOutHand = null;
+            }
+        }
+        joinGameRoomUseThreadAction.startGame(ctx, gameRoom, gameRoom.getSeats(), new Gson(), gameRoom.getStatus());
     }
 
     @Override

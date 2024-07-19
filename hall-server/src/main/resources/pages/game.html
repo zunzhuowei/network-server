@@ -37,8 +37,16 @@
                 socket.send(buffer);
                 $("#chat-input-text").val("");
             }
-        })
+        });
     });
+    function sendReadyGame() {
+        var buffer = sender.buildHead(1006).finish();
+        socket.send(buffer);
+    }
+    function grabDiZhu() {
+        var buffer = sender.buildHead(1008).finish();
+        socket.send(buffer);
+    }
 </script>
 </body>
 </html>

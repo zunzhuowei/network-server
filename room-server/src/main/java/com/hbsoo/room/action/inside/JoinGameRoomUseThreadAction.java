@@ -111,7 +111,7 @@ public class JoinGameRoomUseThreadAction extends ServerMessageDispatcher {
         }
         //游戏已经开始
         int status = gameRoom.getStatus();
-        if (status == 1) {
+        if (status == 1 || status == 2) {
             //断线重连重新加入
             Optional<Seat> first = Arrays.stream(seats).filter(Objects::nonNull)
                     .filter(seat -> Objects.nonNull(seat.userSession))
@@ -132,9 +132,7 @@ public class JoinGameRoomUseThreadAction extends ServerMessageDispatcher {
                         seat.userSession.getId()
                 );
             });
-            return;
         }
-
         startGame(ctx, gameRoom, seats, gson, status);
     }
 
@@ -150,7 +148,7 @@ public class JoinGameRoomUseThreadAction extends ServerMessageDispatcher {
     public void startGame(ChannelHandlerContext ctx, GameRoom gameRoom, Seat[] seats, Gson gson, int status) {
         //如果房间已经满人，开始发牌
         boolean isFullSeat = Arrays.stream(seats).allMatch(Objects::nonNull);
-        if (isFullSeat && status == 0) {
+        if (isFullSeat && status == 1) {
             List<Card> cards = Card.newCards();
             int offset = 0;
             //地主牌
@@ -188,15 +186,69 @@ public class JoinGameRoomUseThreadAction extends ServerMessageDispatcher {
                 );
             }
             //游戏开始
-            gameRoom.setStatus(1);
+            //gameRoom.setStatus(1);
             //自动出牌
-            NetworkPacket.Builder autoDiscardBuilder = NetworkPacket.Builder
-                    .withDefaultHeader()
-                    .msgType(1001)
-                    .writeBoolean(true)
-                    .writeStr(gameRoom.getRoomName())
-                    ;
-            redirectMessage(ctx, autoDiscardBuilder,1);
+            //NetworkPacket.Builder autoDiscardBuilder = NetworkPacket.Builder
+            //        .withDefaultHeader()
+            //        .msgType(1001)
+            //        .writeBoolean(true)
+            //        .writeStr(gameRoom.getRoomName());
+            //redirectMessage(ctx, autoDiscardBuilder,1);
+        }
+        //通知用户准备开始游戏
+        if (isFullSeat && status == 0) {
+            notifyUserReadyStartGame(seats);
+        }
+        //发送抢地主消息
+        if (status == 1) {
+            notifyUserGrab(seats);
+        }
+    }
+
+    /**
+     * 发送抢地主消息
+     * @param seats
+     */
+    public void notifyUserGrab(Seat[] seats) {
+        NetworkPacket.Builder grabBuilder = NetworkPacket.Builder
+                .withDefaultHeader()
+                .msgType(1008);
+        for (Seat seat : seats) {
+            if (Objects.isNull(seat)) {
+                continue;
+            }
+            //掉线了
+            if (seat.userSession == null) {
+                continue;
+            }
+            outsideUserSessionManager.sendMsg2User(
+                    seat.userSession.getOutsideUserProtocol(),
+                    grabBuilder,
+                    seat.userSession.getId()
+            );
+        }
+    }
+
+    /**
+     * 通知用户准备开始游戏
+     */
+    private void notifyUserReadyStartGame(Seat[] seats) {
+        NetworkPacket.Builder readyGameBuilder = NetworkPacket.Builder
+                .withDefaultHeader()
+                .msgType(1006);
+        for (Seat seat : seats) {
+            if (Objects.isNull(seat)) {
+                continue;
+            }
+            //掉线了
+            if (seat.userSession == null) {
+                continue;
+            }
+            outsideUserSessionManager.sendMsg2User(
+                    seat.userSession.getOutsideUserProtocol(),
+                    readyGameBuilder,
+                    seat.userSession.getId()
+            );
         }
     }
 

@@ -19,5 +19,9 @@ public final class Seat {
     public List<Card> cardsOutHand;
     // 是否参加抢地主
     public boolean isGrab;
+    // 是否是地主
+    public boolean isLandlord;
+    // 是否准备
+    public boolean isReady;
 
 }
