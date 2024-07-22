@@ -84,7 +84,7 @@ public final class NetworkServer {
             enableUdpServer();
         }
         serverChannel = b.bind(port).sync().channel();
-        System.out.println("Netty server started on port " + port);
+        System.out.println(serverName + " server started on port " + port);
     }
 
     public void stop() {
@@ -125,18 +125,18 @@ public final class NetworkServer {
                 // 绑定一个端口并且同步，生成了一个ChannelFuture对象
                 ChannelFuture future = udpBootstrap.bind(port).sync();
                 if (future.isSuccess()) {
-                    System.out.println("UDP server started on port " + port);
+                    System.out.println(serverName + " UDP server started on port " + port);
                     //防止客户端第一个包丢失问题，自己给自己先发一个
                     NetworkPacket.Builder.withHeader(NetworkPacket.UDP_HEADER)
                             .msgType(0).sendUdpTo(future.channel(), "127.0.0.1", port);
                 } else {
-                    System.out.println("UDP server failed to start on port " + port);
+                    System.out.println(serverName + " UDP server failed to start on port " + port);
                 }
                 future.channel().closeFuture().addListener(future1 -> {
                     if (future1.isSuccess()) {
-                        System.out.println("UDP server closed successfully.");
+                        System.out.println(serverName + " UDP server closed successfully.");
                     } else {
-                        System.out.println("UDP server closed with error: " + future1.cause());
+                        System.out.println(serverName + " UDP server closed with error: " + future1.cause());
                     }
                 });
             } catch (InterruptedException e) {
