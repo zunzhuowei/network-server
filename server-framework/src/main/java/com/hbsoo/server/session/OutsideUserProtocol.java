@@ -5,12 +5,13 @@ package com.hbsoo.server.session;
  */
 public enum OutsideUserProtocol {
 
+    TCP((byte) 0),
+    UDP((byte) 1),
     BINARY_WEBSOCKET((byte) 2),
     TEXT_WEBSOCKET((byte) 3),
     HTTP((byte) 4),
-    TCP((byte) 0),
-    UDP((byte) 1);
-
+    MQTT((byte) 5),
+    ;
     //byte tcp = 0, udp = 1, binary_websocket = 2,text_websocket = 3, http = 4;
     public byte protocolType;
 

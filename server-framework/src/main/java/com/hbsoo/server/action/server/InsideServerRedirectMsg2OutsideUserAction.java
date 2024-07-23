@@ -44,6 +44,19 @@ public class InsideServerRedirectMsg2OutsideUserAction extends ServerMessageDisp
             outsideUserSessionManager.httpResponse(map, insidePackage, contentType, extendBody, HttpResponseStatus.valueOf(status));
             return;
         }
+        if (protocol == OutsideUserProtocol.MQTT) {
+            long id = decoder.readLong();
+            byte[] insidePackage = decoder.readBytes();
+            if (id == Long.MIN_VALUE) {
+                ExtendBody extendBody = decoder.readExtendBody();
+                logger.debug("protocol:{},expandBody:{}", protocol, extendBody);
+                outsideUserSessionManager.sendMqttMsg2UserWithChannelId(insidePackage, extendBody);
+            } else {
+                logger.debug("id:{} protocol:{}", id, protocol);
+                outsideUserSessionManager.sendMsg2User(protocol, insidePackage, id);
+            }
+            return;
+        }
         long id = decoder.readLong();
         byte[] insidePackage = decoder.readBytes();
         logger.debug("id:{} protocol:{}", id, protocol);

@@ -5,10 +5,7 @@ import com.hbsoo.server.NowServer;
 import com.hbsoo.server.annotation.InsideServerMessageHandler;
 import com.hbsoo.server.annotation.OutsideMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
-import com.hbsoo.server.message.entity.ExtendBody;
-import com.hbsoo.server.message.entity.HttpPacket;
-import com.hbsoo.server.message.entity.NetworkPacket;
-import com.hbsoo.server.message.entity.TextWebSocketPacket;
+import com.hbsoo.server.message.entity.*;
 import com.hbsoo.server.netty.AttributeKeyConstants;
 import com.hbsoo.server.session.OutsideUserProtocol;
 import com.hbsoo.server.session.OutsideUserSessionManager;
@@ -25,6 +22,7 @@ import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
+import io.netty.handler.codec.mqtt.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.AnnotationUtils;
@@ -116,6 +114,10 @@ interface CommonDispatcher {
         }
         if (msg instanceof FullHttpRequest) {
             handleHttp(ctx, (FullHttpRequest) msg);
+            return;
+        }
+        if (msg instanceof MqttMessage) {
+            handleMqtt(ctx, (MqttMessage) msg);
             return;
         }
         logger.warn("消息类型未注册：" + msg.getClass().getName());
@@ -443,6 +445,72 @@ interface CommonDispatcher {
             extendBody.setRetryTimes(0);
             extendBody.serializable(builder);
         }
+    }
+
+    default void handleMqtt(ChannelHandlerContext ctx, MqttMessage msg, ExtendBody... extendBody) {
+        MqttFixedHeader mqttFixedHeader = msg.fixedHeader();
+        MqttMessageType mqttMessageType = mqttFixedHeader.messageType();
+        int msgType = mqttMessageType.value();
+        MqttPacket mqttPacket = new MqttPacket();
+        if (msg instanceof MqttPublishMessage) {
+            MqttPublishMessage publishMessage = (MqttPublishMessage) msg;
+            MqttFixedHeader fixedHeader = publishMessage.fixedHeader();
+            MqttPublishVariableHeader variableHeader = publishMessage.variableHeader();
+            ByteBuf payload = publishMessage.payload();
+            byte[] data = new byte[payload.readableBytes()];
+            payload.readBytes(data);
+            MqttPublishMessage message = new MqttPublishMessage(fixedHeader, variableHeader, Unpooled.wrappedBuffer(data));
+            mqttPacket.setMqttMessage(message);
+        } else {
+            mqttPacket.setMqttMessage(msg);
+        }
+        if (extendBody == null || extendBody.length == 0) {
+            extendBody = new ExtendBody[1];
+            extendBody[0] = new ExtendBody();
+            SnowflakeIdGenerator snowflakeIdGenerator = SpringBeanFactory.getBean(SnowflakeIdGenerator.class);
+            extendBody[0].setMsgId(snowflakeIdGenerator.generateId());
+            extendBody[0].setProtocolType(OutsideUserProtocol.MQTT.protocolType);
+            extendBody[0].setFromServerId(NowServer.getServerInfo().getId());
+            extendBody[0].setFromServerType(NowServer.getServerInfo().getType());
+            extendBody[0].setUserChannelId(ctx.channel().id().asLongText());
+            Long userId = AttributeKeyConstants.getAttr(ctx.channel(), AttributeKeyConstants.idAttr);
+            boolean isLogin = Objects.nonNull(userId);
+            if (isLogin) {
+                OutsideUserSessionManager bean = SpringBeanFactory.getBean(OutsideUserSessionManager.class);
+                UserSession userSession = bean.getUserSession(userId);
+                if (Objects.nonNull(userSession)) {
+                    extendBody[0].setLogin(true);
+                    extendBody[0].setUserId(userId);
+                    extendBody[0].setUserSession(userSession);
+                }
+            }
+        }
+        mqttPacket.setExtendBody(extendBody[0]);
+        // 类型匹配上了
+        MqttServerMessageDispatcher dispatcher = (MqttServerMessageDispatcher) dispatchers().get(Protocol.MQTT).get(msgType);
+        if (Objects.nonNull(dispatcher)) {
+            Object threadKey = dispatcher.threadKey(ctx, null);
+            threadPoolScheduler().execute(threadKey, () -> {
+                dispatcher.handle(ctx, mqttPacket);
+            });
+            return;
+        }
+        // 如果定义的默认处理器
+        Map<String, DefaultMqttServerDispatcher> beans = SpringBeanFactory.getBeansOfType(DefaultMqttServerDispatcher.class);
+        if (!beans.isEmpty()) {
+            for (DefaultMqttServerDispatcher messageDispatcher : beans.values()) {
+                Object threadKey = messageDispatcher.threadKey(ctx, null);
+                threadPoolScheduler().execute(threadKey, () -> {
+                    messageDispatcher.handle(ctx, mqttPacket);
+                });
+            }
+            return;
+        }
+        Boolean isInsideClient = ctx.channel().attr(AttributeKeyConstants.isInsideClientAttr).get();
+        if (isInsideClient == null || !isInsideClient) {
+            ctx.close();
+        }
+        logger.warn("MQTT消息类型处理器不存在:{},{}", msgType, mqttMessageType);
     }
 
 }
