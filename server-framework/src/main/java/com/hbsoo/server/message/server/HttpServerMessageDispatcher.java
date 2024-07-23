@@ -36,6 +36,9 @@ public abstract class HttpServerMessageDispatcher extends ServerMessageDispatche
     @Override
     public void handle(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
     }
+    public Object threadKey(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
+        return null;
+    }
 
     public void responseJson(HttpPacket httpPacket, Object obj) {
         Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();

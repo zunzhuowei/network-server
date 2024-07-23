@@ -74,11 +74,6 @@ public class UserLoginAction extends HttpServerMessageDispatcher {
 
     }
 
-    @Override
-    public Object threadKey(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
-        return null;
-    }
-
 
 
 }
