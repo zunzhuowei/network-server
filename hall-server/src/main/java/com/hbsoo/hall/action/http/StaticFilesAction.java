@@ -36,10 +36,6 @@ public class StaticFilesAction extends DefaultHttpServerDispatcher {
         }
     }
 
-    @Override
-    public Object threadKey(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
-        return ctx.channel().id().asShortText();
-    }
 
     //判断请求路径是否为静态资源如：css,js，png等
     boolean isStaticResource(String path) {

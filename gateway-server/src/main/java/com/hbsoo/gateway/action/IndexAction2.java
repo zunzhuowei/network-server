@@ -72,8 +72,4 @@ public class IndexAction2 extends HttpServerMessageDispatcher {
 
     }
 
-    @Override
-    public Object threadKey(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
-        return null;
-    }
 }

@@ -42,8 +42,4 @@ public class IndexAction extends HttpServerMessageDispatcher {
         QueueMessageSender.publish("hall", "test", genealogies.toString());
     }
 
-    @Override
-    public Object threadKey(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
-        return null;
-    }
 }

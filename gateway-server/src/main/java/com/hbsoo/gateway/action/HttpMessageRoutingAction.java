@@ -31,9 +31,5 @@ public class HttpMessageRoutingAction extends DefaultHttpServerDispatcher {
         responseHtml(httpPacket, "404");
     }
 
-    @Override
-    public Object threadKey(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
-        return null;
-    }
 
 }
