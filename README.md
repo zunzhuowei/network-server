@@ -15,7 +15,7 @@
 
 ### Existing features
 
-1. Supports multiple network protocols, including TCP, UDP, HTTP, and WEBSOCKET; Multiple protocols can be configured on
+1. Supports multiple network protocols, including TCP, UDP, HTTP, and WEBSOCKET and MQTT; Multiple protocols can be configured on
    the same port.
 
 [comment]: <> (1. 多网络协议支持，支持TCP、UDP、HTTP、WEBSOCKET协议;同端口支持多种协议（可配置）)
@@ -94,7 +94,7 @@ hbsoo:
     outsideServer:
       enable: true #Whether to enable the outside server
       port: 5555 #Outside server port
-      protocol: "TCP,UDP,WEBSOCKET,HTTP" #Outside server protocol,Which protocols to use.
+      protocol: "TCP,UDP,WEBSOCKET,HTTP,MQTT" #Outside server protocol,Which protocols to use.
     insideServers:
       - host: 192.168.1.104
         port: 6000
@@ -259,7 +259,7 @@ public class IndexAction extends HttpServerMessageDispatcher {
 23. ~~用户登录接口抽离由使用框架者实现~~，~~同时还有用户登录内网同步和登出内网同步接口~~
 24. ~~内网消息不可达时，可选路由到相同类型的其他节点~~
 25. 消息转发，重复发送检测
-26. MQTT协议支持？
+26. ~~MQTT协议支持？~~
 27. ~~协议头配置化~~？
 28. 注册接口？
 29. ~~接口权限控制？~~
