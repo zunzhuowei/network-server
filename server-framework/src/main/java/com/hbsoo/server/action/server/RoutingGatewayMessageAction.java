@@ -8,7 +8,16 @@ import com.hbsoo.server.message.entity.NetworkPacket;
 import com.hbsoo.server.message.server.ServerMessageDispatcher;
 import com.hbsoo.server.session.OutsideUserProtocol;
 import com.hbsoo.server.utils.HttpRequestParser;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.mqtt.MqttDecoder;
+import io.netty.handler.codec.mqtt.MqttMessage;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 接收网关转发到内网服务器中的http、websocket、tcp、udp消息，
@@ -28,6 +37,21 @@ public class RoutingGatewayMessageAction extends ServerMessageDispatcher {
             decoder.resetBodyReadOffset();
             HttpRequestParser parser = HttpRequestParser.parse(decoder);
             redirectAndSwitch2OutsideHttpProtocol(ctx, parser);
+            return;
+        }
+        if (protocol == OutsideUserProtocol.MQTT) {
+            decoder.resetBodyReadOffset();
+            byte[] bytes = decoder.readBytes();
+            try {
+                final MqttDecoder mqttDecoder = new MqttDecoder();
+                Method decode = mqttDecoder.getClass().getDeclaredMethod("decode", ChannelHandlerContext.class, ByteBuf.class, List.class);
+                decode.setAccessible(true);
+                List<MqttMessage> msgs = new ArrayList<>();
+                decode.invoke(mqttDecoder, ctx, Unpooled.wrappedBuffer(bytes), msgs);
+                redirectAndSwitch2OutsideMqttProtocol(ctx, msgs, extendBody);
+            } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                e.printStackTrace();
+            }
             return;
         }
         int msgType = decoder.readExtendBodyMode().readInt();//read msgType from extendBody suffix

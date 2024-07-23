@@ -12,9 +12,11 @@ import com.hbsoo.server.message.sender.ForwardMessageSender;
 import com.hbsoo.server.netty.AttributeKeyConstants;
 import com.hbsoo.server.utils.SnowflakeIdGenerator;
 import com.hbsoo.server.utils.SpringBeanFactory;
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.DatagramPacket;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaderNames;
@@ -22,12 +24,17 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.netty.handler.codec.mqtt.MqttEncoder;
+import io.netty.handler.codec.mqtt.MqttMessage;
+import io.netty.util.ReferenceCountUtil;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -154,6 +161,9 @@ public final class OutsideUserSessionManager {
     public void loginWithHttpAndSyncAllServer(Channel channel, Long userId, String... permissions) {
         loginSyncAllServer(channel, userId, OutsideUserProtocol.HTTP, permissions);
     }
+    public void loginWithMqttAndSyncAllServer(Channel channel, Long userId, String... permissions) {
+        loginSyncAllServer(channel, userId, OutsideUserProtocol.MQTT, permissions);
+    }
 
     public void loginWithUdpAndSyncAllServer(Channel channel, Long userId, String senderHost, int senderPort, String... permissions) {
         UserSession userSession = new UserSession();
@@ -257,6 +267,26 @@ public final class OutsideUserSessionManager {
         sendMsg2User(OutsideUserProtocol.TEXT_WEBSOCKET, text.getBytes(StandardCharsets.UTF_8), ids);
     }
 
+    public void sendMqttMsg2User(ChannelHandlerContext ctx, MqttMessage mqttMessage, Long... ids) {
+        Class<? extends MqttEncoder> aClass = MqttEncoder.INSTANCE.getClass();
+        ByteBuf invoke = null;
+        try {
+            Method doEncode = aClass.getDeclaredMethod("doEncode", ChannelHandlerContext.class, MqttMessage.class);
+            doEncode.setAccessible(true);
+            invoke = (ByteBuf)doEncode.invoke(MqttEncoder.INSTANCE, ctx, mqttMessage);
+            byte [] data = new byte[invoke.readableBytes()];
+            invoke.readBytes(data);
+            sendMsg2User(OutsideUserProtocol.MQTT, data, ids);
+        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            e.printStackTrace();
+        } finally {
+            int i = ReferenceCountUtil.refCnt(invoke);
+            if (i > 0) {
+                ReferenceCountUtil.release(invoke);
+            }
+        }
+    }
+
     /**
      * 发送消息到用户
      *
@@ -289,13 +319,7 @@ public final class OutsideUserSessionManager {
                             .writeLong(id)//用户id
                             .writeBytes(insidePackage);//转发的消息
 
-                    //重试三次
-                    long msgId = snowflakeIdGenerator.generateId();
-                    ForwardMessage forwardMessage = new ForwardMessage(msgId, redirectPackage,
-                            new Date(System.currentTimeMillis() + 1000 * 10), -1,
-                            userSession.getBelongServer().getType(), null);
-                    forwardMessage.setToServerId(userSession.getBelongServer().getId());
-                    forwardMessageSender.send(forwardMessage);
+                    forwardBySender(userSession.getBelongServer().getType(), userSession.getBelongServer().getId(), redirectPackage);
                     continue;
                 }
                 if (!channel.isActive()) {
@@ -313,7 +337,8 @@ public final class OutsideUserSessionManager {
                         channel.writeAndFlush(socketFrame);
                         break;
                     }
-                    case TCP: {
+                    case TCP:
+                    case MQTT: {
                         channel.writeAndFlush(Unpooled.wrappedBuffer(insidePackage));
                         break;
                     }
@@ -369,13 +394,7 @@ public final class OutsideUserSessionManager {
                 .writeExtendBodyMode()
                 .writeObj(extendBody);
 
-        //重试三次
-        long msgId = snowflakeIdGenerator.generateId();
-        ForwardMessage forwardMessage = new ForwardMessage(msgId, redirectPackage,
-                new Date(System.currentTimeMillis() + 1000 * 10), -1,
-                fromServerType, null);
-        forwardMessage.setToServerId(fromServerId);
-        forwardMessageSender.send(forwardMessage);
+        forwardBySender(fromServerType, fromServerId, redirectPackage);
     }
     public void httpResponse(Map<String, String> headers, byte[] content, String contentType, ExtendBody extendBody,
                              GenericFutureListener<? extends Future<? super Void>> future) {
@@ -405,4 +424,58 @@ public final class OutsideUserSessionManager {
             channel.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
         }
     }
+
+    public void sendMqttMsg2UserWithChannelId(ChannelHandlerContext ctx, MqttMessage mqttMessage,  ExtendBody extendBody) {
+        Class<? extends MqttEncoder> aClass = MqttEncoder.INSTANCE.getClass();
+        ByteBuf invoke = null;
+        try {
+            Method doEncode = aClass.getDeclaredMethod("doEncode", ChannelHandlerContext.class, MqttMessage.class);
+            doEncode.setAccessible(true);
+            invoke = (ByteBuf)doEncode.invoke(MqttEncoder.INSTANCE, ctx, mqttMessage);
+            byte [] data = new byte[invoke.readableBytes()];
+            invoke.readBytes(data);
+            sendMqttMsg2UserWithChannelId(data, extendBody);
+        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            e.printStackTrace();
+        } finally {
+            int i = ReferenceCountUtil.refCnt(invoke);
+            if (i > 0) {
+                ReferenceCountUtil.release(invoke);
+            }
+        }
+    }
+
+    public void sendMqttMsg2UserWithChannelId(byte[] data, ExtendBody extendBody) {
+        String fromServerType = extendBody.getFromServerType();
+        int fromServerId = extendBody.getFromServerId();
+        String userChannelId = extendBody.getUserChannelId();
+        //如果是本服务器，则直接返回
+        if (NowServer.getServerInfo().getType().equals(fromServerType)
+                && fromServerId == NowServer.getServerInfo().getId()) {
+            ChannelManager.getChannel(userChannelId)
+                    .ifPresent(channel -> channel.writeAndFlush(Unpooled.wrappedBuffer(data)));
+            return;
+        }
+        //转发到他登录的服务器中，再由登录服务器转发给用户
+        NetworkPacket.Builder redirectPackage = NetworkPacket.Builder
+                .withDefaultHeader()
+                .msgType(MessageType.Inside.REDIRECT)
+                .writeStr(OutsideUserProtocol.MQTT.name())//用户协议类型
+                .writeLong(Long.MIN_VALUE)//用户id
+                .writeBytes(data)
+                .writeExtendBodyMode()
+                .writeObj(extendBody);
+        forwardBySender(fromServerType, fromServerId, redirectPackage);
+    }
+
+    private void forwardBySender(String fromServerType, int fromServerId, NetworkPacket.Builder redirectPackage) {
+        long msgId = snowflakeIdGenerator.generateId();
+        //重试三次
+        ForwardMessage forwardMessage = new ForwardMessage(msgId, redirectPackage,
+                new Date(System.currentTimeMillis() + 1000 * 10), -1,
+                fromServerType, null);
+        forwardMessage.setToServerId(fromServerId);
+        forwardMessageSender.send(forwardMessage);
+    }
+
 }

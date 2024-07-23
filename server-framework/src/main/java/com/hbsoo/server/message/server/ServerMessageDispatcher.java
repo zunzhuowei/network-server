@@ -15,9 +15,11 @@ import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpVersion;
+import io.netty.handler.codec.mqtt.MqttMessage;
 import io.netty.util.ReferenceCountUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -252,6 +254,17 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
         }
         OutsideServerMessageDispatcher outsideServerMessageDispatcher = SpringBeanFactory.getBean(OutsideServerMessageDispatcher.class);
         outsideServerMessageDispatcher.onHttpMessage(ctx, httpRequest, extendBody);
+    }
+
+    /**
+     * 消息重定向到【外部MQTT】消息处理器中处理,作用于【当前服务器】
+     * @param ctx 处理器上下文
+     */
+    public void redirectAndSwitch2OutsideMqttProtocol(ChannelHandlerContext ctx, List<MqttMessage> mqttMessages, ExtendBody extendBody) {
+        OutsideServerMessageDispatcher outsideServerMessageDispatcher = SpringBeanFactory.getBean(OutsideServerMessageDispatcher.class);
+        for (MqttMessage mqttMessage : mqttMessages) {
+            outsideServerMessageDispatcher.onMqttMessage(ctx, mqttMessage, extendBody);
+        }
     }
 
     /**

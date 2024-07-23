@@ -9,6 +9,7 @@ public enum Protocol {
     TCP,
     UDP,
     WEBSOCKET,
+    MQTT,
     ;
 
 }

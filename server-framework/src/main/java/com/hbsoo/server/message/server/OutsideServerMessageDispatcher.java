@@ -8,6 +8,7 @@ import com.hbsoo.server.utils.SpringBeanFactory;
 import com.hbsoo.server.utils.ThreadPoolScheduler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.mqtt.MqttMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +48,9 @@ public final class OutsideServerMessageDispatcher extends ServerMessageDispatche
 
     public void onHttpMessage(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest, ExtendBody extendBody) {
         handleHttp(ctx, fullHttpRequest, extendBody);
+    }
+    public void onMqttMessage(ChannelHandlerContext ctx, MqttMessage mqttMessage, ExtendBody extendBody) {
+        handleMqtt(ctx, mqttMessage, extendBody);
     }
 
     @Override
