@@ -2,7 +2,6 @@ package com.hbsoo.server.action.mqtt;
 
 import com.hbsoo.server.annotation.OutsideMessageHandler;
 import com.hbsoo.server.annotation.Protocol;
-import com.hbsoo.server.message.MessageType;
 import com.hbsoo.server.message.entity.ExtendBody;
 import com.hbsoo.server.message.entity.MqttPacket;
 import com.hbsoo.server.message.entity.NetworkPacket;
@@ -10,6 +9,8 @@ import com.hbsoo.server.message.server.MqttServerMessageDispatcher;
 import com.hbsoo.server.session.OutsideUserSessionManager;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.mqtt.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -19,8 +20,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 @OutsideMessageHandler(value = 1, protocol = Protocol.MQTT)
 public class MqttConnectAction extends MqttServerMessageDispatcher {
 
+    private static final Logger logger = LoggerFactory.getLogger(MqttConnectAction.class);
+
     @Autowired
     private OutsideUserSessionManager outsideUserSessionManager;
+
+    @Autowired(required = false)
+    private MqttConnectionAuthentication mqttConnectionAuthentication;
 
     @Override
     public void handle(ChannelHandlerContext ctx, MqttPacket mqttPacket) {
@@ -29,7 +35,15 @@ public class MqttConnectAction extends MqttServerMessageDispatcher {
         String clientId = ((MqttConnectPayload) mqttMessage.payload()).clientIdentifier();
         String userName = ((MqttConnectPayload) mqttMessage.payload()).userName();
         byte[] password = ((MqttConnectPayload) mqttMessage.payload()).passwordInBytes();
-        //login logic
+        //authentication logic
+        if (mqttConnectionAuthentication != null) {
+            boolean authentication = mqttConnectionAuthentication.authentication(ctx, mqttPacket, clientId, userName, password);
+            if (!authentication) {
+                //outsideUserSessionManager.loginWithMqttAndSyncAllServer();
+                logger.warn("login failed,clientId:{},userName:{},password:{}", clientId, userName, new String(password));
+                return;
+            }
+        }
         connack(ctx, mqttMessage, extendBody);
     }
 
