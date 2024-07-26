@@ -27,14 +27,17 @@ public class MqttConnectAction extends MqttServerMessageDispatcher {
 
     @Autowired(required = false)
     private MqttConnectionAuthentication mqttConnectionAuthentication;
+    @Autowired(required = false)
+    private WillMessageHandler willMessageHandler;
 
     @Override
     public void handle(ChannelHandlerContext ctx, MqttPacket mqttPacket) {
         MqttMessage mqttMessage = mqttPacket.getMqttMessage();
         ExtendBody extendBody = mqttPacket.getExtendBody();
-        String clientId = ((MqttConnectPayload) mqttMessage.payload()).clientIdentifier();
-        String userName = ((MqttConnectPayload) mqttMessage.payload()).userName();
-        byte[] password = ((MqttConnectPayload) mqttMessage.payload()).passwordInBytes();
+        MqttConnectPayload mqttConnectPayload = (MqttConnectPayload) mqttMessage.payload();
+        String clientId = mqttConnectPayload.clientIdentifier();
+        String userName = mqttConnectPayload.userName();
+        byte[] password = mqttConnectPayload.passwordInBytes();
         //authentication logic
         if (mqttConnectionAuthentication != null) {
             boolean authentication = mqttConnectionAuthentication.authentication(ctx, mqttPacket, clientId, userName, password);
@@ -45,6 +48,14 @@ public class MqttConnectAction extends MqttServerMessageDispatcher {
             }
         }
         connack(ctx, mqttMessage, extendBody);
+        // will message
+        String willTopic = mqttConnectPayload.willTopic();
+        byte[] willMessageInBytes = mqttConnectPayload.willMessageInBytes();
+        MqttProperties willProperties = mqttConnectPayload.willProperties();
+        if (willMessageHandler != null) {
+            logger.debug("willMessageHandler--" + willTopic + "--" + new String(willMessageInBytes));
+            willMessageHandler.handle(willTopic, willMessageInBytes, willProperties, extendBody);
+        }
     }
 
     @Override
