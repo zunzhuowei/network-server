@@ -89,6 +89,8 @@ public class JoinChatRoomAction extends ServerMessageDispatcher {
                     .msgType(1001).writeLong(Long.parseLong(split[0])).writeStr(split[1]);
             outsideUserSessionManager.sendMsg2User(protocol, historyMsg, userId);
         }
+        //just test
+        redirectAndSwitchProtocol(ctx, decoder, TestRedirectByHandlerAction.class);
     }
 
     @Override

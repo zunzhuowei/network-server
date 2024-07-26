@@ -150,6 +150,10 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
     public void forward2InsideServerUseSender(NetworkPacket.Builder msgBuilder, int serverId, String serverType, int delay, TimeUnit unit) {
         delayThreadPoolScheduler.schedule(() -> forward2InsideServerUseSender(msgBuilder, serverId, serverType), delay, unit);
     }
+
+
+
+
     /**
      * 消息重定向到【当前服务器】中的其他消息处理器中，与当前处理器【相同协议】
      * 注意：【不支持http、udp协议类型的处理器调用】。
@@ -189,18 +193,20 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
      *            4.HBSPackage.Builder（推荐）
      */
     private void redirectMessageOrg(ChannelHandlerContext ctx, Object msg) {
-        //final byte[] buildPackage = msgBuilder.buildPackage();
-        //ByteBuf buf = Unpooled.wrappedBuffer(buildPackage);
+        redirectMessageOrg(ctx, msg, this.getClass());
+    }
+
+    private <T extends ServerMessageDispatcher> void redirectMessageOrg(ChannelHandlerContext ctx, Object msg, Class<T> handlerClass) {
         try {
-            boolean outsideHandler = this.getClass().isAnnotationPresent(OutsideMessageHandler.class);
+            boolean outsideHandler = handlerClass.isAnnotationPresent(OutsideMessageHandler.class);
             if (outsideHandler) {
-                OutsideMessageHandler handler = this.getClass().getAnnotation(OutsideMessageHandler.class);
+                OutsideMessageHandler handler = handlerClass.getAnnotation(OutsideMessageHandler.class);
                 redirectAndSwitchProtocolOrg(ctx, ProtocolType.valueOf("OUTSIDE_" + handler.protocol().name()), msg);
                 return;
             }
-            boolean insideHandler = this.getClass().isAnnotationPresent(InsideServerMessageHandler.class);
+            boolean insideHandler = handlerClass.isAnnotationPresent(InsideServerMessageHandler.class);
             if (insideHandler) {
-                InsideServerMessageHandler handler = this.getClass().getAnnotation(InsideServerMessageHandler.class);
+                InsideServerMessageHandler handler = handlerClass.getAnnotation(InsideServerMessageHandler.class);
                 redirectAndSwitchProtocolOrg(ctx, ProtocolType.valueOf("INSIDE_" + handler.protocol().name()), msg);
             }
         } finally {
@@ -209,9 +215,13 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
                 ReferenceCountUtil.release(msg);
             }
         }
-        //onMessage(ctx, msg);
     }
 
+    private  <T extends ServerMessageDispatcher> int getMsgTypeFromHandlerClass(Class<T> handlerClass) {
+        return handlerClass.isAnnotationPresent(InsideServerMessageHandler.class) ?
+                handlerClass.getAnnotation(InsideServerMessageHandler.class).value() :
+                handlerClass.getAnnotation(OutsideMessageHandler.class).value();
+    }
     /**
      * 消息重定向到【指定协议】的消息处理器中处理,作用于【当前服务器】
      * @param ctx 上下文
@@ -225,6 +235,20 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
         delayThreadPoolScheduler.schedule(() -> redirectAndSwitchProtocolOrg(ctx, protocolType, msgBuilder), delay, unit);
     }
 
+    public <T extends ServerMessageDispatcher> void redirectAndSwitchProtocol(ChannelHandlerContext ctx, NetworkPacket.Builder msgBuilder, Class<T> handlerClass) {
+        int msgType = getMsgTypeFromHandlerClass(handlerClass);
+        msgBuilder.msgType(msgType);
+        redirectMessageOrg(ctx, msgBuilder, handlerClass);
+    }
+    public <T extends ServerMessageDispatcher> void redirectAndSwitchProtocol(ChannelHandlerContext ctx, NetworkPacket.Builder msgBuilder, Class<T> handlerClass, int delay, TimeUnit unit) {
+        delayThreadPoolScheduler.schedule(() -> redirectAndSwitchProtocol(ctx, msgBuilder, handlerClass), delay, unit);
+    }
+    public <T extends ServerMessageDispatcher> void redirectAndSwitchProtocol(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder, Class<T> handlerClass) {
+        redirectAndSwitchProtocol(ctx, decoder.toBuilder(), handlerClass);
+    }
+    public <T extends ServerMessageDispatcher> void redirectAndSwitchProtocol(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder, Class<T> handlerClass, int delay, TimeUnit unit) {
+        delayThreadPoolScheduler.schedule(() -> redirectAndSwitchProtocol(ctx, decoder, handlerClass), delay, unit);
+    }
     /**
      * 消息重定向到【指定协议】的消息处理器中处理,作用于【当前服务器】
      * @param ctx 上下文
@@ -301,6 +325,9 @@ public abstract class ServerMessageDispatcher implements ServerMessageHandler {
             ReferenceCountUtil.release(customMsg);
         }
     }
+
+
+
 
     /**
      * 请求服务器，并等待服务器响应返回值；
