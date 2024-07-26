@@ -22,16 +22,16 @@
             <artifactId>server-framework</artifactId>
             <version>1.0.0</version>
         </dependency>
-        <dependency>
+       <!-- <dependency>
             <groupId>com.hbsoo</groupId>
             <artifactId>server-database</artifactId>
             <version>1.0.0</version>
-        </dependency>
-        <dependency>
+        </dependency>-->
+       <!-- <dependency>
             <groupId>com.hbsoo</groupId>
             <artifactId>server-cache</artifactId>
             <version>1.0.0</version>
-        </dependency>
+        </dependency>-->
         <dependency>
             <groupId>com.hbsoo</groupId>
             <artifactId>server-permission</artifactId>
@@ -46,6 +46,16 @@
             <groupId>com.hbsoo</groupId>
             <artifactId>server-message-queue</artifactId>
             <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.12.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>fastjson</artifactId>
+            <version>1.2.83</version>
         </dependency>
     </dependencies>
 

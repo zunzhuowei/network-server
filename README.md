@@ -120,25 +120,19 @@ hbsoo:
 @OutsideMessageHandler(value = 0, uri = "/index", protocol = Protocol.HTTP)
 public class IndexAction extends HttpServerMessageDispatcher {
 
-    @Autowired
-    private IGenealogyService genealogyService;
-
-   @Override
-   public void handle(ChannelHandlerContext ctx, HttpPackage httpPacket) {
-      final List<Genealogy> genealogies = genealogyService.listAll();
-      //System.out.println("genealogies = " + genealogies);
-      responseJson(ctx, httpPacket, genealogies);
-      forward2InsideServerUseSender(
-              NetworkPacket.Builder.withDefaultHeader()
-                      .msgType(100).writeStr(genealogies.toString()),
-              "hall",
-              "",3);
-      QueueMessageSender.publish("hall", "test", genealogies.toString());
-   }
-
     @Override
-    public Object threadKey(ChannelHandlerContext ctx, NetworkPacket.Decoder decoder) {
-        return null;
+    public void handle(ChannelHandlerContext ctx, HttpPacket httpPacket) {
+        List<String> genealogies = new ArrayList<>();
+        genealogies.add("zun");
+        responseJson(httpPacket, genealogies);
+
+        forward2InsideServerUseSender(
+                NetworkPacket.Builder.withDefaultHeader()
+                        .msgType(100).writeStr(genealogies.toString()),
+                "hall",
+                "",3);
+
+        QueueMessageSender.publish("hall", "test", genealogies.toString());
     }
 }
 ```
@@ -146,7 +140,7 @@ public class IndexAction extends HttpServerMessageDispatcher {
 6. Define the WEBSOCKET message handler as follows
 
 ```java
-@OutsideMessageHandler(100)
+@OutsideMessageHandler(value = 100, protocol = Protocol.WEBSOCKET)
 public class LoginChatRoomAction extends ServerMessageDispatcher {
 
    private static final Logger logger = LoggerFactory.getLogger(LoginChatRoomAction.class);
@@ -174,6 +168,70 @@ public class LoginChatRoomAction extends ServerMessageDispatcher {
 7. Client side network packet and server side network packet as follows
 
 ![images](docs/pngs/networkPacket.png)
+
+8. Define the transaction queue message handler at sender side as follows
+```java
+@MessageListener(topic = "test", serverType = "hall")
+public class MessageQueueTest implements TransactionQueueMessageSenderHandler {
+    private static final Logger logger = LoggerFactory.getLogger(MessageQueueTest.class);
+
+    @Override
+    public void handleCallback(CallbackMessage callbackMessage) {
+        logger.info("callbackMessage = {}", callbackMessage);
+    }
+
+    @Override
+    public int consumerSize() {
+        return 2;
+    }
+
+    @Override
+    public boolean handle(Long msgId, String objJson) {
+        logger.debug("handle msgId = {},objJson = {}", msgId, objJson);
+        return true;
+    }
+
+    @Override
+    public boolean rollback(Long msgId, String objJson) {
+        logger.debug("rollback msgId = {},objJson = {}", msgId, objJson);
+        return true;
+    }
+}
+```
+9. Define the transaction queue message handler at receiver side as follows
+```java
+@MessageListener(topic = "test", serverType = "hall")
+public class MessageQueueTest implements TransactionQueueMessageHandler {
+    private static final Logger logger = LoggerFactory.getLogger(MessageQueueTest.class);
+
+    @Override
+    public boolean handle(Long msgId, String objJson) {
+        logger.debug("handle msgId = {},objJson = {}", msgId, objJson);
+        return false;
+    }
+
+    @Override
+    public boolean rollback(Long msgId, String objJson) {
+        logger.debug("rollback msgId = {},objJson = {}", msgId,objJson);
+        return false;
+    }
+}
+```
+10. Publish the transaction queue message as follows
+```java
+@OutsideMessageHandler(value = 0, uri = "/index", protocol = Protocol.HTTP)
+public class IndexAction extends HttpServerMessageDispatcher {
+
+    @Override
+    public void handle(ChannelHandlerContext ctx, HttpPacket httpPacket) {
+        List<String> genealogies = new ArrayList<>();
+        genealogies.add("zun");
+        responseJson(httpPacket, genealogies);
+        // publish transaction queue message 
+        QueueMessageSender.publish("hall", "test", genealogies.toString());
+    }
+}
+```
 
 ### How to develop
 

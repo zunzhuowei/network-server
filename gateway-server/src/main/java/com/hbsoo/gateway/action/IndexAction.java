@@ -1,8 +1,6 @@
 package com.hbsoo.gateway.action;
 
 //import com.hbsoo.access.control.AccessLimit;
-import com.hbsoo.gateway.entity.Genealogy;
-import com.hbsoo.gateway.service.IGenealogyService;
 import com.hbsoo.message.queue.QueueMessageSender;
 import com.hbsoo.permisson.PermissionAuth;
 import com.hbsoo.server.annotation.OutsideMessageHandler;
@@ -13,6 +11,7 @@ import com.hbsoo.server.message.server.HttpServerMessageDispatcher;
 import io.netty.channel.ChannelHandlerContext;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -24,13 +23,10 @@ import java.util.List;
 public class IndexAction extends HttpServerMessageDispatcher {
 
 
-    @Autowired
-    private IGenealogyService genealogyService;
-
     @Override
     public void handle(ChannelHandlerContext ctx, HttpPacket httpPacket) {
-        final List<Genealogy> genealogies = genealogyService.listAll();
-        //System.out.println("genealogies = " + genealogies);
+        List<String> genealogies = new ArrayList<>();
+        genealogies.add("zun");
         responseJson(httpPacket, genealogies);
 
         forward2InsideServerUseSender(
