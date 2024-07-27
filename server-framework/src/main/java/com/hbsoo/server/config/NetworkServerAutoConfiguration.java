@@ -24,7 +24,6 @@ import java.util.*;
  * Created by zun.wei on 2020/4/29.
  */
 @ComponentScan(basePackages = {
-        //"com.hbsoo.server.actiontest",
         "com.hbsoo.server.action.client",
         "com.hbsoo.server.action.server",
 })

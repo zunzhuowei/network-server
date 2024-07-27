@@ -21,6 +21,7 @@ public interface MessageType {
         int TRANSACTION_ROLLBACK = 13; //事务发起方服务器发起回滚事件到队列服务器中
         int TRANSACTION_ROLLBACK_PUSH = 14; //队列服务器推送回滚事件消息给消费者服务器
         int GATEWAY_ROUTING_MESSAGE_TO_INNER_SERVER = 15; //网关转发消息给内部服务
+        int CHANNEL_ID_SYNC = 16; //同步管道id到其他服务器
     }
 
     interface Outside {

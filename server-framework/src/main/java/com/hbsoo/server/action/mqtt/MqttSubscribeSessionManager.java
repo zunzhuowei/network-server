@@ -1,8 +1,10 @@
 package com.hbsoo.server.action.mqtt;
 
 
+import com.hbsoo.server.session.ServerChannelIdSyncListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,7 +16,8 @@ import java.util.stream.Collectors;
 /**
  * Created by zun.wei on 2024/6/27.
  */
-final class MqttSubscribeSessionManager {
+@Component
+final class MqttSubscribeSessionManager implements ServerChannelIdSyncListener {
 
     private static final Map<String, CopyOnWriteArraySet<SubscribeInfo>> sessionMap = new ConcurrentHashMap<>();
     private static final Logger logger = LoggerFactory.getLogger(MqttSubscribeSessionManager.class);
@@ -41,7 +44,7 @@ final class MqttSubscribeSessionManager {
                     if (s.getUserChannelId().equals(userChannelId)) {
                         v.remove(s);
                     }
-                    logger.info("取消订阅关系 mqtt channelId:{}", userChannelId);
+                    logger.info("取消订阅关系 mqtt topic:【{}】,SubscribeInfo:{}", k, s);
                 });
             });
         }
@@ -61,4 +64,8 @@ final class MqttSubscribeSessionManager {
         return servers.parallelStream().collect(Collectors.toList());
     }
 
+    @Override
+    public void onChannelInactive(String channelLongId) {
+        unSubscribe(channelLongId);
+    }
 }
