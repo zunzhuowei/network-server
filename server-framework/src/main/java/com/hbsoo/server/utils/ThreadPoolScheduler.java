@@ -1,5 +1,6 @@
 package com.hbsoo.server.utils;
 
+import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -28,15 +29,14 @@ public class ThreadPoolScheduler {
     }
 
     /**
-     * 根据hashCode将Runnable命令分发给对应的Executor执行。
-     * 分发策略是基于hashCode的取模结果，确保命令能够被均匀地分配给不同的Executor。
+     * 根据给定的线程标识符获取对应的线程池索引。
      *
-     * @param hashCode 命令的hashCode，用于计算分发的索引。
-     * @param command 要执行的命令，实现了Runnable接口。
+     * @param threadKey 线程标识符，可以是任何类型的对象。
+     * @return 对应的线程池索引。
      */
-    private void execute(int hashCode, Runnable command) {
-        int index = Math.abs(hashCode % executors.length);
-        executors[index].execute(command);
+    public int getOperationThreadKey(Object threadKey) {
+        int hash = Objects.hash(threadKey);
+        return Math.abs(hash % executors.length);
     }
 
     /**
@@ -51,7 +51,20 @@ public class ThreadPoolScheduler {
             execute(command);
             return;
         }
-        execute(hashObj.hashCode(), command);
+        int threadIndex = getOperationThreadKey(hashObj);
+        executors[threadIndex].execute(command);
+    }
+
+    /**
+     * 通过线程索引执行给定的Runnable命令。
+     * @param threadIndex 线程索引
+     * @param command 要执行的Runnable命令，不包含任何参数，仅包含执行逻辑。
+     */
+    public void executeByThreadIndex(int threadIndex, Runnable command) {
+        if (threadIndex < 0 || threadIndex >= executors.length) {
+            throw new IllegalArgumentException("Invalid thread index: " + threadIndex);
+        }
+        executors[threadIndex].execute(command);
     }
 
     /**
