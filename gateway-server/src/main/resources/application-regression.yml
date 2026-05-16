@@ -1,0 +1,38 @@
+spring:
+  main:
+    allow-bean-definition-overriding: true
+
+hbsoo:
+  server:
+    id: 1000
+    tcpHeader: THBS
+    udpHeader: UHBS
+    threadPoolSize:
+      insideClient: 2
+      insideServer: 2
+      outsideServer: 2
+    outsideServer:
+      enable: true
+      port: 25555
+      protocol: "TCP,HTTP"
+    insideServers:
+      - host: 127.0.0.1
+        port: 26000
+        type: gateway
+        clientSize: 1
+        weight: 10
+        id: 1000
+      - host: 127.0.0.1
+        port: 26003
+        type: hall
+        clientSize: 1
+        id: 2000
+      - host: 127.0.0.1
+        port: 26006
+        type: room
+        clientSize: 1
+        id: 3000
+
+logging:
+  level:
+    com.hbsoo: warn

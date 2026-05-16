@@ -11,26 +11,23 @@
 
     <artifactId>hall-server</artifactId>
 
-    <properties>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>com.hbsoo</groupId>
             <artifactId>server-framework</artifactId>
-            <version>1.0.0</version>
         </dependency>
         <dependency>
             <groupId>com.hbsoo</groupId>
             <artifactId>server-message-queue</artifactId>
-            <version>1.0.0</version>
         </dependency>
         <dependency>
             <groupId>com.hbsoo</groupId>
             <artifactId>server-permission</artifactId>
-            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -39,7 +36,6 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>2.5.15</version>
                 <configuration>
                     <mainClass>com.hbsoo.hall.HallServerApplication</mainClass>
                 </configuration>

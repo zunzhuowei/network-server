@@ -7,10 +7,8 @@ import com.baomidou.mybatisplus.extension.plugins.inner.OptimisticLockerInnerInt
 import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.ibatis.io.VFS;
 import org.apache.ibatis.plugin.Interceptor;
 import org.apache.ibatis.session.SqlSessionFactory;
-import org.mybatis.spring.boot.autoconfigure.SpringBootVFS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,7 +63,6 @@ public class MybatisPlusExpandConfigure {
         String mapperLocations = env.getProperty("mybatis.mapperLocations");
         //String configLocation = env.getProperty("mybatis.configLocation");
         typeAliasesPackage = setTypeAliasesPackage(typeAliasesPackage);
-        VFS.addImplClass(SpringBootVFS.class);
 
         //其实就改这1句
         MybatisSqlSessionFactoryBean sessionFactory = new MybatisSqlSessionFactoryBean();

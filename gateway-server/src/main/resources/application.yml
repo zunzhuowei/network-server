@@ -38,6 +38,8 @@ logging:
     dateformat: yyyy-MM-dd HH:mm:ss
 
 spring:
+  main:
+    allow-bean-definition-overriding: true
   profiles:
     active:
     include: database

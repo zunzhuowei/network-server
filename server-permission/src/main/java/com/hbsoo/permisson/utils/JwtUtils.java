@@ -1,18 +1,26 @@
 package com.hbsoo.permisson.utils;
 
 import com.google.gson.Gson;
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.Map;
-
 
 /**
  * Created by zun.wei on 2023/12/10.
  */
-@ConfigurationProperties(prefix = "hbsoo.server.jwt")//绑定到配置文件 可以在yml给属性初始化值
+@ConfigurationProperties(prefix = "hbsoo.server.jwt")
 public class JwtUtils {
 
     private long expire = 360000L;
@@ -22,7 +30,16 @@ public class JwtUtils {
     @Autowired
     private AESUtil aesUtil;
 
-    // 生成jwt
+    private SecretKey signingKey() {
+        try {
+            byte[] keyBytes = MessageDigest.getInstance("SHA-512")
+                    .digest(secret.getBytes(StandardCharsets.UTF_8));
+            return Keys.hmacShaKeyFor(keyBytes);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-512 not available", e);
+        }
+    }
+
     public String generateToken(String id, Map<String, String> param) {
         Date nowDate = new Date();
         Date expireDate = new Date(nowDate.getTime() + 1000 * expire);
@@ -35,28 +52,28 @@ public class JwtUtils {
             e.printStackTrace();
         }
         return Jwts.builder()
-                .setHeaderParam("typ", "JWT")
-                .setId(id)
-                //.setSubject(username)
-                //.claim("openid", openid)
+                .header().add("typ", "JWT").and()
+                .id(id)
                 .claim("param", encrypt)
-                .setIssuedAt(nowDate)
-                .setExpiration(expireDate)// 7天過期
-                .signWith(SignatureAlgorithm.HS512, secret)
+                .issuedAt(nowDate)
+                .expiration(expireDate)
+                .signWith(signingKey(), Jwts.SIG.HS512)
                 .compact();
     }
 
-    // 解析jwt
     public Claims getClaimByToken(String jwt) {
         try {
-            final Claims body = Jwts.parser()
-                    .setSigningKey(secret)
-                    .parseClaimsJws(jwt)
-                    .getBody();
+            Claims body = Jwts.parser()
+                    .verifyWith(signingKey())
+                    .build()
+                    .parseSignedClaims(jwt)
+                    .getPayload();
             String encrypt = body.get("param").toString();
-            final String decrypt = aesUtil.decrypt(encrypt);
-            body.put("param", decrypt);
-            return body;
+            String decrypt = aesUtil.decrypt(encrypt);
+            return Jwts.claims()
+                    .add(body)
+                    .add("param", decrypt)
+                    .build();
         } catch (Exception e) {
             if (e instanceof ExpiredJwtException) {
                 //throw new SystemException(_108);
@@ -67,16 +84,13 @@ public class JwtUtils {
             if (e instanceof MalformedJwtException) {
                 //throw new SystemException(_110);
             }
-            //throw new SystemException(_102);
         }
         return null;
     }
 
-    // jwt是否过期
     public boolean isTokenExpired(Claims claims) {
         return claims.getExpiration().before(new Date());
     }
-
 
     public long getExpire() {
         return expire;

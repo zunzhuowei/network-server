@@ -1,3 +1,0 @@
-org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-com.hbsoo.cache.config.RedissonConfiguration,\
-com.hbsoo.cache.config.CaffeineCacheConfig

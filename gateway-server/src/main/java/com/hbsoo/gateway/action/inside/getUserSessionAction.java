@@ -1,6 +1,6 @@
 package com.hbsoo.gateway.action.inside;
 
-import com.alibaba.fastjson.JSON;
+import com.google.gson.Gson;
 import com.hbsoo.server.annotation.InsideServerMessageHandler;
 import com.hbsoo.server.message.entity.ExtendBody;
 import com.hbsoo.server.message.entity.NetworkPacket;
@@ -27,7 +27,7 @@ public class getUserSessionAction extends ServerMessageDispatcher {
         String message = decoder.readStr();
         System.out.println("getUserSessionAction message = " + message);
         UserSession userSession = outsideUserSessionManager.getUserSession(userSession1.getId());
-        String jsonString = JSON.toJSONString(userSession);
+        String jsonString = new Gson().toJson(userSession);
         NetworkPacket.Builder.withDefaultHeader()
                 .msgType(1001)
                 .writeStr(jsonString)
